@@ -1,3 +1,5 @@
+#!/bin/bash -x 
+
 #arg1 = input mlir file
 #arg2 = target output file
 #arg3 = mlir-hlo-opt location
