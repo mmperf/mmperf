@@ -10,3 +10,6 @@ A collection of MLIR End to End examples. We plan to add working examples of:
 3. Torchscript --> ATen --> [C++ / LLVM_IR]
   * Use mlir-npcomp to generate ATen Dialect. 
   * Lower to C++ / LLVM_IR (?)
+
+# Other references
+https://llvm.discourse.group/t/print-in-mlir/1701/13
