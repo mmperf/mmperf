@@ -12,7 +12,8 @@ To run examples you need to have:
 - mlir-tranlsate
 
 using TF: da034876d3d1849f6328c9c05c918b506e62dd63
-using LLVM: 0f6facca9701f6df87d13e55d70bd7111a0472aa 
+using LLVM: 0f6facca9701f6df87d13e55d70bd7111a0472aa
+
 **Intalling TensorFlow Opt and Tools**:
 ```sh
 git clone https://github.com/tensorflow/tensorflow
