@@ -11,5 +11,25 @@ A collection of MLIR End to End examples. We plan to add working examples of:
   * Use mlir-npcomp to generate ATen Dialect. 
   * Lower to C++ / LLVM_IR (?)
 
+**Intalling LLVM/MLIR and TF Dependencies**:
+```sh
+git clone https://github.com/NodLabs/mlir-examples.git
+mkdir mlir-examples/
+./install_deps.sh
+```
+Export the pre-built binaries into your path (you can also directly call the binaries)
+
+```
+export PATH=`pwd`/build/install/bin:$PATH
+```
+
+Now cd into one of the examples and give it a try. 
+
+```
+./build/install/bin/tf_to_kernel --input=LLVM-IR-E2E/tf_abs/tf_abs.mlir --output=abs_kernel.o
+
+file abs_kernel.o
+```
+
 # Other references
 https://llvm.discourse.group/t/print-in-mlir/1701/13

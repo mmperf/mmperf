@@ -59,7 +59,7 @@ if [ ! -f ".tf_configure.bazelrc" ]; then
     ./configure
 fi
 echo "TF configured... invoking bazel. If you dont have bazel .. download and install bazelisk"
-bazel build //tensorflow/compiler/mlir:tf-mlir-translate //tensorflow/compiler/mlir:tf-opt //tensorflow/compiler/mlir/tools/kernel_gen:kernel-gen-opt //tensorflow/compiler/mlir/hlo:mlir-hlo-opt //tensorflow/compiler/mlir/tools/kernel_gen:tf_to_kernel //tensorflow/compiler/mlir/tools/kernel_gen:tf_to_gpu_binary
+bazel build --config=cuda //tensorflow/compiler/mlir:tf-mlir-translate //tensorflow/compiler/mlir:tf-opt //tensorflow/compiler/mlir/tools/kernel_gen:kernel-gen-opt //tensorflow/compiler/mlir/hlo:mlir-hlo-opt //tensorflow/compiler/mlir/tools/kernel_gen:tf_to_kernel //tensorflow/compiler/mlir/tools/kernel_gen:tf_to_gpu_binary
 
 ln -s ${TF_SRC_DIR}/bazel-bin/tensorflow/compiler/mlir/tf-mlir-translate $install_mlir/bin/
 ln -s ${TF_SRC_DIR}/bazel-bin/tensorflow/compiler/mlir/tf-opt $install_mlir/bin/
