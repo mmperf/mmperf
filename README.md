@@ -11,7 +11,7 @@ A collection of MLIR End to End examples. We plan to add working examples of:
   * Use mlir-npcomp to generate ATen Dialect. 
   * Lower to C++ / LLVM_IR (?)
 
-**Intalling LLVM/MLIR and TF Dependencies**:
+# Intalling LLVM/MLIR and TF Dependencies:
 ```sh
 git clone https://github.com/NodLabs/mlir-examples.git
 mkdir mlir-examples/
@@ -23,6 +23,9 @@ Export the pre-built binaries into your path (you can also directly call the bin
 export PATH=`pwd`/build/install/bin:$PATH
 ```
 
+
+# Generating MHLO->LLVM-IR->Target examples
+
 Now cd into one of the examples and give it a try. 
 
 ```
@@ -30,6 +33,49 @@ Now cd into one of the examples and give it a try.
 
 file abs_kernel.o
 ```
+
+# Generating MHLO->C++->Target examples
+
+```
+mkdir build/emitc
+cd build/emitc
+cmake -G Ninja -DCMAKE_C_COMPILER=clang-10 -DCMAKE_CXX_COMPILER=clang++-10 .. -DCMAKE_PREFIX_PATH=../../build/install/lib/cmake/mlir -DLLVM_EXTERNAL_LIT=`pwd`/../build-mlir/bin/llvm-lit ../../external/mlir-emitc/
+cmake --build . --target check-emitc
+```
+Currently you will notice three tests failing
+
+```
+-- Testing: 13 tests, 13 workers --
+UNRESOLVED: EMITC :: testCorrectGroundTruthWithHMC_canon_inline.mlir (1 of 13)
+UNRESOLVED: EMITC :: testCorrectGroundTruthWithHMC_canon.mlir (2 of 13)
+PASS: EMITC :: Target/cpp-calls-for.mlir (3 of 13)
+UNRESOLVED: EMITC :: testCorrectGroundTruthWithHMC.mlir (4 of 13)
+PASS: EMITC :: Dialect/EmitC/ops.mlir (5 of 13)
+PASS: EMITC :: Target/cpp-calls.mlir (6 of 13)
+PASS: EMITC :: Target/cpp-calls-if.mlir (7 of 13)
+PASS: EMITC :: Conversion/mhlo-to-std.mlir (8 of 13)
+PASS: EMITC :: Conversion/std-to-emitc.mlir (9 of 13)
+PASS: EMITC :: Conversion/mhlo-to-emitc.mlir (10 of 13)
+PASS: EMITC :: Conversion/scf-to-emitc.mlir (11 of 13)
+PASS: EMITC :: Dialect/EmitC/ifop.mlir (12 of 13)
+PASS: EMITC :: Dialect/EmitC/forop.mlir (13 of 13)
+********************
+Unresolved Tests (3):
+  EMITC :: testCorrectGroundTruthWithHMC.mlir
+  EMITC :: testCorrectGroundTruthWithHMC_canon.mlir
+  EMITC :: testCorrectGroundTruthWithHMC_canon_inline.mlir
+
+
+Testing Time: 0.12s
+  Passed    : 10
+  Unresolved:  3
+FAILED: test/CMakeFiles/check-emitc
+cd /home/anush/github/mlir-examples/build/emitc/test && /home/anush/github/mlir-examples/build/emitc/../build-mlir/bin/llvm-lit /home/anush/github/mlir-examples/build/emitc/test
+ninja: build stopped: subcommand failed.
+```
+
+
+
 
 # Other references
 https://llvm.discourse.group/t/print-in-mlir/1701/13
