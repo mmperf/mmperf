@@ -2,7 +2,7 @@
 
 This repository aims to recreate the results shown in these [slides](https://drive.google.com/file/d/1_zPPxOILAIHOWoSM7GALwioYOGEgD2Xe/view). The current results are shown below.
 
-![Results](images/matmul.png)
+![Results](matmul.png)
 
 ### Installation
 To build the code, run
