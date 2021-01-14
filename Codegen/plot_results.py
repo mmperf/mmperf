@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     plt.xlabel("Matrix sizes")
     plt.ylabel("GFLOPS")
-    plt.title("Matrix Multiplication")
+    plt.title("Single Precision Matrix Multiplication")
     x_pos = [i + 0.5 * width for i, _ in enumerate(sizes)]
     plt.xticks(x_pos, sizes, rotation=90, fontsize=5)
     plt.legend(loc='best')

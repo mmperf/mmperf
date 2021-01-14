@@ -3,8 +3,13 @@ project(codegen C CXX)
 
 include(ExternalProject)
 
-set(MLIR_SOURCE ../../external/llvm-project/llvm)
-set(MLIR_BUILD ${CMAKE_BINARY_DIR}/mlir)
+if(NOT DEFINED MLIR_SOURCE)
+  set(MLIR_SOURCE ../../external/llvm-project/llvm)
+endif()
+if(NOT DEFINED MLIR_BUILD)
+  set(MLIR_BUILD ${CMAKE_BINARY_DIR}/mlir)
+endif()
+
 set(MLIR_INSTALL ${CMAKE_BINARY_DIR}/mlir-install)
 ExternalProject_Add(mlir
   PREFIX ${CMAKE_BINARY_DIR}/mlir

@@ -66,6 +66,16 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
 }  // namespace
 
 void LinalgCodegenPass::runOnFunction() {
+  MLIRContext *ctx = getFunction().getContext();
+  SmallVector<Attribute, 4> attrs;
+  attrs.push_back(ArrayAttr::get({StringAttr::get("prefer-vector-width", ctx),
+                                  StringAttr::get("512", ctx)},
+                                  ctx));
+  attrs.push_back(ArrayAttr::get({StringAttr::get("target-cpu", ctx),
+                                  StringAttr::get("skylake-avx512", ctx)},
+                                  ctx));
+  getFunction()->setAttr("passthrough", ArrayAttr::get(attrs, ctx));
+
   std::string vectorizeContractionTo("outerproduct");
   std::string splitVectorTransfersTo("vector-transfers");
   bool registerPromoteFullTile{true};
@@ -88,24 +98,15 @@ void LinalgCodegenPass::runOnFunction() {
   // Small and medium codegen
   if (M < 1000) {
     LinalgTilingOptions tilingOptions;
-    llvm::SmallVector<int64_t, 4> tileSizes{6, 32, 16};
+    llvm::SmallVector<int64_t, 4> tileSizes{6, 16, 16};
     if (!tileSizes.empty())
       tilingOptions = tilingOptions.setTileSizes(tileSizes);
-
-    LinalgTilingOptions registerTilingOptions;
-    llvm::SmallVector<int64_t, 4> registerTileSizes{2, 4, 8};
-    if (!registerTileSizes.empty())
-      registerTilingOptions = registerTilingOptions.setTileSizes(registerTileSizes);
 
     CodegenStrategy strategy;
     strategy.tile<MatmulOp>(tilingOptions)
         .promote<MatmulOp>(LinalgPromotionOptions()
 			      .setAlignment(16)
 			      .setUseFullTileBuffersByDefault(true))
-        .tile<MatmulOp>(registerTilingOptions)
-        .promote<MatmulOp>(LinalgPromotionOptions()
-                              .setAlignment(16)
-                              .setUseFullTileBuffersByDefault(registerPromoteFullTile))
         .vectorize<MatmulOp>()
         .setVectorTransformsOptions(
             vector::VectorTransformsOptions()
@@ -125,7 +126,7 @@ void LinalgCodegenPass::runOnFunction() {
       CodegenStrategy strategyCaches;
       strategyCaches
         .tile<MatmulOp>(LinalgTilingOptions()
-			.setTileSizes({192, 256, 256})
+			.setTileSizes({128, 128, 256})
 			.setInterchange({0, 2, 1}))
         .promote<MatmulOp>(LinalgPromotionOptions()
 			   .setOperandsToPromote({0, 1})
@@ -138,7 +139,18 @@ void LinalgCodegenPass::runOnFunction() {
     {
       CodegenStrategy strategyRegisters;
       strategyRegisters
-        .tile<CopyOp>(LinalgTilingOptions().setTileSizes({4, 32}))
+        .tile<FillOp>(LinalgTilingOptions().setTileSizes({4, 16}))
+        .vectorize<FillOp>()
+        .setVectorTransferToSCFOptions(
+            VectorTransferToSCFOptions().setUnroll(unrollVectorTransfers));
+
+      strategyRegisters.transform(getFunction());
+    }
+
+    {
+      CodegenStrategy strategyRegisters;
+      strategyRegisters
+        .tile<CopyOp>(LinalgTilingOptions().setTileSizes({4, 16}))
         .vectorize<CopyOp>()
         .setVectorTransferToSCFOptions(
             VectorTransferToSCFOptions().setUnroll(unrollVectorTransfers));
@@ -150,7 +162,7 @@ void LinalgCodegenPass::runOnFunction() {
     {
       CodegenStrategy strategyRegisters;
       strategyRegisters
-        .tile<CopyOp>(LinalgTilingOptions().setTileSizes({6, 32, 16}))
+        .tile<MatmulOp>(LinalgTilingOptions().setTileSizes({8, 16, 8}))
         .promote<MatmulOp>(LinalgPromotionOptions()
                              .setUseFullTileBuffersByDefault(registerPromoteFullTile)
 			   .setAlignment(128))
@@ -165,6 +177,8 @@ void LinalgCodegenPass::runOnFunction() {
       strategyRegisters.transform(getFunction());
     }
   }
+
+  //getFunction().dump();
 }
 
 std::unique_ptr<OperationPass<FuncOp>> createLinalgCodegenPass(int M, int N, int K) {
@@ -213,6 +227,7 @@ static void get_dimensions(const std::string filename, int &M, int &N, int &K) {
 Error compile(Options &options, mlir::DialectRegistry &registry) {
   MLIRContext context;
   registry.loadAll(&context);
+  llvm::errs() << "Read file: " << options.inputFile << "\n";
   OwningModuleRef moduleRef = parseSourceFile(options.inputFile, &context);
   if (!moduleRef)
     return make_string_error(Twine("could not open ") + options.inputFile);
@@ -221,6 +236,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   PassManager pm(module.getContext(), OpPassManager::Nesting::Implicit);
   int M, N, K;
   get_dimensions(options.inputFile, M, N, K);
+  pm.addPass(createCanonicalizerPass());
   pm.addPass(createLinalgCodegenPass(M, N, K));
 
   // Lower to LLVM

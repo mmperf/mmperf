@@ -47,4 +47,5 @@ The linalg codegen pass is in matmul/matmul-compile/matmul-compile.cpp.
 ### Hardware information
 
 This benchmark was run on an Intel Xeon CPU running at 3.1GHz. The machine has 256Kb L1 cache, 8Mb L2 cache and 24.8Mb L3 cache.
-It supports AVX-512 instructions. The peak performance of the machine is 3.1 x 8 x 2 x 2 = 99.2 GFLOPS for double precision.
+It supports AVX-512 instructions. The peak performance of the machine is 3.1 x 8 x 2 x 2 = 99.2 GFLOPS for double precision
+and 198.4 GFLOPS for single precision.

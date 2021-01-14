@@ -1,5 +1,5 @@
-func @matmul(%a: memref<2304x2560xf64>, %b: memref<2560x2304xf64>, %c: memref<2304x2304xf64>) {
-  linalg.matmul ins(%a, %b : memref<2304x2560xf64>, memref<2560x2304xf64>)
-    outs(%c: memref<2304x2304xf64>)
+func @matmul(%a: memref<2304x2560xf32>, %b: memref<2560x2304xf32>, %c: memref<2304x2304xf32>) {
+  linalg.matmul ins(%a, %b : memref<2304x2560xf32>, memref<2560x2304xf32>)
+    outs(%c: memref<2304x2304xf32>)
   return
 }

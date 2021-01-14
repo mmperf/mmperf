@@ -6,9 +6,9 @@ sizes = ["18x32x96", "24x64x96" ,"24x64x512" ,"48x64x128" ,"192x64x128" , \
 ]
 
 code = '''\
-func @matmul(%a: memref<{M}x{K}xf64>, %b: memref<{K}x{N}xf64>, %c: memref<{M}x{N}xf64>) {{
-  linalg.matmul ins(%a, %b : memref<{M}x{K}xf64>, memref<{K}x{N}xf64>)
-    outs(%c: memref<{M}x{N}xf64>)
+func @matmul(%a: memref<{M}x{K}xf32>, %b: memref<{K}x{N}xf32>, %c: memref<{M}x{N}xf32>) {{
+  linalg.matmul ins(%a, %b : memref<{M}x{K}xf32>, memref<{K}x{N}xf32>)
+    outs(%c: memref<{M}x{N}xf32>)
   return
 }}'''
 

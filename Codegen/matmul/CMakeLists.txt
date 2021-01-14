@@ -8,7 +8,9 @@ function(compile_mlir mlir_prefix)
   set(OBJ ${CMAKE_BINARY_DIR}/${mlir_prefix}.o)
   add_custom_command(OUTPUT ${OBJ}
     COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile ${CMAKE_CURRENT_LIST_DIR}/mlir/${mlir_prefix}.mlir
-    COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_CURRENT_LIST_DIR}/${mlir_prefix}.ll -c -o ${OBJ}
+    COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_CURRENT_LIST_DIR}/${mlir_prefix}.ll
+    -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
+    -c -o ${OBJ}
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
     DEPENDS matmul-compile
   )
