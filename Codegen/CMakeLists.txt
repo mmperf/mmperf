@@ -32,6 +32,7 @@ ExternalProject_Add(mlir
 )
 
 option(USE_MKL "Enable MKL" OFF)
+set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/benchmark_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
 ExternalProject_Add(matmul
   DEPENDS mlir
   PREFIX ${CMAKE_BINARY_DIR}/matmul
@@ -45,4 +46,5 @@ ExternalProject_Add(matmul
     -DCMAKE_BUILD_TYPE:STRING=Release
     -DMKL_DIR=${MKL_DIR}
     -DUSE_MKL=${USE_MKL}
+    -DSIZE_FILE=${SIZE_FILE}
 )

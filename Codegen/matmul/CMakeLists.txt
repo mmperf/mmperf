@@ -17,10 +17,16 @@ function(compile_mlir mlir_prefix)
 endfunction()
 
 # Matrix sizes to benchmark
-set(MATRIX_SIZES
-  "18x32x96" "24x64x96" "24x64x512" "48x64x128" "192x64x128" # SMALL
-  "192x128x128" "192x256x256" "384x256x256" "480x512x16" "480x512x256" # MEDIUM
-  "1024x1024x1024" "1020x1152x1152" "1920x2304x2304" "2304x2304x2560" # LARGE
+message(STATUS "Reading matrix sizes from ... ${SIZE_FILE}")
+file(READ ${SIZE_FILE} MATRIX_SIZES)
+string(REGEX REPLACE ";" "\\\\;" MATRIX_SIZES "${MATRIX_SIZES}")
+string(REGEX REPLACE "\n" ";" MATRIX_SIZES "${MATRIX_SIZES}")
+
+# Generate mlir files
+message(STATUS "Running ${CMAKE_CURRENT_LIST_DIR}/mlir/generate_mlir.py -matrix_sizes ${SIZE_FILE}")
+execute_process(
+  COMMAND ${CMAKE_CURRENT_LIST_DIR}/mlir/generate_mlir.py -matrix_sizes ${SIZE_FILE}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/mlir
 )
 
 # Number of times to repeat the test

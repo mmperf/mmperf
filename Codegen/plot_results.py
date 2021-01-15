@@ -3,17 +3,14 @@
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 import os
+import argparse
 
-sizes = ["18x32x96", "24x64x96" ,"24x64x512" ,"48x64x128" ,"192x64x128" , \
-  "192x128x128" ,"192x256x256" ,"384x256x256" ,"480x512x16" ,"480x512x256" , \
-  "1024x1024x1024" ,"1020x1152x1152" ,"1920x2304x2304" ,"2304x2304x2560" \
-]
 width = 0.35
 
-def plot_mkl():
+def plot_mkl(sizes, mkl_dir):
     gflops = []
     for size in sizes:
-        file_name = 'mkl/matmul_' + size + '_mkl_perf.out'
+        file_name = mkl_dir + '/matmul_' + size + '_mkl_perf.out'
         with open(file_name, 'r') as f:
             speed = f.readlines()
         gflops.append(float(speed[0].split()[0]))
@@ -21,10 +18,10 @@ def plot_mkl():
     x_pos = [i for i, _ in enumerate(sizes)]
     plt.bar(x_pos, gflops, width, color='red', label='MKL')
 
-def plot_mlir():
+def plot_mlir(sizes, mlir_dir):
     gflops = []
     for size in sizes:
-        file_name = 'build/matmul/matmul_' + size + '_mlir_perf.out'
+        file_name = mlir_dir + '/matmul_' + size + '_mlir_perf.out'
         try:
             with open(file_name, 'r') as f:
                 speed = f.readlines()
@@ -36,8 +33,21 @@ def plot_mlir():
     plt.bar(x_pos, gflops, width, color='blue', label='MLIR')
 
 if __name__ == "__main__":
-    plot_mkl()
-    plot_mlir()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-matrix_sizes', dest='matrix_sizes', action='store',
+                        help='Path to file containing matrix sizes', default='benchmark_sizes.txt')
+    parser.add_argument('-mkl_dir', dest='mkl_dir', action='store',
+                        help='Path to MKL performance results', default='mkl/')
+    parser.add_argument('-mlir_dir', dest='mlir_dir', action='store',
+                        help='Path to MLIR performance results', default='build/matmul/')
+    args = parser.parse_args()
+
+    sizes = None
+    with open(args.matrix_sizes, 'r') as f:
+        sizes = f.read().splitlines()
+
+    plot_mkl(sizes, args.mkl_dir)
+    plot_mlir(sizes, args.mlir_dir)
 
     plt.xlabel("Matrix sizes")
     plt.ylabel("GFLOPS")
