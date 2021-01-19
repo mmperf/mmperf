@@ -31,20 +31,29 @@ ExternalProject_Add(mlir
     -DLLVM_ENABLE_RTTI:BOOL=ON
 )
 
+option(USE_MLIR "Enable MLIR" ON)
 option(USE_MKL "Enable MKL" OFF)
+option(USE_OPENBLAS "Enable OpenBLAS" OFF)
+
 set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/benchmark_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
 ExternalProject_Add(matmul
   DEPENDS mlir
   PREFIX ${CMAKE_BINARY_DIR}/matmul
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/matmul
-  BINARY_DIR ${CMAKE_BINARY_DIR}/matmul 
+  BINARY_DIR ${CMAKE_BINARY_DIR}/matmul
   INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step."
   CMAKE_ARGS
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DMLIR_DIR=${MLIR_INSTALL}/lib/cmake/mlir
     -DCMAKE_BUILD_TYPE:STRING=Release
+    -DUSE_MLIR=${USE_MLIR}
     -DMKL_DIR=${MKL_DIR}
     -DUSE_MKL=${USE_MKL}
     -DSIZE_FILE=${SIZE_FILE}
+    -DUSE_OPENBLAS=${USE_OPENBLAS}
 )
+
+unset(USE_MLIR CACHE)
+unset(USE_MKL CACHE)
+unset(USE_OPENBLAS CACHE)

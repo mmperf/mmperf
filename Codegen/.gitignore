@@ -1,3 +1,2 @@
 *.ll
-*.out
-*/*.out
+matmul/mlir/*.mlir

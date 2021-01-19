@@ -1,5 +1,7 @@
 #ifdef MKL
 #include "mkl.h"
+#elif defined(OPENBLAS)
+#include "cblas.h"
 #endif
 #include "stdio.h"
 #include "stdlib.h"
@@ -44,6 +46,8 @@ void init_matrix(float *a, int nrows, int ncols) {
 int main(int argc, char **argv) {
 #ifdef MKL
   printf("Benchmarking MKL %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(OPENBLAS)
+  printf("Benchmarking OpenBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #else
   printf("Benchmarking MLIR %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #endif
@@ -63,7 +67,7 @@ int main(int argc, char **argv) {
   float beta = 1.0;
 
   for (int t = 0; t < NUM_REPS; ++t) {
-#ifdef MKL
+#if defined(MKL) || defined(OPENBLAS)
     cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);
 #else
