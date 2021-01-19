@@ -25,7 +25,6 @@ endif()
 set(LIBS
   ${dialect_libs}
   ${conversion_libs}
-  MLIR
   MLIRExecutionEngine
 )
 add_llvm_executable(matmul-compile matmul-compile.cpp)
