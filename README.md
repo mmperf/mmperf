@@ -1,81 +1,51 @@
-# Collection of easy to use MLIR end to end examples. 
-A collection of MLIR End to End examples. We plan to add working examples of:
+# Matrix Multiplication in MLIR
 
-1. TF2 Saved Model --> MHLO --> C/C++
-  *  --> C++ --> target of your choice. With EmitC: (https://github.com/iml130/mlir-emitc/tree/cgo) 
-  *  --> C++ --> target of your device. With TCIE: (https://gist.github.com/silvasean/8eb20f3649855b64f525c7141033f053)
-2. TF2 Saved Model --> MHLO --> LLVM_IR
-  * --> RefE2E (?)
-  * --> LLVM-IR-e2e in this repo
-3. Torchscript --> ATen --> [C++ / LLVM_IR]
-  * Use mlir-npcomp to generate ATen Dialect. 
-  * Lower to C++ / LLVM_IR (?)
+This repository aims to recreate the results shown in these [slides](https://drive.google.com/file/d/1_zPPxOILAIHOWoSM7GALwioYOGEgD2Xe/view). The current results are shown below.
 
-# Intalling LLVM/MLIR and TF Dependencies:
-```sh
-git clone https://github.com/NodLabs/mlir-examples.git
-mkdir mlir-examples/
-./install_deps.sh
-```
-Export the pre-built binaries into your path (you can also directly call the binaries)
+![Results](matmul.png)
+
+### Installation
+To build the code, run
 
 ```
-export PATH=`pwd`/build/install/bin:$PATH
+cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DUSE_MLIR=ON -B build .
+cmake --build build
 ```
 
-
-# Generating MHLO->LLVM-IR->Target examples
-
-Now cd into one of the examples and give it a try. 
+This code has been tested with clang-11 but older versions will also work.
+To plot the results, you will need to install matplotlib.
 
 ```
-./build/install/bin/tf_to_kernel --input=LLVM-IR-E2E/tf_abs/tf_abs.mlir --output=abs_kernel.o
-
-file abs_kernel.o
+pip install matplotlib
 ```
 
-# Generating MHLO->C++->Target examples
+### Running the code
+
+We use AOT compilation to generate the binaries for matrix multiplication
+and then run them to generate the benchmarking numbers. To run all the tests, do
 
 ```
-mkdir build/emitc
-cd build/emitc
-cmake -G Ninja -DCMAKE_C_COMPILER=clang-10 -DCMAKE_CXX_COMPILER=clang++-10 .. -DCMAKE_PREFIX_PATH=../../build/install/lib/cmake/mlir -DLLVM_EXTERNAL_LIT=`pwd`/../build-mlir/bin/llvm-lit ../../external/mlir-emitc/
-cmake --build . --target check-emitc
-```
-Currently you will notice three tests failing
-
-```
--- Testing: 13 tests, 13 workers --
-UNRESOLVED: EMITC :: testCorrectGroundTruthWithHMC_canon_inline.mlir (1 of 13)
-UNRESOLVED: EMITC :: testCorrectGroundTruthWithHMC_canon.mlir (2 of 13)
-PASS: EMITC :: Target/cpp-calls-for.mlir (3 of 13)
-UNRESOLVED: EMITC :: testCorrectGroundTruthWithHMC.mlir (4 of 13)
-PASS: EMITC :: Dialect/EmitC/ops.mlir (5 of 13)
-PASS: EMITC :: Target/cpp-calls.mlir (6 of 13)
-PASS: EMITC :: Target/cpp-calls-if.mlir (7 of 13)
-PASS: EMITC :: Conversion/mhlo-to-std.mlir (8 of 13)
-PASS: EMITC :: Conversion/std-to-emitc.mlir (9 of 13)
-PASS: EMITC :: Conversion/mhlo-to-emitc.mlir (10 of 13)
-PASS: EMITC :: Conversion/scf-to-emitc.mlir (11 of 13)
-PASS: EMITC :: Dialect/EmitC/ifop.mlir (12 of 13)
-PASS: EMITC :: Dialect/EmitC/forop.mlir (13 of 13)
-********************
-Unresolved Tests (3):
-  EMITC :: testCorrectGroundTruthWithHMC.mlir
-  EMITC :: testCorrectGroundTruthWithHMC_canon.mlir
-  EMITC :: testCorrectGroundTruthWithHMC_canon_inline.mlir
-
-
-Testing Time: 0.12s
-  Passed    : 10
-  Unresolved:  3
-FAILED: test/CMakeFiles/check-emitc
-cd /home/anush/github/mlir-examples/build/emitc/test && /home/anush/github/mlir-examples/build/emitc/../build-mlir/bin/llvm-lit /home/anush/github/mlir-examples/build/emitc/test
-ninja: build stopped: subcommand failed.
+cmake --build build/matmul --target run_all_tests
 ```
 
+To plot the results against MKL (and generate a plot like above), run
 
+```
+python3 plot_results.py
+```
 
+To run a specific matrix size (say 24x64x512), run
 
-# Other references
-https://llvm.discourse.group/t/print-in-mlir/1701/13
+```
+./build/matmul/matmul_24x64x512
+```
+
+### Code structure
+
+The linalg codegen pass is in matmul/matmul-compile/matmul-compile.cpp.
+
+### Hardware information
+
+This benchmark was run on an Intel Xeon CPU running at 3.1GHz. The machine has 256Kb L1 cache, 8Mb L2 cache and 24.8Mb L3 cache.
+It supports AVX-512 instructions. The peak performance of the machine is 3.1 x 8 x 2 x 2 = 99.2 GFLOPS for double precision
+and 198.4 GFLOPS for single precision.
