@@ -4,6 +4,8 @@
 #include "cblas.h"
 #elif defined(HALIDE)
 #include "halide_blas.h"
+#elif defined(RUY)
+#include "ruy/ruy.h"
 #endif
 #include "stdio.h"
 #include "stdlib.h"
@@ -12,6 +14,9 @@
 
 #define STRING(s) #s
 #define TO_STRING(x) STRING(x)
+
+#ifdef MLIR
+//extern "C" {
 
 struct memref_t {
   float *aligned;
@@ -27,6 +32,9 @@ void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
             int64_t size_b0, int64_t size_b1, int64_t strides_b0, int64_t strides_b1,
             float *aligned_c, float *allocated_c, int64_t offset_c,
             int64_t size_c0, int64_t size_c1, int64_t strides_c0, int64_t strides_c1);
+
+//}
+#endif
 
 double rtclock() {
   struct timezone Tzp;
@@ -52,7 +60,9 @@ int main(int argc, char **argv) {
   printf("Benchmarking OpenBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(HALIDE)
   printf("Benchmarking Halide %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
-#else
+#elif defined(RUY)
+  printf("Benchmarking Ruy %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(MLIR)
   printf("Benchmarking MLIR %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #endif
   double t_start, t_end;
@@ -70,6 +80,22 @@ int main(int argc, char **argv) {
   float alpha = 1.0;
   float beta = 1.0;
 
+#ifdef RUY
+  ruy::Context context;
+  context.set_max_num_threads(1);
+  ruy::Matrix<float> lhs;
+  ruy::MakeSimpleLayout(MDIM, KDIM, ruy::Order::kColMajor, lhs.mutable_layout());
+  lhs.set_data(A);
+  ruy::Matrix<float> rhs;
+  ruy::MakeSimpleLayout(KDIM, NDIM, ruy::Order::kColMajor, rhs.mutable_layout());
+  rhs.set_data(B);
+  ruy::Matrix<float> dst;
+  ruy::MakeSimpleLayout(MDIM, NDIM, ruy::Order::kColMajor, dst.mutable_layout());
+  dst.set_data(C);
+  ruy::MulParams<float, float> mul_params;
+  mul_params.set_bias(C);
+#endif
+
   for (int t = 0; t < NUM_REPS; ++t) {
 #if defined(MKL) || defined(OPENBLAS)
     cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
@@ -77,7 +103,9 @@ int main(int argc, char **argv) {
 #elif defined(HALIDE)
     hblas_sgemm(HblasColMajor, HblasNoTrans, HblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);
-#else
+#elif defined(RUY)
+    ruy::Mul(lhs, rhs, mul_params, &context, &dst);
+#elif defined(MLIR)
     matmul(A, A, 0, MDIM, KDIM, 1, LDA,
            B, B, 0, KDIM, NDIM, 1, LDB,
 	   C, C, 0, MDIM, NDIM, 1, LDC);
