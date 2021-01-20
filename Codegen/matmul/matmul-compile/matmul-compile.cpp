@@ -186,7 +186,6 @@ void LinalgCodegenPass::runOnFunction() {
     }
   }
 
-  //getFunction().dump();
 }
 
 std::unique_ptr<OperationPass<FuncOp>> createLinalgCodegenPass(int M, int N, int K,
