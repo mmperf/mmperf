@@ -1,6 +1,6 @@
-# Matrix Multiplication in MLIR
+# Matrix Multiplication Benchmarks
 
-This repository aims to recreate the results shown in these [slides](https://drive.google.com/file/d/1_zPPxOILAIHOWoSM7GALwioYOGEgD2Xe/view). The current results are shown below.
+This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries and code generation stacks. The focus will be on machine learning workloads so FP32 or smaller and irregular sizes of matrices, but the suite can be extended for other sizes easily. 
 
 ![Results](matmul.png)
 
