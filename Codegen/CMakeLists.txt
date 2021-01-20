@@ -31,9 +31,10 @@ ExternalProject_Add(mlir
     -DLLVM_ENABLE_RTTI:BOOL=ON
 )
 
-option(USE_MLIR "Enable MLIR" ON)
+option(USE_MLIR "Enable MLIR" OFF)
 option(USE_MKL "Enable MKL" OFF)
 option(USE_OPENBLAS "Enable OpenBLAS" OFF)
+option(USE_HALIDE "Enable Halide" OFF)
 
 set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/benchmark_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
 ExternalProject_Add(matmul
@@ -52,8 +53,11 @@ ExternalProject_Add(matmul
     -DUSE_MKL=${USE_MKL}
     -DSIZE_FILE=${SIZE_FILE}
     -DUSE_OPENBLAS=${USE_OPENBLAS}
+    -DUSE_HALIDE=${USE_HALIDE}
+    -DHALIDE_DIR=${HALIDE_DIR}
 )
 
 unset(USE_MLIR CACHE)
 unset(USE_MKL CACHE)
 unset(USE_OPENBLAS CACHE)
+unset(USE_HALIDE CACHE)

@@ -31,15 +31,17 @@ if __name__ == "__main__":
                         help='Path to MLIR performance results', default='build/matmul/')
     parser.add_argument('-openblas_dir', dest='openblas_dir', action='store',
                         help='Path to OpenBLAS performance results', default='openblas/')
+    parser.add_argument('-halide_dir', dest='halide_dir', action='store',
+                        help='Path to Halide performance results', default='halide/')
     args = parser.parse_args()
 
     sizes = None
     with open(args.matrix_sizes, 'r') as f:
         sizes = f.read().splitlines()
 
-    dirs = [args.mkl_dir, args.mlir_dir, args.openblas_dir]
-    labels = ['mkl', 'mlir', 'openblas']
-    colors = ['r', 'g', 'b']
+    dirs = [args.mkl_dir, args.mlir_dir, args.openblas_dir, args.halide_dir]
+    labels = ['mkl', 'mlir', 'openblas', 'halide']
+    colors = ['red', 'dodgerblue', 'mediumseagreen', 'gold']
 
     for i in range(len(labels)):
         plot(sizes, dirs[i], labels[i], colors[i], i)
@@ -47,7 +49,7 @@ if __name__ == "__main__":
     plt.xlabel("Matrix sizes")
     plt.ylabel("GFLOPS")
     plt.title("Single Precision Matrix Multiplication")
-    x_pos = [i + width for i, _ in enumerate(sizes)]
+    x_pos = [i + 1.5*width for i, _ in enumerate(sizes)]
     plt.xticks(x_pos, sizes, rotation=90, fontsize=5)
     plt.legend(loc='best')
     plt.savefig('matmul.png', dpi=300, bbox_inches='tight')

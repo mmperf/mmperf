@@ -1,20 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(matmul C)
-
-# Build matmul-compile and pass
-add_subdirectory(matmul-compile)
-
-function(compile_mlir mlir_prefix)
-  set(OBJ ${CMAKE_BINARY_DIR}/${mlir_prefix}.o)
-  add_custom_command(OUTPUT ${OBJ}
-    COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile ${CMAKE_CURRENT_LIST_DIR}/mlir/${mlir_prefix}.mlir
-    COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_CURRENT_LIST_DIR}/${mlir_prefix}.ll
-    -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
-    -c -o ${OBJ}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-    DEPENDS matmul-compile
-  )
-endfunction()
+project(matmul C CXX)
 
 # Matrix sizes to benchmark
 message(STATUS "Reading matrix sizes from ... ${SIZE_FILE}")
@@ -22,12 +7,34 @@ file(READ ${SIZE_FILE} MATRIX_SIZES)
 string(REGEX REPLACE ";" "\\\\;" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE "\n" ";" MATRIX_SIZES "${MATRIX_SIZES}")
 
-# Generate mlir files
-message(STATUS "Running ${CMAKE_CURRENT_LIST_DIR}/mlir/generate_mlir.py -matrix_sizes ${SIZE_FILE}")
-execute_process(
-  COMMAND ${CMAKE_CURRENT_LIST_DIR}/mlir/generate_mlir.py -matrix_sizes ${SIZE_FILE}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/mlir
-)
+if(${USE_MLIR} STREQUAL "ON")
+  function(compile_mlir mlir_prefix)
+    set(OBJ ${CMAKE_BINARY_DIR}/${mlir_prefix}.o)
+    add_custom_command(OUTPUT ${OBJ}
+      COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile ${CMAKE_CURRENT_LIST_DIR}/mlir/${mlir_prefix}.mlir
+      COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_CURRENT_LIST_DIR}/${mlir_prefix}.ll
+      -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
+      -c -o ${OBJ}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+      DEPENDS matmul-compile
+    )
+  endfunction()
+
+  # Build matmul-compile and pass
+  add_subdirectory(matmul-compile)
+
+  # Generate mlir files
+  message(STATUS "Running ${CMAKE_CURRENT_LIST_DIR}/mlir/generate_mlir.py -matrix_sizes ${SIZE_FILE}")
+  execute_process(
+    COMMAND ${CMAKE_CURRENT_LIST_DIR}/mlir/generate_mlir.py -matrix_sizes ${SIZE_FILE}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/mlir
+  )
+endif()
+
+if(${USE_HALIDE} STREQUAL "ON")
+  list(APPEND CMAKE_PREFIX_PATH ${HALIDE_DIR}/lib/cmake/Halide)
+  add_subdirectory(halide)
+endif()
 
 # Number of times to repeat the test
 set(NUM_REPS 100)
@@ -61,6 +68,10 @@ foreach(MATRIX_SIZE ${MATRIX_SIZES})
     target_compile_definitions(${MATMUL} PRIVATE FILE_NAME=${MATMUL}_openblas_perf.out)
     target_compile_definitions(${MATMUL} PRIVATE OPENBLAS)
     target_link_libraries(${MATMUL} PRIVATE openblas)
+  elseif(${USE_HALIDE} STREQUAL "ON")
+    target_compile_definitions(${MATMUL} PRIVATE FILE_NAME=${MATMUL}_halide_perf.out)
+    target_compile_definitions(${MATMUL} PRIVATE HALIDE)
+    target_link_libraries(${MATMUL} PRIVATE halide_blas)
   elseif(${USE_MLIR} STREQUAL "ON")
     target_compile_definitions(${MATMUL} PRIVATE FILE_NAME=${MATMUL}_mlir_perf.out)
   endif()

@@ -8,7 +8,7 @@ This repository aims to recreate the results shown in these [slides](https://dri
 To build the code, run
 
 ```
-cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -B build .
+cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DUSE_MLIR=ON -B build .
 cmake --build build
 ```
 
