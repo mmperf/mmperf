@@ -37,6 +37,9 @@ option(USE_OPENBLAS "Enable OpenBLAS" OFF)
 option(USE_HALIDE "Enable Halide" OFF)
 
 set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/benchmark_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
+set(TARGET_CPU "skylake-avx512" CACHE INTERNAL "Target CPU for MLIR")
+set(VECTOR_WIDTH "512" CACHE INTERNAL "Vector width for MLIR")
+
 ExternalProject_Add(matmul
   DEPENDS mlir
   PREFIX ${CMAKE_BINARY_DIR}/matmul
@@ -55,9 +58,14 @@ ExternalProject_Add(matmul
     -DUSE_OPENBLAS=${USE_OPENBLAS}
     -DUSE_HALIDE=${USE_HALIDE}
     -DHALIDE_DIR=${HALIDE_DIR}
+    -DTARGET_CPU=${TARGET_CPU}
+    -DVECTOR_WIDTH=${VECTOR_WIDTH}
 )
 
 unset(USE_MLIR CACHE)
 unset(USE_MKL CACHE)
 unset(USE_OPENBLAS CACHE)
 unset(USE_HALIDE CACHE)
+unset(SIZE_FILE CACHE)
+unset(TARGET_CPU CACHE)
+unset(VECTOR_WIDTH CACHE)

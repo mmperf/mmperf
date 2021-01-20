@@ -32,6 +32,9 @@
 #include <string>
 #include <unistd.h>
 
+#define STRING(s) #s
+#define TO_STRING(x) STRING(x)
+
 using namespace mlir;
 using namespace mlir::linalg;
 using llvm::Error;
@@ -53,15 +56,20 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
     registry.insert<linalg::LinalgDialect, AffineDialect, scf::SCFDialect>();
   }
   LinalgCodegenPass() = default;
-  LinalgCodegenPass(int M, int N, int K) : M(M), N(N), K(K) {}
+  LinalgCodegenPass(int M, int N, int K, const std::string &target_cpu,
+		    const std::string &vector_width) : M(M), N(N), K(K),
+		    target_cpu(target_cpu), vector_width(vector_width) {}
   LinalgCodegenPass(const LinalgCodegenPass &pass) {
     M = pass.M;
     N = pass.N;
     K = pass.K;
+    target_cpu = pass.target_cpu;
+    vector_width = pass.vector_width;
   }
   void runOnFunction() override;
 
   int M, N, K;
+  std::string target_cpu, vector_width;
 };
 }  // namespace
 
@@ -69,10 +77,10 @@ void LinalgCodegenPass::runOnFunction() {
   MLIRContext *ctx = getFunction().getContext();
   SmallVector<Attribute, 4> attrs;
   attrs.push_back(ArrayAttr::get({StringAttr::get("prefer-vector-width", ctx),
-                                  StringAttr::get("512", ctx)},
+                                  StringAttr::get(vector_width, ctx)},
                                   ctx));
   attrs.push_back(ArrayAttr::get({StringAttr::get("target-cpu", ctx),
-                                  StringAttr::get("skylake-avx512", ctx)},
+                                  StringAttr::get(target_cpu, ctx)},
                                   ctx));
   getFunction()->setAttr("passthrough", ArrayAttr::get(attrs, ctx));
 
@@ -181,8 +189,9 @@ void LinalgCodegenPass::runOnFunction() {
   //getFunction().dump();
 }
 
-std::unique_ptr<OperationPass<FuncOp>> createLinalgCodegenPass(int M, int N, int K) {
-  return std::make_unique<LinalgCodegenPass>(M, N, K);
+std::unique_ptr<OperationPass<FuncOp>> createLinalgCodegenPass(int M, int N, int K,
+		const std::string &target_cpu, const std::string &vector_width) {
+  return std::make_unique<LinalgCodegenPass>(M, N, K, target_cpu, vector_width);
 }
 
 }
@@ -237,7 +246,9 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   int M, N, K;
   get_dimensions(options.inputFile, M, N, K);
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(createLinalgCodegenPass(M, N, K));
+  std::string target_cpu = TO_STRING(TARGET_CPU);
+  std::string vector_width = TO_STRING(VECTOR_WIDTH);
+  pm.addPass(createLinalgCodegenPass(M, N, K, target_cpu, vector_width));
 
   // Lower to LLVM
   pm.addPass(createConvertVectorToSCFPass());
