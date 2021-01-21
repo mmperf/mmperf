@@ -8,10 +8,15 @@ string(REGEX REPLACE ";" "\\\\;" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE "\n" ";" MATRIX_SIZES "${MATRIX_SIZES}")
 
 if(${USE_MLIR} STREQUAL "ON")
-  function(compile_mlir mlir_prefix)
+  function(compile_mlir mlir_prefix M N K)
     set(OBJ ${CMAKE_BINARY_DIR}/${mlir_prefix}.o)
     add_custom_command(OUTPUT ${OBJ}
-      COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile ${CMAKE_CURRENT_LIST_DIR}/mlir/${mlir_prefix}.mlir
+      COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile
+      -M=${M} -N=${N} -K=${K} -target-cpu=${TARGET_CPU} -vector-width=${VECTOR_WIDTH}
+      -register-tile-sizes="" -promote=true -promote-full-tile-pad=true -vectorize=true
+      -vectorize-to=outerproduct -split-vector-transfers-to=vector-transfers
+      -unroll-vector-transfers=true
+      ${CMAKE_CURRENT_LIST_DIR}/mlir/${mlir_prefix}.mlir
       COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_CURRENT_LIST_DIR}/${mlir_prefix}.ll
       -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
       -c -o ${OBJ}
@@ -49,15 +54,15 @@ foreach(MATRIX_SIZE ${MATRIX_SIZES})
   set(SRC main.c)
   string(CONCAT MATMUL "matmul_" ${MATRIX_SIZE})
   message(STATUS "Compiling ${MATMUL}")
-  if(${USE_MLIR} STREQUAL "ON")
-    compile_mlir(${MATMUL})
-    list(APPEND SRC ${CMAKE_BINARY_DIR}/${MATMUL}.o)
-  endif()
-  add_executable(${MATMUL} ${SRC})
   string(REPLACE "x" ";" SIZES ${MATRIX_SIZE})
   list(GET SIZES 0 M)
   list(GET SIZES 1 N)
   list(GET SIZES 2 K)
+  if(${USE_MLIR} STREQUAL "ON")
+    compile_mlir(${MATMUL} ${M} ${N} ${K})
+    list(APPEND SRC ${CMAKE_BINARY_DIR}/${MATMUL}.o)
+  endif()
+  add_executable(${MATMUL} ${SRC})
   target_compile_definitions(${MATMUL} PRIVATE MDIM=${M})
   target_compile_definitions(${MATMUL} PRIVATE NDIM=${N})
   target_compile_definitions(${MATMUL} PRIVATE KDIM=${K})

@@ -32,9 +32,6 @@
 #include <string>
 #include <unistd.h>
 
-#define STRING(s) #s
-#define TO_STRING(x) STRING(x)
-
 using namespace mlir;
 using namespace mlir::linalg;
 using llvm::Error;
@@ -51,25 +48,102 @@ using llvm::Twine;
 namespace mlir {
 
 namespace {
+namespace cl = llvm::cl;
+struct Options {
+  cl::opt<std::string> inputFile{cl::Positional,
+    cl::desc("the input .mlir file"),
+    cl::init("")};
+
+  // Matrix multiplication sizes
+  cl::opt<int> M{"M", cl::Required,
+    cl::desc("Number of rows of first matrix"),
+    cl::init(1024)};
+  cl::opt<int> N{"N", cl::Required,
+    cl::desc("Number of rows of first matrix"),
+    cl::init(1024)};
+  cl::opt<int> K{"K", cl::Required,
+    cl::desc("Number of rows of first matrix"),
+    cl::init(1024)};
+
+  // CPU info
+  cl::opt<std::string> targetCPU{"target-cpu", cl::Required,
+    cl::desc("Target CPU for codegen"),
+    cl::init("skylake-avx512")};
+  cl::opt<std::string> vectorWidth{"vector-width", cl::Required,
+    cl::desc("Target vector width for codegen"),
+    cl::init("512")};
+
+  // Codegen info
+  cl::opt<std::string> registerTileSizes{"register-tile-sizes",
+    cl::desc("'x'-separated triple. Specifies the size of the register "
+             "tile that will be use to vectorize"),
+    cl::init("")};
+
+  cl::opt<bool> promote{"promote",
+    cl::desc("Promote the registerTile into a small aligned scratchpad region."),
+    cl::init(false)};
+
+  cl::opt<bool> promoteFullTile{"promote-full-tile-pad",
+    cl::desc("Pad the small aligned scratchpad region to the "
+             "registerTiling size. This enables explicit vectorization "
+             "even in symbolic cases (but has a cost)."),
+    cl::init(true)};
+
+  cl::opt<bool> vectorize{"vectorize",
+    cl::desc("Rewrite the registerTile as a vector operation."),
+    cl::init(false)};
+
+  cl::opt<std::string> vectorizeTo{"vectorize-to",
+    cl::desc("the type of vector op to use"),
+    cl::init("outerproduct")};
+
+  cl::opt<std::string> splitVectorTransfersTo{"split-vector-transfers-to",
+    cl::desc("The kind of of op to split vector transfers to"),
+    cl::init("vector-transfers")};
+
+  cl::opt<bool> unrollVectorTransfers{"unroll-vector-transfers",
+    cl::desc("Enable full unrolling of vector.transfer operations"),
+    cl::init(false)};
+};
+}
+
+namespace {
 struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<linalg::LinalgDialect, AffineDialect, scf::SCFDialect>();
   }
   LinalgCodegenPass() = default;
-  LinalgCodegenPass(int M, int N, int K, const std::string &target_cpu,
-		    const std::string &vector_width) : M(M), N(N), K(K),
-		    target_cpu(target_cpu), vector_width(vector_width) {}
+  LinalgCodegenPass(Options &options) {
+    params.M = options.M;
+    params.N = options.N;
+    params.K = options.K;
+    params.targetCPU = options.targetCPU;
+    params.vectorWidth = options.vectorWidth;
+    params.registerTileSizes = options.registerTileSizes;
+    params.promote = options.promote;
+    params.promoteFullTile = options.promoteFullTile;
+    params.vectorize = options.vectorize;
+    params.vectorizeTo = options.vectorizeTo;
+    params.splitVectorTransfersTo = options.splitVectorTransfersTo;
+    params.unrollVectorTransfers = options.unrollVectorTransfers;
+  }
   LinalgCodegenPass(const LinalgCodegenPass &pass) {
-    M = pass.M;
-    N = pass.N;
-    K = pass.K;
-    target_cpu = pass.target_cpu;
-    vector_width = pass.vector_width;
+    params = pass.params;
   }
   void runOnFunction() override;
 
-  int M, N, K;
-  std::string target_cpu, vector_width;
+  struct Parameters {
+    int M, N, K;
+    std::string vectorWidth, targetCPU;
+    std::string registerTileSizes;
+    bool promote;
+    bool promoteFullTile;
+    bool vectorize;
+    std::string vectorizeTo;
+    std::string splitVectorTransfersTo;
+    bool unrollVectorTransfers;
+  };
+  Parameters params;
 };
 }  // namespace
 
@@ -77,34 +151,30 @@ void LinalgCodegenPass::runOnFunction() {
   MLIRContext *ctx = getFunction().getContext();
   SmallVector<Attribute, 4> attrs;
   attrs.push_back(ArrayAttr::get({StringAttr::get("prefer-vector-width", ctx),
-                                  StringAttr::get(vector_width, ctx)},
+                                  StringAttr::get(params.vectorWidth, ctx)},
                                   ctx));
   attrs.push_back(ArrayAttr::get({StringAttr::get("target-cpu", ctx),
-                                  StringAttr::get(target_cpu, ctx)},
+                                  StringAttr::get(params.targetCPU, ctx)},
                                   ctx));
   getFunction()->setAttr("passthrough", ArrayAttr::get(attrs, ctx));
 
-  std::string vectorizeContractionTo("outerproduct");
-  std::string splitVectorTransfersTo("vector-transfers");
-  bool registerPromoteFullTile{true};
-  bool unrollVectorTransfers{true};
   vector::VectorContractLowering vectorContractLowering =
       llvm::StringSwitch<vector::VectorContractLowering>(
-          vectorizeContractionTo)
+          params.vectorizeTo)
           .Case("matrixintrinsics", vector::VectorContractLowering::Matmul)
           .Case("dot", vector::VectorContractLowering::Dot)
           .Case("outerproduct", vector::VectorContractLowering::OuterProduct)
           .Default(vector::VectorContractLowering::OuterProduct);
   vector::VectorTransferSplit vectorTransferSplit =
       llvm::StringSwitch<vector::VectorTransferSplit>(
-          splitVectorTransfersTo)
+          params.splitVectorTransfersTo)
           .Case("none", vector::VectorTransferSplit::None)
           .Case("linalg-copy", vector::VectorTransferSplit::LinalgCopy)
           .Case("vector-transfers", vector::VectorTransferSplit::VectorTransfer)
           .Default(vector::VectorTransferSplit::None);
 
   // Small and medium codegen
-  if (M < 1000) {
+  if (params.M < 1000) {
     LinalgTilingOptions tilingOptions;
     llvm::SmallVector<int64_t, 4> tileSizes{6, 16, 16};
     if (!tileSizes.empty())
@@ -121,13 +191,13 @@ void LinalgCodegenPass::runOnFunction() {
                 .setVectorTransformsOptions(vectorContractLowering)
                 .setVectorTransferSplit(vectorTransferSplit))
         .setVectorTransferToSCFOptions(
-            VectorTransferToSCFOptions().setUnroll(unrollVectorTransfers));
+            VectorTransferToSCFOptions().setUnroll(params.unrollVectorTransfers));
 
     strategy.transform(getFunction());
   }
 
   // Large codegen
-  if (M > 1000) {
+  if (params.M > 1000) {
     // Step 1: tile, interchange and promote A and B. Copy of A gets hoisted above j.
     // TODO: Could not find option to outline matmul op to lower register pressure?
     {
@@ -150,7 +220,7 @@ void LinalgCodegenPass::runOnFunction() {
         .tile<FillOp>(LinalgTilingOptions().setTileSizes({4, 16}))
         .vectorize<FillOp>()
         .setVectorTransferToSCFOptions(
-            VectorTransferToSCFOptions().setUnroll(unrollVectorTransfers));
+            VectorTransferToSCFOptions().setUnroll(params.unrollVectorTransfers));
 
       strategyRegisters.transform(getFunction());
     }
@@ -161,7 +231,7 @@ void LinalgCodegenPass::runOnFunction() {
         .tile<CopyOp>(LinalgTilingOptions().setTileSizes({4, 16}))
         .vectorize<CopyOp>()
         .setVectorTransferToSCFOptions(
-            VectorTransferToSCFOptions().setUnroll(unrollVectorTransfers));
+            VectorTransferToSCFOptions().setUnroll(params.unrollVectorTransfers));
 
       strategyRegisters.transform(getFunction());
     }
@@ -172,15 +242,15 @@ void LinalgCodegenPass::runOnFunction() {
       strategyRegisters
         .tile<MatmulOp>(LinalgTilingOptions().setTileSizes({8, 16, 8}))
         .promote<MatmulOp>(LinalgPromotionOptions()
-                             .setUseFullTileBuffersByDefault(registerPromoteFullTile)
-			   .setAlignment(128))
+                             .setUseFullTileBuffersByDefault(params.promoteFullTile)
+                             .setAlignment(128))
         .vectorize<MatmulOp>()
         .setVectorTransformsOptions(
             vector::VectorTransformsOptions()
                 .setVectorTransformsOptions(vectorContractLowering)
                 .setVectorTransferSplit(vectorTransferSplit))
         .setVectorTransferToSCFOptions(
-            VectorTransferToSCFOptions().setUnroll(unrollVectorTransfers));
+            VectorTransferToSCFOptions().setUnroll(params.unrollVectorTransfers));
 
       strategyRegisters.transform(getFunction());
     }
@@ -188,9 +258,8 @@ void LinalgCodegenPass::runOnFunction() {
 
 }
 
-std::unique_ptr<OperationPass<FuncOp>> createLinalgCodegenPass(int M, int N, int K,
-		const std::string &target_cpu, const std::string &vector_width) {
-  return std::make_unique<LinalgCodegenPass>(M, N, K, target_cpu, vector_width);
+std::unique_ptr<OperationPass<FuncOp>> createLinalgCodegenPass(Options &options) {
+  return std::make_unique<LinalgCodegenPass>(options);
 }
 
 }
@@ -203,35 +272,6 @@ static Error make_string_error(const Twine &message) {
   return llvm::make_error<StringError>(message.str(), llvm::inconvertibleErrorCode());
 }
 
-namespace {
-namespace cl = llvm::cl;
-struct Options {
-  cl::opt<std::string> inputFile{cl::Positional, cl::desc("the input .mlir file"), cl::init("-")};
-};
-}
-
-static void get_dimensions(const std::string filename, int &M, int &N, int &K) {
-  std::stringstream ss(filename.substr(filename.find_last_of("/")));
-  std::string token;
-  std::vector<std::string> tokens;
-  // Name is matmul_1x2x3.mlir
-  while (std::getline(ss, token, '_')) {
-    tokens.push_back(token);
-  }
-
-  std::string lastToken = tokens.back();
-  std::string sizes = lastToken.substr(0, lastToken.find_last_of("."));
-  std::stringstream nss(sizes);
-  std::vector<int> sizeVec;
-  while (std::getline(nss, token, 'x')) {
-    sizeVec.push_back(std::stoi(token));
-  }
-
-  M = sizeVec[0];
-  N = sizeVec[1];
-  K = sizeVec[2];
-}
-
 Error compile(Options &options, mlir::DialectRegistry &registry) {
   MLIRContext context;
   registry.loadAll(&context);
@@ -242,12 +282,8 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
 
   ModuleOp module = *moduleRef;
   PassManager pm(module.getContext(), OpPassManager::Nesting::Implicit);
-  int M, N, K;
-  get_dimensions(options.inputFile, M, N, K);
   pm.addPass(createCanonicalizerPass());
-  std::string target_cpu = TO_STRING(TARGET_CPU);
-  std::string vector_width = TO_STRING(VECTOR_WIDTH);
-  pm.addPass(createLinalgCodegenPass(M, N, K, target_cpu, vector_width));
+  pm.addPass(createLinalgCodegenPass(options));
 
   // Lower to LLVM
   pm.addPass(createConvertVectorToSCFPass());
