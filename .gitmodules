@@ -4,3 +4,6 @@
 [submodule "external/ruy"]
 	path = external/ruy
 	url = https://github.com/google/ruy
+[submodule "external/cpuinfo"]
+	path = external/cpuinfo
+	url = https://github.com/pytorch/cpuinfo
