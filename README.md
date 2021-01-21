@@ -5,6 +5,12 @@ This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries a
 ![Results](matmul.png)
 
 ### Installation
+First checkout the repo with submodules
+
+```
+git clone --recurse-submodules -j8 https://github.com/mmperf/mmperf.git
+```
+
 To build the code, run
 
 ```
