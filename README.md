@@ -18,7 +18,6 @@ cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DUSE_
 cmake --build build
 ```
 
-This code has been tested with clang-11 but older versions will also work.
 To plot the results, you will need to install matplotlib.
 
 ```
