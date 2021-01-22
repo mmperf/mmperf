@@ -1,6 +1,6 @@
-# Matrix Multiplication Benchmarks
+# Single CPU Core Matrix Multiplication Benchmarks
 
-This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries and code generation stacks. The focus will be on machine learning workloads so FP32 or smaller and irregular sizes of matrices, but the suite can be extended for other sizes easily. 
+This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries and code generation stacks on a single thread on one CPU core. The focus will be on machine learning workloads so FP32 or smaller and irregular sizes of matrices. The goal is to expose high performance atomic kernels that can then be used to build highly efficient higher level implemenations spanning multiple cores or distributed across systems. 
 
 ![Results](matmul.png)
 
@@ -55,3 +55,6 @@ The linalg codegen pass is in matmul/matmul-compile/matmul-compile.cpp.
 This benchmark was run on an Intel Xeon CPU running at 3.1GHz. The machine has 256Kb L1 cache, 8Mb L2 cache and 24.8Mb L3 cache.
 It supports AVX-512 instructions. The peak performance of the machine is 3.1 x 8 x 2 x 2 = 99.2 GFLOPS for double precision
 and 198.4 GFLOPS for single precision.
+
+### TODO:
+Add Accelerate Framework
