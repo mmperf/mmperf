@@ -61,7 +61,8 @@ option(USE_RUY "Enable Ruy" OFF)
 set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/benchmark_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
 set(TARGET_CPU "apple-a13" CACHE INTERNAL "Target CPU for MLIR")
 set(VECTOR_WIDTH "256" CACHE INTERNAL "Vector width for MLIR")
-
+set(TILE_SIZES "" CACHE INTERNAL "Tile sizes for MLIR")
+set(REGISTER_TILE_SIZES "" CACHE INTERNAL "Register Tile sizes for MLIR")
 
 ExternalProject_Add(matmul
   DEPENDS mlir
@@ -85,6 +86,8 @@ ExternalProject_Add(matmul
     -DVECTOR_WIDTH=${VECTOR_WIDTH}
     -DUSE_RUY=${USE_RUY}
     -DRUY_DIR=${RUY_DIR}
+    -DTILE_SIZES=${TILE_SIZES}
+    -DREGISTER_TILE_SIZES=${REGISTER_TILE_SIZES}
 )
 
 unset(USE_MLIR CACHE)

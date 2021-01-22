@@ -74,6 +74,11 @@ struct Options {
     cl::init("512")};
 
   // Codegen info
+  cl::opt<std::string> tileSizes{"tile-sizes",
+    cl::desc("'x'-separated triple. Specifies the size of the L1/L2/L3"
+             "tile that will be use to vectorize"),
+    cl::init("")};
+
   cl::opt<std::string> registerTileSizes{"register-tile-sizes",
     cl::desc("'x'-separated triple. Specifies the size of the register "
              "tile that will be use to vectorize"),
@@ -119,6 +124,7 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
     params.K = options.K;
     params.targetCPU = options.targetCPU;
     params.vectorWidth = options.vectorWidth;
+    params.tileSizes = options.tileSizes;
     params.registerTileSizes = options.registerTileSizes;
     params.promote = options.promote;
     params.promoteFullTile = options.promoteFullTile;
@@ -135,7 +141,7 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
   struct Parameters {
     int M, N, K;
     std::string vectorWidth, targetCPU;
-    std::string registerTileSizes;
+    std::string tileSizes, registerTileSizes;
     bool promote;
     bool promoteFullTile;
     bool vectorize;
@@ -146,6 +152,14 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
   Parameters params;
 };
 }  // namespace
+
+static void convertToVector(const std::string &tileSizes, llvm::SmallVectorImpl<int64_t> &sizes) {
+  std::stringstream ss(tileSizes);
+  int size;
+  while (ss >> size) {
+    sizes.push_back(size);
+  }
+}
 
 void LinalgCodegenPass::runOnFunction() {
   MLIRContext *ctx = getFunction().getContext();
@@ -173,19 +187,20 @@ void LinalgCodegenPass::runOnFunction() {
           .Case("vector-transfers", vector::VectorTransferSplit::VectorTransfer)
           .Default(vector::VectorTransferSplit::None);
 
+  llvm::SmallVector<int64_t, 4> tileSizes;
+  llvm::SmallVector<int64_t, 4> registerTileSizes;
+  convertToVector(params.tileSizes, tileSizes);
+  convertToVector(params.registerTileSizes, registerTileSizes);
+
   // Small and medium codegen
   if (params.M < 1000) {
-    LinalgTilingOptions tilingOptions;
-    llvm::SmallVector<int64_t, 4> tileSizes{6, 16, 16};
-    if (!tileSizes.empty())
-      tilingOptions = tilingOptions.setTileSizes(tileSizes);
-
     CodegenStrategy strategy;
-    strategy.tile<MatmulOp>(tilingOptions)
-        .promote<MatmulOp>(LinalgPromotionOptions()
-			      .setAlignment(16)
-			      .setUseFullTileBuffersByDefault(true))
-        .vectorize<MatmulOp>()
+    strategy
+	.tileIf<MatmulOp>(!tileSizes.empty(), LinalgTilingOptions().setTileSizes(tileSizes))
+        .promoteIf<MatmulOp>(params.promote, LinalgPromotionOptions()
+                                               .setAlignment(16)
+                                               .setUseFullTileBuffersByDefault(params.promoteFullTile))
+        .vectorizeIf<MatmulOp>(params.vectorize)
         .setVectorTransformsOptions(
             vector::VectorTransformsOptions()
                 .setVectorTransformsOptions(vectorContractLowering)
@@ -203,9 +218,9 @@ void LinalgCodegenPass::runOnFunction() {
     {
       CodegenStrategy strategyCaches;
       strategyCaches
-        .tile<MatmulOp>(LinalgTilingOptions()
-			.setTileSizes({128, 128, 256})
-			.setInterchange({0, 2, 1}))
+        .tileIf<MatmulOp>(!tileSizes.empty(), LinalgTilingOptions()
+			                        .setTileSizes(tileSizes)
+			                        .setInterchange({0, 2, 1}))
         .promote<MatmulOp>(LinalgPromotionOptions()
 			   .setOperandsToPromote({0, 1})
 			   .setAlignment(getpagesize()));
@@ -240,7 +255,7 @@ void LinalgCodegenPass::runOnFunction() {
     {
       CodegenStrategy strategyRegisters;
       strategyRegisters
-        .tile<MatmulOp>(LinalgTilingOptions().setTileSizes({8, 16, 8}))
+        .tile<MatmulOp>(LinalgTilingOptions().setTileSizes(registerTileSizes))
         .promote<MatmulOp>(LinalgPromotionOptions()
                              .setUseFullTileBuffersByDefault(params.promoteFullTile)
                              .setAlignment(128))

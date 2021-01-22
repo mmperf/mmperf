@@ -10,10 +10,25 @@ string(REGEX REPLACE "\n" ";" MATRIX_SIZES "${MATRIX_SIZES}")
 if(${USE_MLIR} STREQUAL "ON")
   function(compile_mlir mlir_prefix M N K)
     set(OBJ ${CMAKE_BINARY_DIR}/${mlir_prefix}.o)
+    if("${TILE_SIZES}" STREQUAL "")
+      message(STATUS "Using default tile sizes")
+      if(M GREATER 1000)
+        set(TILE_SIZES "128 128 256")
+        set(REGISTER_TILE_SIZES "8 16 8")
+      else()
+        set(TILE_SIZES "6 16 16")
+        set(REGISTER_TILE_SIZES "")
+      endif()
+    else()
+      message(STATUS "Using custom tile sizes ...")
+      message(STATUS "Tile sizes = ${TILE_SIZES}")
+      message(STATUS "Register Tile sizes = ${REGISTER_TILE_SIZES}")
+    endif()
     add_custom_command(OUTPUT ${OBJ}
       COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile
       -M=${M} -N=${N} -K=${K} -target-cpu=${TARGET_CPU} -vector-width=${VECTOR_WIDTH}
-      -register-tile-sizes="" -promote=true -promote-full-tile-pad=true -vectorize=true
+      --tile-sizes=${TILE_SIZES} -register-tile-sizes=${REGISTER_TILE_SIZES}
+      -promote=true -promote-full-tile-pad=true -vectorize=true
       -vectorize-to=outerproduct -split-vector-transfers-to=vector-transfers
       -unroll-vector-transfers=true
       ${CMAKE_CURRENT_LIST_DIR}/mlir/${mlir_prefix}.mlir
