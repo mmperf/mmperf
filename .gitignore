@@ -1,5 +1,8 @@
 .vscode
 .env
+*.ll
+matmul/mlir/*.mlir
+
 build
 __pycache__
 

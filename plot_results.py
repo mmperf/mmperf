@@ -10,7 +10,7 @@ width = 0.15
 def plot(sizes, dirname, prefix, color, index):
     gflops = []
     for size in sizes:
-        file_name = dirname + '/matmul_%s_%s_perf.out'%(prefix,size)
+        file_name = dirname + '/matmul_' + size + '_%s_perf.out'%prefix
         try:
             with open(file_name, 'r') as f:
                 speed = f.readlines()
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument('-halide_dir', dest='halide_dir', action='store',
                         help='Path to Halide performance results', default='halide/')
     parser.add_argument('-ruy_dir', dest='ruy_dir', action='store',
-                        help='Path to Ruy performance results', default='build/matmul/')
+                        help='Path to Ruy performance results', default='ruy/')
     args = parser.parse_args()
 
     sizes = None
