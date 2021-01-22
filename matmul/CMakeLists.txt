@@ -15,19 +15,23 @@ if(${USE_MLIR} STREQUAL "ON")
       if(M GREATER 1000)
         set(TILE_SIZES "128 128 256")
         set(REGISTER_TILE_SIZES "8 16 8")
+	set(COPY_FILL_TILE_SIZES "4 16")
       else()
         set(TILE_SIZES "6 16 16")
         set(REGISTER_TILE_SIZES "")
+	set(COPY_FILL_TILE_SIZES "")
       endif()
     else()
       message(STATUS "Using custom tile sizes ...")
       message(STATUS "Tile sizes = ${TILE_SIZES}")
       message(STATUS "Register Tile sizes = ${REGISTER_TILE_SIZES}")
+      message(STATUS "Copy Fill Tile sizes = ${COPY_FILL_TILE_SIZES}")
     endif()
     add_custom_command(OUTPUT ${OBJ}
       COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile
       -M=${M} -N=${N} -K=${K} -target-cpu=${TARGET_CPU} -vector-width=${VECTOR_WIDTH}
       --tile-sizes=${TILE_SIZES} -register-tile-sizes=${REGISTER_TILE_SIZES}
+      -copy-fill-tile-sizes=${COPY_FILL_TILE_SIZES}
       -promote=true -promote-full-tile-pad=true -vectorize=true
       -vectorize-to=outerproduct -split-vector-transfers-to=vector-transfers
       -unroll-vector-transfers=true

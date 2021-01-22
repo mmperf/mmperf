@@ -75,13 +75,18 @@ struct Options {
 
   // Codegen info
   cl::opt<std::string> tileSizes{"tile-sizes",
-    cl::desc("'x'-separated triple. Specifies the size of the L1/L2/L3"
+    cl::desc("' '-separated triple. Specifies the size of the L1/L2/L3"
              "tile that will be use to vectorize"),
     cl::init("")};
 
   cl::opt<std::string> registerTileSizes{"register-tile-sizes",
-    cl::desc("'x'-separated triple. Specifies the size of the register "
+    cl::desc("' '-separated triple. Specifies the size of the register "
              "tile that will be use to vectorize"),
+    cl::init("")};
+
+  cl::opt<std::string> copyFillTileSizes{"copy-fill-tile-sizes",
+    cl::desc("' '-separated triple. Specifies the size of the "
+             "tile that will be use to vectorize the copy and fill op"),
     cl::init("")};
 
   cl::opt<bool> promote{"promote",
@@ -126,6 +131,7 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
     params.vectorWidth = options.vectorWidth;
     params.tileSizes = options.tileSizes;
     params.registerTileSizes = options.registerTileSizes;
+    params.copyFillTileSizes = options.copyFillTileSizes;
     params.promote = options.promote;
     params.promoteFullTile = options.promoteFullTile;
     params.vectorize = options.vectorize;
@@ -141,7 +147,7 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
   struct Parameters {
     int M, N, K;
     std::string vectorWidth, targetCPU;
-    std::string tileSizes, registerTileSizes;
+    std::string tileSizes, registerTileSizes, copyFillTileSizes;
     bool promote;
     bool promoteFullTile;
     bool vectorize;
@@ -189,8 +195,10 @@ void LinalgCodegenPass::runOnFunction() {
 
   llvm::SmallVector<int64_t, 4> tileSizes;
   llvm::SmallVector<int64_t, 4> registerTileSizes;
+  llvm::SmallVector<int64_t, 4> copyFillTileSizes;
   convertToVector(params.tileSizes, tileSizes);
   convertToVector(params.registerTileSizes, registerTileSizes);
+  convertToVector(params.copyFillTileSizes, copyFillTileSizes);
 
   // Small and medium codegen
   if (params.M < 1000) {
@@ -221,9 +229,9 @@ void LinalgCodegenPass::runOnFunction() {
         .tileIf<MatmulOp>(!tileSizes.empty(), LinalgTilingOptions()
 			                        .setTileSizes(tileSizes)
 			                        .setInterchange({0, 2, 1}))
-        .promote<MatmulOp>(LinalgPromotionOptions()
-			   .setOperandsToPromote({0, 1})
-			   .setAlignment(getpagesize()));
+        .promoteIf<MatmulOp>(params.promote, LinalgPromotionOptions()
+			                       .setOperandsToPromote({0, 1})
+			                       .setAlignment(getpagesize()));
 
       strategyCaches.transform(getFunction());
     }
@@ -232,8 +240,9 @@ void LinalgCodegenPass::runOnFunction() {
     {
       CodegenStrategy strategyRegisters;
       strategyRegisters
-        .tile<FillOp>(LinalgTilingOptions().setTileSizes({4, 16}))
-        .vectorize<FillOp>()
+        .tileIf<FillOp>(!copyFillTileSizes.empty(),
+			LinalgTilingOptions().setTileSizes(copyFillTileSizes))
+        .vectorizeIf<FillOp>(params.vectorize)
         .setVectorTransferToSCFOptions(
             VectorTransferToSCFOptions().setUnroll(params.unrollVectorTransfers));
 
@@ -243,8 +252,9 @@ void LinalgCodegenPass::runOnFunction() {
     {
       CodegenStrategy strategyRegisters;
       strategyRegisters
-        .tile<CopyOp>(LinalgTilingOptions().setTileSizes({4, 16}))
-        .vectorize<CopyOp>()
+        .tileIf<CopyOp>(!copyFillTileSizes.empty(),
+			LinalgTilingOptions().setTileSizes(copyFillTileSizes))
+        .vectorizeIf<CopyOp>(params.vectorize)
         .setVectorTransferToSCFOptions(
             VectorTransferToSCFOptions().setUnroll(params.unrollVectorTransfers));
 
@@ -255,11 +265,11 @@ void LinalgCodegenPass::runOnFunction() {
     {
       CodegenStrategy strategyRegisters;
       strategyRegisters
-        .tile<MatmulOp>(LinalgTilingOptions().setTileSizes(registerTileSizes))
-        .promote<MatmulOp>(LinalgPromotionOptions()
+        .tileIf<MatmulOp>(!registerTileSizes.empty(), LinalgTilingOptions().setTileSizes(registerTileSizes))
+        .promoteIf<MatmulOp>(params.promote, LinalgPromotionOptions()
                              .setUseFullTileBuffersByDefault(params.promoteFullTile)
                              .setAlignment(128))
-        .vectorize<MatmulOp>()
+        .vectorizeIf<MatmulOp>(params.vectorize)
         .setVectorTransformsOptions(
             vector::VectorTransformsOptions()
                 .setVectorTransformsOptions(vectorContractLowering)

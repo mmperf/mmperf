@@ -63,6 +63,7 @@ set(TARGET_CPU "apple-a13" CACHE INTERNAL "Target CPU for MLIR")
 set(VECTOR_WIDTH "256" CACHE INTERNAL "Vector width for MLIR")
 set(TILE_SIZES "" CACHE INTERNAL "Tile sizes for MLIR")
 set(REGISTER_TILE_SIZES "" CACHE INTERNAL "Register Tile sizes for MLIR")
+set(COPY_FILL_TILE_SIZES "" CACHE INTERNAL "Copy and Fill Tile sizes for MLIR")
 
 ExternalProject_Add(matmul
   DEPENDS mlir
@@ -88,6 +89,7 @@ ExternalProject_Add(matmul
     -DRUY_DIR=${RUY_DIR}
     -DTILE_SIZES=${TILE_SIZES}
     -DREGISTER_TILE_SIZES=${REGISTER_TILE_SIZES}
+    -DCOPY_FILL_TILE_SIZES=${COPY_FILL_TILE_SIZES}
 )
 
 unset(USE_MLIR CACHE)
