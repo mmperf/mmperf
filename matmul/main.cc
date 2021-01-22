@@ -16,6 +16,7 @@
 #define TO_STRING(x) STRING(x)
 
 #ifdef MLIR
+extern "C" {
 struct memref_t {
   float *aligned;
   float *allocated;
@@ -30,7 +31,7 @@ void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
             int64_t size_b0, int64_t size_b1, int64_t strides_b0, int64_t strides_b1,
             float *aligned_c, float *allocated_c, int64_t offset_c,
             int64_t size_c0, int64_t size_c1, int64_t strides_c0, int64_t strides_c1);
-
+}
 #endif
 
 double rtclock() {
