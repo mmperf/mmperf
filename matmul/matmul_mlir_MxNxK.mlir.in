@@ -1,0 +1,5 @@
+func @matmul(%a: memref<${M}x${K}xf32>, %b: memref<${K}x${N}xf32>, %c: memref<${M}x${N}xf32>) {
+  linalg.matmul ins(%a, %b : memref<${M}x${K}xf32>, memref<${K}x${N}xf32>)
+    outs(%c: memref<${M}x${N}xf32>)
+  return
+}
