@@ -3,6 +3,8 @@
 import sys
 import argparse
 import os
+import os.path
+import platform
 import time
 import subprocess
 import shutil
@@ -24,13 +26,27 @@ def main(argv):
     result_dir = (args.results / timestamp).resolve()
     os.makedirs(result_dir)
 
-    shutil.copyfile(Path("/proc/cpuinfo"), result_dir / "cpuinfo")
+    plt = platform.system()
 
-    cpu_pattern = re.compile('cpu[0-9]+')
-    cpudirs = [x for x in Path("/sys/devices/system/cpu/").iterdir() if cpu_pattern.match(x.name)]
-    with open(result_dir / 'scaling_governor', 'w') as f:
-        for cpu in cpudirs:
-            f.write(cpu.name + ": " + (cpu / 'cpufreq' / 'scaling_governor').read_text())
+    if plt == "Linux":
+        # linux
+        print("Linux System Detected.. looking for /proc/cpuinfo")
+        shutil.copyfile(Path("/proc/cpuinfo"), result_dir / "cpuinfo")
+
+        cpu_pattern = re.compile('cpu[0-9]+')
+        cpudirs = [x for x in Path("/sys/devices/system/cpu/").iterdir() if cpu_pattern.match(x.name)]
+        with open(result_dir / 'scaling_governor', 'w') as f:
+            for cpu in cpudirs:
+                f.write(cpu.name + ": " + (cpu / 'cpufreq' / 'scaling_governor').read_text())
+        cpudirs = [x for x in Path("/sys/devices/system/cpu/").iterdir() if cpu_pattern.match(x.name)]
+        with open(result_dir / 'core_frequencies', 'w') as f:
+            for cpu in cpudirs:
+                f.write(cpu.name + ": " + (cpu / 'cpufreq' / 'scaling_cur_freq').read_text())
+    elif plt == "Darwin":
+        # OSX
+        print("OSX System Detected")
+    else:
+        print("Unidentified system")
 
     # get only the executables
     binaries = [x for x in Path(args.bins).iterdir() if
@@ -40,9 +56,16 @@ def main(argv):
     binaries = [(x[0], x[1][0], tuple(int(y) for y in x[1][1].split('x'))) for x in binaries]
     # sort by backend, then the product of the dimensions, then the dimensions
     binaries.sort(key=lambda x: (x[1], reduce(lambda x,y: x*y, x[2]), x[2]))
+
+    my_env = os.environ.copy()
+    my_env["MKL_NUM_THREADS"] = "1"
+    my_env["OPENBLAS_NUM_THREADS"] = "1"
+    my_env["HL_NUM_THREADS"] = "1"
+    my_env["THREADS"] = "1"
+
     for b in binaries:
         print(b[0], b[1], b[2])
-        subprocess.run([b[0]],cwd=result_dir)
+        subprocess.run([b[0]],cwd=result_dir, env=my_env)
 
     return 0
 

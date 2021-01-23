@@ -59,7 +59,7 @@ option(USE_HALIDE "Enable Halide" OFF)
 option(USE_RUY "Enable Ruy" OFF)
 
 set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/benchmark_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
-set(TARGET_CPU "apple-a13" CACHE INTERNAL "Target CPU for MLIR")
+set(TARGET_CPU "haswell" CACHE INTERNAL "Target CPU for MLIR")
 set(VECTOR_WIDTH "256" CACHE INTERNAL "Vector width for MLIR")
 set(TILE_SIZES "" CACHE INTERNAL "Tile sizes for MLIR")
 set(REGISTER_TILE_SIZES "" CACHE INTERNAL "Register Tile sizes for MLIR")
