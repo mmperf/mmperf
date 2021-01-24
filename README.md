@@ -21,7 +21,7 @@ cmake --build build
 Another example to build with all backends. Assumes you have MKL, OpenBLAS and Halide installed. 
 
 ```
-HALIDE_DIR=/home/path/to/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DMKL_DIR=/opt/intel/oneapi/mkl/latest/ -DUSE_MLIR=ON -DUSE_MKL=ON -DUSE_RUY=ON -DUSE_HALIDE=ON -DUSE_OPENBLAS=ON -B build .
+HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DMKL_DIR=/opt/intel/oneapi/mkl/latest/ -DUSE_MLIR=ON -DUSE_MKL=ON -DUSE_RUY=ON -DUSE_HALIDE=ON -DUSE_OPENBLAS=ON -B build .
 
 cmake --build build
 ```
@@ -52,6 +52,27 @@ To run a specific matrix size (say 24x64x512), run
 ```
 ./build/matmul/matmul_24x64x512
 ```
+
+### Installin optional dependencies: Halide, OpenBLAS, MKL
+
+#### Halide
+```
+ git clone https://github.com/halide/Halide.git --recurse-submodules
+ cd Halide/
+ sudo apt install libclang-11-dev clang-11 liblld-11-dev
+ LLD_DIR=/usr/lib/llvm-11/lib/cmake/lld cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DTARGET_WEBASSEMBLY=OFF -DCMAKE_INSTALL_PREFIX=/home/<foo>/lokal/
+ ninja
+ ninja install
+ export HALIDE_DIR=/home/<foo>/lokal/halide
+```
+
+#### OpenBLAS
+```
+sudo apt install libopenblas-dev
+```
+
+#### Intel MKL
+Download and install from https://software.intel.com/content/www/us/en/develop/articles/installation-guide-for-intel-oneapi-toolkits.html
 
 ### Code structure
 
