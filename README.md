@@ -8,7 +8,7 @@ This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries a
 First checkout the repo with submodules
 
 ```
-git clone --recurse-submodules -j8 https://github.com/mmperf/mmperf.git
+git clone --recurse-submodules https://github.com/mmperf/mmperf.git
 ```
 
 To build the code, run
@@ -18,7 +18,7 @@ cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DUSE_
 cmake --build build
 ```
 
-Another example to build with all backends. Assumes you have MKL, OpenBLAS and Halide installed. 
+Another example to build with all backends. Assumes you have MKL, OpenBLAS and Halide installed (see below to install) 
 
 ```
 HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DMKL_DIR=/opt/intel/oneapi/mkl/latest/ -DUSE_MLIR=ON -DUSE_MKL=ON -DUSE_RUY=ON -DUSE_HALIDE=ON -DUSE_OPENBLAS=ON -B build .
@@ -53,7 +53,7 @@ To run a specific matrix size (say 24x64x512), run
 ./build/matmul/matmul_24x64x512
 ```
 
-### Installin optional dependencies: Halide, OpenBLAS, MKL
+### Installing optional dependencies: Halide, OpenBLAS, MKL
 
 #### Halide
 ```
