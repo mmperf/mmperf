@@ -1,13 +1,13 @@
 # Single CPU Core Matrix Multiplication Benchmarks
 
-This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries and code generation stacks on a single thread on one CPU core. The focus will be on machine learning workloads so FP32 or smaller and irregular sizes of matrices. The goal is to expose high performance atomic kernels that can then be used to build highly efficient higher level implemenations spanning multiple cores or distributed across systems. 
+This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries and code generation stacks on a single thread on one CPU core. The focus will be on machine learning workloads so FP32 or smaller and irregular sizes of matrices. The goal is to expose high performance atomic kernels that can then be used to build highly efficient higher level implemenations spanning multiple cores or distributed across systems.
 
 
 ### Sample results on Intel(R) Xeon(R) E-2276M Coffeelake (Thinkpad P53, AVX2)
-![Results](https://github.com/mmperf/mmperf/blob/main/official_results/haswell/2021-01-24_15-25-42/matmul.png)
+![Results](https://github.com/mmperf/mmperf/raw/main/official_results/haswell/2021-01-24_15-25-42/matmul.png)
 
 ### Sample results on AMD Threadripper 3990x (ZenV2, AVX2)
-![Results](https://github.com/mmperf/mmperf/raw/main/official_results/znver2/2021-01-24_15-58-48/matmul.png)
+![Results](https://github.com/mmperf/mmperf/raw/main/official_results/znver2/2021-01-25_13-24-25/matmul.png)
 
 ### Installation
 First checkout the repo with submodules
@@ -23,7 +23,7 @@ cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DUSE_
 cmake --build build
 ```
 
-Another example to build with all backends. Assumes you have MKL, OpenBLAS and Halide installed (see below to install) 
+Another example to build with all backends. Assumes you have MKL, OpenBLAS and Halide installed (see below to install)
 
 ```
 HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DMKL_DIR=/opt/intel/oneapi/mkl/latest/ -DUSE_MLIR=ON -DUSE_MKL=ON -DUSE_RUY=ON -DUSE_HALIDE=ON -DUSE_OPENBLAS=ON -B build .
