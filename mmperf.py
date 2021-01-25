@@ -20,7 +20,8 @@ colors = {'mkl': 'red',
           'mlir': 'dodgerblue',
           'openblas': 'mediumseagreen',
           'halide': 'gold',
-          'ruy': 'violet'}
+          'ruy': 'violet',
+          'naive': 'black'}
 
 def add_arguments(parser):
     parser.add_argument('bins', type=Path, help='Path where the test binaries are')
@@ -84,7 +85,6 @@ def main(argv):
     my_env["MKL_NUM_THREADS"] = "1"
     my_env["OPENBLAS_NUM_THREADS"] = "1"
     my_env["HL_NUM_THREADS"] = "1"
-    my_env["THREADS"] = "1"
 
     # used to impose a consistent sorting of the matrix sizes in the plot
     bar_ordering = list(collections.OrderedDict.fromkeys(y['size'] for x in binaries for y in binaries[x]))

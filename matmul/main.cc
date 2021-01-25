@@ -51,6 +51,19 @@ void init_matrix(float *a, int nrows, int ncols) {
   }
 }
 
+void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, size_t n) {
+  // correctness check - column major
+  for (size_t i = 0; i < m; i++) {
+    for (size_t j = 0; j < n; j++) {
+      size_t ci = i + j*m;
+      c[ci] = 0.0f;
+      for (size_t p = 0; p < k; p++) {
+        c[ci] += a[i + p*m] * b[p + j*k];
+      }
+    }
+  }
+}
+
 int main(int argc, char **argv) {
 #ifdef MKL
   printf("Benchmarking MKL %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
@@ -62,6 +75,8 @@ int main(int argc, char **argv) {
   printf("Benchmarking Ruy %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(MLIR)
   printf("Benchmarking MLIR %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(NAIVE)
+  printf("Benchmarking Naive C %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #endif
   double t_start, t_end;
   t_start = rtclock();
@@ -76,7 +91,7 @@ int main(int argc, char **argv) {
   int LDB = KDIM;
   int LDC = MDIM;
   float alpha = 1.0;
-  float beta = 1.0;
+  float beta = 0.0;
 
 #ifdef RUY
   ruy::Context context;
@@ -91,7 +106,6 @@ int main(int argc, char **argv) {
   ruy::MakeSimpleLayout(MDIM, NDIM, ruy::Order::kColMajor, dst.mutable_layout());
   dst.set_data(C);
   ruy::MulParams<float, float> mul_params;
-  mul_params.set_bias(C);
 #endif
 
   for (int t = 0; t < NUM_REPS; ++t) {
@@ -107,9 +121,26 @@ int main(int argc, char **argv) {
     matmul(A, A, 0, MDIM, KDIM, 1, LDA,
            B, B, 0, KDIM, NDIM, 1, LDB,
 	   C, C, 0, MDIM, NDIM, 1, LDC);
+#elif defined(NAIVE)
+    naive_matmul(A,B,C,MDIM,KDIM,NDIM);
 #endif
   }
   t_end = rtclock();
+
+  float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
+  size_t errors = 0;
+  naive_matmul(A,B,C2,MDIM,KDIM,NDIM);
+  for (size_t i = 0; i < MDIM; i++) {
+    for (size_t j = 0; j < NDIM; j++) {
+      size_t ci = i + j*MDIM;
+      if (std::abs(C[ci] - C2[ci]) > 0.01f) {
+        fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
+        errors++;
+      }
+    }
+  }
+  printf("Detected %ld errors.\n", errors);
+
   const char *filename = TO_STRING(FILE_NAME);
   FILE *file = fopen(filename, "w");
   fprintf(file, "%0.2lf GFLOPS\n", 2.0 * NUM_REPS * MDIM * NDIM * KDIM / (t_end - t_start) / 1E9);

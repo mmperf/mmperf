@@ -57,6 +57,7 @@ option(USE_MKL "Enable MKL" OFF)
 option(USE_OPENBLAS "Enable OpenBLAS" OFF)
 option(USE_HALIDE "Enable Halide" OFF)
 option(USE_RUY "Enable Ruy" OFF)
+option(USE_NAIVE "Enable naive implementation by c/c++ loop" OFF)
 
 set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/benchmark_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
 set(TARGET_CPU "haswell" CACHE INTERNAL "Target CPU for MLIR")
@@ -90,4 +91,5 @@ ExternalProject_Add(matmul
     -DREGISTER_TILE_SIZES=${REGISTER_TILE_SIZES}
     -DCOPY_FILL_TILE_SIZES=${COPY_FILL_TILE_SIZES}
     -DRUY_SOURCE=${RUY_SOURCE}
+    -DUSE_NAIVE=${USE_NAIVE}
 )
