@@ -46,13 +46,23 @@ def main(argv):
 
         cpu_pattern = re.compile('cpu[0-9]+')
         cpudirs = [x for x in Path("/sys/devices/system/cpu/").iterdir() if cpu_pattern.match(x.name)]
+
         with open(result_dir / 'scaling_governor', 'w') as f:
             for cpu in cpudirs:
-                f.write(cpu.name + ": " + (cpu / 'cpufreq' / 'scaling_governor').read_text())
-        cpudirs = [x for x in Path("/sys/devices/system/cpu/").iterdir() if cpu_pattern.match(x.name)]
+                sc_gov = (cpu / 'cpufreq' / 'scaling_governor')
+                if sc_gov.is_file():
+                    f.write(cpu.name + ": " + sc_gov.read_text())
+                else:
+                    f.write(cpu.name + ": not available")
+
         with open(result_dir / 'core_frequencies', 'w') as f:
             for cpu in cpudirs:
-                f.write(cpu.name + ": " + (cpu / 'cpufreq' / 'scaling_cur_freq').read_text())
+                sc_freq = (cpu / 'cpufreq' / 'scaling_cur_freq')
+                if sc_freq.is_file():
+                    f.write(cpu.name + ": " + sc_freq.read_text())
+                else:
+                    f.write(cpu.name + ": not available")
+
     elif pfm == "Darwin":
         # OSX
         print("OSX System Detected")
