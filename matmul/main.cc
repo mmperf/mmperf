@@ -127,6 +127,7 @@ int main(int argc, char **argv) {
   }
   t_end = rtclock();
 
+#ifdef ENABLE_CHECK
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
   naive_matmul(A,B,C2,MDIM,KDIM,NDIM);
@@ -140,6 +141,7 @@ int main(int argc, char **argv) {
     }
   }
   printf("Detected %ld errors.\n", errors);
+#endif
 
   const char *filename = TO_STRING(FILE_NAME);
   FILE *file = fopen(filename, "w");

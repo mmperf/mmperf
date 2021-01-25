@@ -52,19 +52,12 @@ ExternalProject_Add(mlir
     -DLLVM_ENABLE_RTTI:BOOL=ON
 )
 
-option(USE_MLIR "Enable MLIR" OFF)
-option(USE_MKL "Enable MKL" OFF)
-option(USE_OPENBLAS "Enable OpenBLAS" OFF)
-option(USE_HALIDE "Enable Halide" OFF)
-option(USE_RUY "Enable Ruy" OFF)
-option(USE_NAIVE "Enable naive implementation by c/c++ loop" OFF)
-
-set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/benchmark_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
-set(TARGET_CPU "haswell" CACHE INTERNAL "Target CPU for MLIR")
-set(VECTOR_WIDTH "256" CACHE INTERNAL "Vector width for MLIR")
-set(TILE_SIZES "" CACHE INTERNAL "Tile sizes for MLIR")
-set(REGISTER_TILE_SIZES "" CACHE INTERNAL "Register Tile sizes for MLIR")
-set(COPY_FILL_TILE_SIZES "" CACHE INTERNAL "Copy and Fill Tile sizes for MLIR")
+include(shared.cmake)
+set(MATMUL_CMAKE_ARGS "")
+foreach(var IN LISTS VARS_TO_COPY)
+    list(APPEND MATMUL_CMAKE_ARGS -D${var}=${${var}})
+endforeach()
+message(STATUS "${MATMUL_CMAKE_ARGS}")
 
 ExternalProject_Add(matmul
   DEPENDS mlir
@@ -77,19 +70,10 @@ ExternalProject_Add(matmul
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DMLIR_DIR=${MLIR_INSTALL}/lib/cmake/mlir
     -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
-    -DUSE_MLIR=${USE_MLIR}
     -DMKL_DIR=${MKL_DIR}
-    -DUSE_MKL=${USE_MKL}
     -DSIZE_FILE=${SIZE_FILE}
-    -DUSE_OPENBLAS=${USE_OPENBLAS}
-    -DUSE_HALIDE=${USE_HALIDE}
     -DHALIDE_DIR=${HALIDE_DIR}
-    -DTARGET_CPU=${TARGET_CPU}
-    -DVECTOR_WIDTH=${VECTOR_WIDTH}
     -DUSE_RUY=${USE_RUY}
-    -DTILE_SIZES=${TILE_SIZES}
-    -DREGISTER_TILE_SIZES=${REGISTER_TILE_SIZES}
-    -DCOPY_FILL_TILE_SIZES=${COPY_FILL_TILE_SIZES}
     -DRUY_SOURCE=${RUY_SOURCE}
-    -DUSE_NAIVE=${USE_NAIVE}
+    ${MATMUL_CMAKE_ARGS}
 )
