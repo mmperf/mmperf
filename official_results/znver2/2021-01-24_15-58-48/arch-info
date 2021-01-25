@@ -1,0 +1,343 @@
+Packages:
+	0: AMD Ryzen Threadripper 3990X 64-Core
+Microarchitectures:
+	128x Zen 2
+Cores:
+	0: 1 processor (0), AMD Zen 2
+	1: 1 processor (1), AMD Zen 2
+	2: 1 processor (2), AMD Zen 2
+	3: 1 processor (3), AMD Zen 2
+	4: 1 processor (4), AMD Zen 2
+	5: 1 processor (5), AMD Zen 2
+	6: 1 processor (6), AMD Zen 2
+	7: 1 processor (7), AMD Zen 2
+	8: 1 processor (8), AMD Zen 2
+	9: 1 processor (9), AMD Zen 2
+	10: 1 processor (10), AMD Zen 2
+	11: 1 processor (11), AMD Zen 2
+	12: 1 processor (12), AMD Zen 2
+	13: 1 processor (13), AMD Zen 2
+	14: 1 processor (14), AMD Zen 2
+	15: 1 processor (15), AMD Zen 2
+	16: 1 processor (16), AMD Zen 2
+	17: 1 processor (17), AMD Zen 2
+	18: 1 processor (18), AMD Zen 2
+	19: 1 processor (19), AMD Zen 2
+	20: 1 processor (20), AMD Zen 2
+	21: 1 processor (21), AMD Zen 2
+	22: 1 processor (22), AMD Zen 2
+	23: 1 processor (23), AMD Zen 2
+	24: 1 processor (24), AMD Zen 2
+	25: 1 processor (25), AMD Zen 2
+	26: 1 processor (26), AMD Zen 2
+	27: 1 processor (27), AMD Zen 2
+	28: 1 processor (28), AMD Zen 2
+	29: 1 processor (29), AMD Zen 2
+	30: 1 processor (30), AMD Zen 2
+	31: 1 processor (31), AMD Zen 2
+	32: 1 processor (32), AMD Zen 2
+	33: 1 processor (33), AMD Zen 2
+	34: 1 processor (34), AMD Zen 2
+	35: 1 processor (35), AMD Zen 2
+	36: 1 processor (36), AMD Zen 2
+	37: 1 processor (37), AMD Zen 2
+	38: 1 processor (38), AMD Zen 2
+	39: 1 processor (39), AMD Zen 2
+	40: 1 processor (40), AMD Zen 2
+	41: 1 processor (41), AMD Zen 2
+	42: 1 processor (42), AMD Zen 2
+	43: 1 processor (43), AMD Zen 2
+	44: 1 processor (44), AMD Zen 2
+	45: 1 processor (45), AMD Zen 2
+	46: 1 processor (46), AMD Zen 2
+	47: 1 processor (47), AMD Zen 2
+	48: 1 processor (48), AMD Zen 2
+	49: 1 processor (49), AMD Zen 2
+	50: 1 processor (50), AMD Zen 2
+	51: 1 processor (51), AMD Zen 2
+	52: 1 processor (52), AMD Zen 2
+	53: 1 processor (53), AMD Zen 2
+	54: 1 processor (54), AMD Zen 2
+	55: 1 processor (55), AMD Zen 2
+	56: 1 processor (56), AMD Zen 2
+	57: 1 processor (57), AMD Zen 2
+	58: 1 processor (58), AMD Zen 2
+	59: 1 processor (59), AMD Zen 2
+	60: 1 processor (60), AMD Zen 2
+	61: 1 processor (61), AMD Zen 2
+	62: 1 processor (62), AMD Zen 2
+	63: 1 processor (63), AMD Zen 2
+	64: 1 processor (64), AMD Zen 2
+	65: 1 processor (65), AMD Zen 2
+	66: 1 processor (66), AMD Zen 2
+	67: 1 processor (67), AMD Zen 2
+	68: 1 processor (68), AMD Zen 2
+	69: 1 processor (69), AMD Zen 2
+	70: 1 processor (70), AMD Zen 2
+	71: 1 processor (71), AMD Zen 2
+	72: 1 processor (72), AMD Zen 2
+	73: 1 processor (73), AMD Zen 2
+	74: 1 processor (74), AMD Zen 2
+	75: 1 processor (75), AMD Zen 2
+	76: 1 processor (76), AMD Zen 2
+	77: 1 processor (77), AMD Zen 2
+	78: 1 processor (78), AMD Zen 2
+	79: 1 processor (79), AMD Zen 2
+	80: 1 processor (80), AMD Zen 2
+	81: 1 processor (81), AMD Zen 2
+	82: 1 processor (82), AMD Zen 2
+	83: 1 processor (83), AMD Zen 2
+	84: 1 processor (84), AMD Zen 2
+	85: 1 processor (85), AMD Zen 2
+	86: 1 processor (86), AMD Zen 2
+	87: 1 processor (87), AMD Zen 2
+	88: 1 processor (88), AMD Zen 2
+	89: 1 processor (89), AMD Zen 2
+	90: 1 processor (90), AMD Zen 2
+	91: 1 processor (91), AMD Zen 2
+	92: 1 processor (92), AMD Zen 2
+	93: 1 processor (93), AMD Zen 2
+	94: 1 processor (94), AMD Zen 2
+	95: 1 processor (95), AMD Zen 2
+	96: 1 processor (96), AMD Zen 2
+	97: 1 processor (97), AMD Zen 2
+	98: 1 processor (98), AMD Zen 2
+	99: 1 processor (99), AMD Zen 2
+	100: 1 processor (100), AMD Zen 2
+	101: 1 processor (101), AMD Zen 2
+	102: 1 processor (102), AMD Zen 2
+	103: 1 processor (103), AMD Zen 2
+	104: 1 processor (104), AMD Zen 2
+	105: 1 processor (105), AMD Zen 2
+	106: 1 processor (106), AMD Zen 2
+	107: 1 processor (107), AMD Zen 2
+	108: 1 processor (108), AMD Zen 2
+	109: 1 processor (109), AMD Zen 2
+	110: 1 processor (110), AMD Zen 2
+	111: 1 processor (111), AMD Zen 2
+	112: 1 processor (112), AMD Zen 2
+	113: 1 processor (113), AMD Zen 2
+	114: 1 processor (114), AMD Zen 2
+	115: 1 processor (115), AMD Zen 2
+	116: 1 processor (116), AMD Zen 2
+	117: 1 processor (117), AMD Zen 2
+	118: 1 processor (118), AMD Zen 2
+	119: 1 processor (119), AMD Zen 2
+	120: 1 processor (120), AMD Zen 2
+	121: 1 processor (121), AMD Zen 2
+	122: 1 processor (122), AMD Zen 2
+	123: 1 processor (123), AMD Zen 2
+	124: 1 processor (124), AMD Zen 2
+	125: 1 processor (125), AMD Zen 2
+	126: 1 processor (126), AMD Zen 2
+	127: 1 processor (127), AMD Zen 2
+Logical processors (System ID):
+	0 (0): APIC ID 0x00000000
+	1 (64): APIC ID 0x00000001
+	2 (1): APIC ID 0x00000002
+	3 (65): APIC ID 0x00000003
+	4 (2): APIC ID 0x00000004
+	5 (66): APIC ID 0x00000005
+	6 (3): APIC ID 0x00000006
+	7 (67): APIC ID 0x00000007
+	8 (4): APIC ID 0x00000008
+	9 (68): APIC ID 0x00000009
+	10 (5): APIC ID 0x0000000a
+	11 (69): APIC ID 0x0000000b
+	12 (6): APIC ID 0x0000000c
+	13 (70): APIC ID 0x0000000d
+	14 (7): APIC ID 0x0000000e
+	15 (71): APIC ID 0x0000000f
+	16 (8): APIC ID 0x00000010
+	17 (72): APIC ID 0x00000011
+	18 (9): APIC ID 0x00000012
+	19 (73): APIC ID 0x00000013
+	20 (10): APIC ID 0x00000014
+	21 (74): APIC ID 0x00000015
+	22 (11): APIC ID 0x00000016
+	23 (75): APIC ID 0x00000017
+	24 (12): APIC ID 0x00000018
+	25 (76): APIC ID 0x00000019
+	26 (13): APIC ID 0x0000001a
+	27 (77): APIC ID 0x0000001b
+	28 (14): APIC ID 0x0000001c
+	29 (78): APIC ID 0x0000001d
+	30 (15): APIC ID 0x0000001e
+	31 (79): APIC ID 0x0000001f
+	32 (16): APIC ID 0x00000020
+	33 (80): APIC ID 0x00000021
+	34 (17): APIC ID 0x00000022
+	35 (81): APIC ID 0x00000023
+	36 (18): APIC ID 0x00000024
+	37 (82): APIC ID 0x00000025
+	38 (19): APIC ID 0x00000026
+	39 (83): APIC ID 0x00000027
+	40 (20): APIC ID 0x00000028
+	41 (84): APIC ID 0x00000029
+	42 (21): APIC ID 0x0000002a
+	43 (85): APIC ID 0x0000002b
+	44 (22): APIC ID 0x0000002c
+	45 (86): APIC ID 0x0000002d
+	46 (23): APIC ID 0x0000002e
+	47 (87): APIC ID 0x0000002f
+	48 (24): APIC ID 0x00000030
+	49 (88): APIC ID 0x00000031
+	50 (25): APIC ID 0x00000032
+	51 (89): APIC ID 0x00000033
+	52 (26): APIC ID 0x00000034
+	53 (90): APIC ID 0x00000035
+	54 (27): APIC ID 0x00000036
+	55 (91): APIC ID 0x00000037
+	56 (28): APIC ID 0x00000038
+	57 (92): APIC ID 0x00000039
+	58 (29): APIC ID 0x0000003a
+	59 (93): APIC ID 0x0000003b
+	60 (30): APIC ID 0x0000003c
+	61 (94): APIC ID 0x0000003d
+	62 (31): APIC ID 0x0000003e
+	63 (95): APIC ID 0x0000003f
+	64 (32): APIC ID 0x00000040
+	65 (96): APIC ID 0x00000041
+	66 (33): APIC ID 0x00000042
+	67 (97): APIC ID 0x00000043
+	68 (34): APIC ID 0x00000044
+	69 (98): APIC ID 0x00000045
+	70 (35): APIC ID 0x00000046
+	71 (99): APIC ID 0x00000047
+	72 (36): APIC ID 0x00000048
+	73 (100): APIC ID 0x00000049
+	74 (37): APIC ID 0x0000004a
+	75 (101): APIC ID 0x0000004b
+	76 (38): APIC ID 0x0000004c
+	77 (102): APIC ID 0x0000004d
+	78 (39): APIC ID 0x0000004e
+	79 (103): APIC ID 0x0000004f
+	80 (40): APIC ID 0x00000050
+	81 (104): APIC ID 0x00000051
+	82 (41): APIC ID 0x00000052
+	83 (105): APIC ID 0x00000053
+	84 (42): APIC ID 0x00000054
+	85 (106): APIC ID 0x00000055
+	86 (43): APIC ID 0x00000056
+	87 (107): APIC ID 0x00000057
+	88 (44): APIC ID 0x00000058
+	89 (108): APIC ID 0x00000059
+	90 (45): APIC ID 0x0000005a
+	91 (109): APIC ID 0x0000005b
+	92 (46): APIC ID 0x0000005c
+	93 (110): APIC ID 0x0000005d
+	94 (47): APIC ID 0x0000005e
+	95 (111): APIC ID 0x0000005f
+	96 (48): APIC ID 0x00000060
+	97 (112): APIC ID 0x00000061
+	98 (49): APIC ID 0x00000062
+	99 (113): APIC ID 0x00000063
+	100 (50): APIC ID 0x00000064
+	101 (114): APIC ID 0x00000065
+	102 (51): APIC ID 0x00000066
+	103 (115): APIC ID 0x00000067
+	104 (52): APIC ID 0x00000068
+	105 (116): APIC ID 0x00000069
+	106 (53): APIC ID 0x0000006a
+	107 (117): APIC ID 0x0000006b
+	108 (54): APIC ID 0x0000006c
+	109 (118): APIC ID 0x0000006d
+	110 (55): APIC ID 0x0000006e
+	111 (119): APIC ID 0x0000006f
+	112 (56): APIC ID 0x00000070
+	113 (120): APIC ID 0x00000071
+	114 (57): APIC ID 0x00000072
+	115 (121): APIC ID 0x00000073
+	116 (58): APIC ID 0x00000074
+	117 (122): APIC ID 0x00000075
+	118 (59): APIC ID 0x00000076
+	119 (123): APIC ID 0x00000077
+	120 (60): APIC ID 0x00000078
+	121 (124): APIC ID 0x00000079
+	122 (61): APIC ID 0x0000007a
+	123 (125): APIC ID 0x0000007b
+	124 (62): APIC ID 0x0000007c
+	125 (126): APIC ID 0x0000007d
+	126 (63): APIC ID 0x0000007e
+	127 (127): APIC ID 0x0000007f
+Scalar instructions:
+	LAHF/SAHF: yes
+	LZCNT: yes
+	POPCNT: yes
+	TBM: no
+	BMI: yes
+	BMI2: yes
+	ADCX/ADOX: yes
+Memory instructions:
+	MOVBE: yes
+	PREFETCH: yes
+	PREFETCHW: yes
+	PREFETCHWT1: no
+	CLZERO: yes
+SIMD extensions:
+	MMX: yes
+	MMX+: yes
+	3dnow!: no
+	3dnow!+: no
+	3dnow! Geode: no
+	DAZ: yes
+	SSE: yes
+	SSE2: yes
+	SSE3: yes
+	SSSE3: yes
+	SSE4.1: yes
+	SSE4.2: yes
+	SSE4a: yes
+	Misaligned SSE: yes
+	AVX: yes
+	FMA3: yes
+	FMA4: no
+	XOP: no
+	F16C: yes
+	AVX2: yes
+	AVX512F: no
+	AVX512PF: no
+	AVX512ER: no
+	AVX512CD: no
+	AVX512DQ: no
+	AVX512BW: no
+	AVX512VL: no
+	AVX512IFMA: no
+	AVX512VBMI: no
+	AVX512VBMI2: no
+	AVX512BITALG: no
+	AVX512VPOPCNTDQ: no
+	AVX512VNNI: no
+	AVX512BF16: no
+	AVX512VP2INTERSECT: no
+	AVX512_4VNNIW: no
+	AVX512_4FMAPS: no
+Multi-threading extensions:
+	MONITOR/MWAIT: yes
+	MONITORX/MWAITX: yes
+	CMPXCHG16B: yes
+	HLE: no
+	RTM: no
+	XTEST: no
+	RDPID: yes
+Cryptography extensions:
+	AES: yes
+	VAES: no
+	PCLMULQDQ: yes
+	VPCLMULQDQ: no
+	GFNI: no
+	RDRAND: yes
+	RDSEED: yes
+	SHA: yes
+Profiling instructions:
+	RDTSCP: yes
+	MPX: no
+System instructions:
+	CLWB: yes
+	FXSAVE/FXSTOR: yes
+	XSAVE/XSTOR: yes
+Max cache size (upper bound): 16777216 bytes
+L1 instruction cache: 64 x 32 KB, 8-way set associative (64 sets), 64 byte lines, shared by 2 processors
+L1 data cache: 64 x 32 KB, 8-way set associative (64 sets), 64 byte lines, shared by 2 processors
+L2 unified cache: 64 x 512 KB (inclusive), 8-way set associative (1024 sets), 64 byte lines, shared by 2 processors
+L3 unified cache: 16 x 16 MB (exclusive), 16-way set associative (16384 sets), 64 byte lines, shared by 8 processors
