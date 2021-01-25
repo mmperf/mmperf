@@ -7,7 +7,7 @@ This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries a
 ![Results](https://github.com/mmperf/mmperf/blob/main/official_results/haswell/2021-01-24_15-25-42/matmul.png)
 
 ### Sample results on AMD Threadripper Pro 3990x (ZenV2, AVX2)
-![Results] (https://github.com/mmperf/mmperf/raw/main/official_results/znver2/2021-01-24_15-58-48/matmul.png)
+![Results](https://github.com/mmperf/mmperf/raw/main/official_results/znver2/2021-01-24_15-58-48/matmul.png)
 
 ### Installation
 First checkout the repo with submodules
