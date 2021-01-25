@@ -6,7 +6,7 @@ This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries a
 ### Sample results on Intel(R) Xeon(R) E-2276M Coffeelake (Thinkpad P53, AVX2)
 ![Results](https://github.com/mmperf/mmperf/blob/main/official_results/haswell/2021-01-24_15-25-42/matmul.png)
 
-### Sample results on AMD Threadripper Pro 3990x (ZenV2, AVX2)
+### Sample results on AMD Threadripper 3990x (ZenV2, AVX2)
 ![Results](https://github.com/mmperf/mmperf/raw/main/official_results/znver2/2021-01-24_15-58-48/matmul.png)
 
 ### Installation
