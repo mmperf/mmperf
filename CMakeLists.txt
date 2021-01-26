@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
-project(codegen C CXX)
+project(mmperf C CXX)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake/")
+include(common)
 
 include(ExternalProject)
 
@@ -52,7 +55,6 @@ ExternalProject_Add(mlir
     -DLLVM_ENABLE_RTTI:BOOL=ON
 )
 
-include(shared.cmake)
 set(MATMUL_CMAKE_ARGS "")
 foreach(var IN LISTS VARS_TO_COPY)
     list(APPEND MATMUL_CMAKE_ARGS -D${var}=${${var}})

@@ -10,7 +10,7 @@ endif()
 
 option(ENABLE_CHECK "Enable verification by naive implementation" ON)
 
-set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/benchmark_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
+set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/../benchmark_sizes/benchmark_all_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
 set(TARGET_CPU "haswell" CACHE INTERNAL "Target CPU for MLIR")
 set(VECTOR_WIDTH "256" CACHE INTERNAL "Vector width for MLIR")
 set(TILE_SIZES "" CACHE INTERNAL "Tile sizes for MLIR")

@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(matmul C CXX)
 
-include(../shared.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/../cmake/")
+include(common)
 
 # Matrix sizes to benchmark
 message(STATUS "Reading matrix sizes from ... ${SIZE_FILE}")
