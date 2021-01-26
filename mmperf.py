@@ -105,8 +105,11 @@ def main(argv):
         speeds = []
         for binary in binaries[backend]:
             print(backend, binary)
-            subprocess.run([binary['path']], cwd=result_dir, env=my_env, check=True)
-            speeds.append(float((result_dir / (binary['path'].name + '_perf.out')).read_text().split()[0]))
+            try:
+                subprocess.run([binary['path']], cwd=result_dir, env=my_env, check=True)
+                speeds.append(float((result_dir / (binary['path'].name + '_perf.out')).read_text().split()[0]))
+            except:
+                speeds.append(0.0)
             bar_x.append(bar_ordering.index(binary['size']) + idx * width)
         plt.bar(bar_x, speeds, width, color=colors[backend], label=backend)
 
@@ -119,7 +122,7 @@ def main(argv):
     plt.savefig(result_dir / 'matmul.png', dpi=300, bbox_inches='tight')
 
 
-    return 0
+    return result_dir
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
