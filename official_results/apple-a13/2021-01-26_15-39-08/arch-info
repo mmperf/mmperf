@@ -1,0 +1,43 @@
+Packages:
+	0: 
+Microarchitectures:
+	4x Firestorm
+	4x Icestorm
+Cores:
+	0: 1 processor (0), Apple Firestorm
+	1: 1 processor (1), Apple Firestorm
+	2: 1 processor (2), Apple Firestorm
+	3: 1 processor (3), Apple Firestorm
+	4: 1 processor (4), Apple Icestorm
+	5: 1 processor (5), Apple Icestorm
+	6: 1 processor (6), Apple Icestorm
+	7: 1 processor (7), Apple Icestorm
+Logical processors:
+	0
+	1
+	2
+	3
+	4
+	5
+	6
+	7
+Instruction sets:
+	ARM v8.1 atomics: yes
+	ARM v8.1 SQRDMLxH: no
+	ARM v8.2 FP16 arithmetics: yes
+	ARM v8.3 dot product: yes
+	ARM v8.3 JS conversion: no
+	ARM v8.3 complex: no
+SIMD extensions:
+	ARM SVE: no
+	ARM SVE 2: no
+Cryptography extensions:
+	AES: yes
+	SHA1: yes
+	SHA2: yes
+	PMULL: yes
+	CRC32: yes
+Max cache size (upper bound): 4194304 bytes
+L1 instruction cache: 8 x 128 KB, 4-way set associative (256 sets), 128 byte lines, shared by 1 processors
+L1 data cache: 8 x 64 KB, 4-way set associative (128 sets), 128 byte lines, shared by 1 processors
+L2 data cache: 4 MB (exclusive), 8-way set associative (4096 sets), 128 byte lines, shared by 8 processors
