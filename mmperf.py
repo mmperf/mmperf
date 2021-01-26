@@ -9,10 +9,11 @@ import time
 import subprocess
 import shutil
 import re
-import matplotlib.pyplot as plt
 import collections
+import signal
 from pathlib import Path
 from functools import reduce
+import matplotlib.pyplot as plt
 
 plt.style.use('ggplot')
 width = 0.15
@@ -100,18 +101,27 @@ def main(argv):
     bar_ordering = list(collections.OrderedDict.fromkeys(y['size'] for x in binaries for y in binaries[x]))
     bar_ordering.sort(key=lambda s: (reduce(lambda x, y: x*y, s), s))
 
+    any_error = False
+
     for idx, backend in enumerate(binaries):
         bar_x = []
         speeds = []
         for binary in binaries[backend]:
             print(backend, binary)
-            try:
-                subprocess.run([binary['path']], cwd=result_dir, env=my_env, check=True)
-                speeds.append(float((result_dir / (binary['path'].name + '_perf.out')).read_text().split()[0]))
-            except:
-                speeds.append(0.0)
-            bar_x.append(bar_ordering.index(binary['size']) + idx * width)
-        plt.bar(bar_x, speeds, width, color=colors[backend], label=backend)
+            result = subprocess.run([binary['path']], cwd=result_dir, env=my_env, check=False)
+            gflops_path = result_dir / (binary['path'].name + '_perf.out')
+            if result.returncode != 0:
+                print("Benchmark failed with error code:",
+                      signal.Signals(-result.returncode) if result.returncode < 0
+                      else result.returncode)
+                any_error = True
+            if gflops_path.is_file():
+                speeds.append(float(gflops_path.read_text().split()[0]))
+                bar_x.append(bar_ordering.index(binary['size']) + idx * width)
+        if len(bar_x) > 0:
+            plt.bar(bar_x, speeds, width, color=colors[backend], label=backend)
+        else:
+            print("No results could be collected for backend", backend)
 
     plt.xlabel("Matrix sizes")
     plt.ylabel("GFLOPS")
@@ -121,7 +131,8 @@ def main(argv):
     plt.legend(loc='best')
     plt.savefig(result_dir / 'matmul.png', dpi=300, bbox_inches='tight')
 
-
+    if any_error:
+        print("Some benchmarks had problems, see above.")
     return result_dir
 
 if __name__ == '__main__':
