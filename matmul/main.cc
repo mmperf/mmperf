@@ -143,7 +143,9 @@ int main(int argc, char **argv) {
     }
   }
   printf("Detected %ld errors.\n", errors);
-  return_code = 1;
+  if (errors > 0) {
+    return_code = 1;
+  }
 #endif
 
   const char *filename = TO_STRING(FILE_NAME);
