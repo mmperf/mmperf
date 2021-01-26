@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(matmul C CXX)
 
+include(../shared.cmake)
+
 # Matrix sizes to benchmark
 message(STATUS "Reading matrix sizes from ... ${SIZE_FILE}")
 file(READ ${SIZE_FILE} MATRIX_SIZES)
@@ -104,6 +106,9 @@ foreach(BACKEND ${BACKENDS})
     target_compile_definitions(${MATMUL} PRIVATE KDIM=${K})
     target_compile_definitions(${MATMUL} PRIVATE NUM_REPS=${NUM_REPS})
     target_compile_definitions(${MATMUL} PRIVATE FILE_NAME=${MATMUL}_perf.out)
+    if (ENABLE_CHECK)
+        target_compile_definitions(${MATMUL} PRIVATE ENABLE_CHECK)
+    endif()
     if(${BACKEND} STREQUAL "mkl")
       target_compile_definitions(${MATMUL} PRIVATE MKL)
       target_include_directories(${MATMUL} PRIVATE ${MKL_DIR}/include)
