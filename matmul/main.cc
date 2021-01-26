@@ -127,6 +127,8 @@ int main(int argc, char **argv) {
   }
   t_end = rtclock();
 
+  int return_code = 0;
+
 #ifdef ENABLE_CHECK
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
@@ -141,6 +143,7 @@ int main(int argc, char **argv) {
     }
   }
   printf("Detected %ld errors.\n", errors);
+  return_code = 1;
 #endif
 
   const char *filename = TO_STRING(FILE_NAME);
@@ -153,5 +156,5 @@ int main(int argc, char **argv) {
   free(B);
   free(C);
 #endif
-  return 0;
+  return return_code;
 }

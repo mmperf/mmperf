@@ -1,0 +1,6 @@
+# Halide fails on all of these
+1x1x1
+4x4x4
+4x4x16
+1x16x16
+16x16x16
