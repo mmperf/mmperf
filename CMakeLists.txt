@@ -57,7 +57,6 @@ set(MATMUL_CMAKE_ARGS "")
 foreach(var IN LISTS VARS_TO_COPY)
     list(APPEND MATMUL_CMAKE_ARGS -D${var}=${${var}})
 endforeach()
-message(STATUS "${MATMUL_CMAKE_ARGS}")
 
 ExternalProject_Add(matmul
   DEPENDS mlir

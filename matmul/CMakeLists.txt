@@ -6,6 +6,7 @@ include(../shared.cmake)
 # Matrix sizes to benchmark
 message(STATUS "Reading matrix sizes from ... ${SIZE_FILE}")
 file(READ ${SIZE_FILE} MATRIX_SIZES)
+string(REGEX REPLACE "#[^\n]*\n" "" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE ";" "\\\\;" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE "\n" ";" MATRIX_SIZES "${MATRIX_SIZES}")
 
