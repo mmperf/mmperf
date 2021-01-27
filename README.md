@@ -1,15 +1,19 @@
 # Single CPU Core Matrix Multiplication Benchmarks
 
-This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries and code generation stacks on a single thread on one CPU core. The focus will be on machine learning workloads so FP32 or smaller and irregular sizes of matrices. The goal is to expose high performance atomic kernels that can then be used to build highly efficient higher level implemenations spanning multiple cores or distributed across systems.
+This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries and code generation stacks on a single thread on one CPU core. The focus will be on machine learning workloads so FP32 or smaller and irregular sizes of matrices. The goal is to expose high performance atomic kernels that can then be used to build highly efficient higher level implemenations spanning multiple cores or distributed across systems. 
 
 
 
 
-### Sample results on Intel XEON Skylake (GCP C2 instance, AVX512)
+### Results on Intel XEON Skylake (GCP C2 instance, AVX512)
 ![Results](https://github.com/mmperf/mmperf/raw/main/official_results/skylake-avx512/2021-01-26_01-12-27/matmul.png)
 
-### Sample results on AMD Threadripper 3990x (ZenV2, AVX2)
+### Results on AMD Threadripper 3990x (ZenV2, AVX2)
 ![Results](https://github.com/mmperf/mmperf/raw/main/official_results/znver2/2021-01-25_13-24-25/matmul.png)
+
+### Results on Apple M1 (NEON - no AMX2)
+Note: 8GB Mac Mini runs roughly 25% slower than the 16GB version on other tests.
+![Results](https://github.com/mmperf/mmperf/raw/main/official_results/apple-a13/2021-01-26_15-39-08/matmul.png)
 
 ### Installation
 First checkout the repo with submodules
