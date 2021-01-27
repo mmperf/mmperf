@@ -11,12 +11,17 @@ endif()
 
 option(ENABLE_CHECK "Enable verification by naive implementation" ON)
 
-set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/../benchmark_sizes/benchmark_all_sizes.txt CACHE INTERNAL "File containing matrix sizes to be benchmarked")
-set(TARGET_CPU "haswell" CACHE INTERNAL "Target CPU for MLIR")
-set(VECTOR_WIDTH "256" CACHE INTERNAL "Vector width for MLIR")
-set(TILE_SIZES "" CACHE INTERNAL "Tile sizes for MLIR")
-set(REGISTER_TILE_SIZES "" CACHE INTERNAL "Register Tile sizes for MLIR")
-set(COPY_FILL_TILE_SIZES "" CACHE INTERNAL "Copy and Fill Tile sizes for MLIR")
+set(SIZE_FILE ${CMAKE_CURRENT_LIST_DIR}/benchmark_sizes/benchmark_all_sizes.txt CACHE FILEPATH "File containing matrix sizes to be benchmarked")
+set(TILE_FILE "" CACHE FILEPATH "File containing association between matrix size and tile size")
+set(TARGET_CPU "haswell" CACHE STRING "Target CPU for MLIR")
+set(VECTOR_WIDTH "256" CACHE STRING "Vector width for MLIR")
+set(TILE_SIZES "" CACHE STRING "Tile sizes for MLIR")
+set(REGISTER_TILE_SIZES "" CACHE STRING "Register Tile sizes for MLIR")
+set(COPY_FILL_TILE_SIZES "" CACHE STRING "Copy and Fill Tile sizes for MLIR")
+
+if (TILE_FILE AND TILE_SIZES)
+    message(FATAL_ERROR "Individual and global tile sizes were both specified.")
+endif()
 
 set(VARS_TO_COPY
     USE_ACCELERATE
@@ -28,6 +33,7 @@ set(VARS_TO_COPY
     USE_NAIVE
     ENABLE_CHECK
     SIZE_FILE
+    TILE_FILE
     TARGET_CPU
     VECTOR_WIDTH
     TILE_SIZES
