@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 width = 0.15
 colors = {'mkl': 'red',
+          'accelerate': 'deepskyblue',
           'mlir': 'dodgerblue',
           'openblas': 'mediumseagreen',
           'halide': 'gold',
@@ -96,6 +97,7 @@ def main(argv):
     my_env["MKL_NUM_THREADS"] = "1"
     my_env["OPENBLAS_NUM_THREADS"] = "1"
     my_env["HL_NUM_THREADS"] = "1"
+    my_env["VECLIB_MAXIMUM_THREADS"] = "1"
 
     # used to impose a consistent sorting of the matrix sizes in the plot
     bar_ordering = list(collections.OrderedDict.fromkeys(y['size'] for x in binaries for y in binaries[x]))

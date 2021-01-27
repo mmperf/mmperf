@@ -1,10 +1,11 @@
+option(USE_ACCELERATE "Enable Apple Accelerate Framework" OFF)
 option(USE_MLIR "Enable MLIR" OFF)
 option(USE_MKL "Enable MKL" OFF)
 option(USE_OPENBLAS "Enable OpenBLAS" OFF)
 option(USE_HALIDE "Enable Halide" OFF)
 option(USE_RUY "Enable Ruy" OFF)
 option(USE_NAIVE "Enable naive implementation by c/c++ loop" OFF)
-if (NOT (USE_MLIR OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_RUY OR USE_NAIVE))
+if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_RUY OR USE_NAIVE))
     message(FATAL_ERROR "No backend was enabled!")
 endif()
 
@@ -18,6 +19,7 @@ set(REGISTER_TILE_SIZES "" CACHE INTERNAL "Register Tile sizes for MLIR")
 set(COPY_FILL_TILE_SIZES "" CACHE INTERNAL "Copy and Fill Tile sizes for MLIR")
 
 set(VARS_TO_COPY
+    USE_ACCELERATE
     USE_MLIR
     USE_MKL
     USE_OPENBLAS

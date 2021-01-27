@@ -1,7 +1,7 @@
 #ifdef MKL
 #include "mkl.h"
-#elif defined(OPENBLAS)
-#include "cblas.h"
+#elif defined(OPENBLAS) || defined (ACCELERATE)
+#include <cblas.h>
 #elif defined(HALIDE)
 #include "halide_blas.h"
 #elif defined(RUY)
@@ -67,6 +67,8 @@ void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, 
 int main(int argc, char **argv) {
 #ifdef MKL
   printf("Benchmarking MKL %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(ACCELERATE)
+  printf("Benchmarking Accelerate %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(OPENBLAS)
   printf("Benchmarking OpenBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(HALIDE)
@@ -109,7 +111,7 @@ int main(int argc, char **argv) {
 #endif
 
   for (int t = 0; t < NUM_REPS; ++t) {
-#if defined(MKL) || defined(OPENBLAS)
+#if defined(MKL) || defined(OPENBLAS) || defined(ACCELERATE)
     cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);
 #elif defined(HALIDE)
