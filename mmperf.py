@@ -5,7 +5,7 @@ import argparse
 import os
 import os.path
 import platform
-import time
+from datetime import datetime
 import subprocess
 import shutil
 import re
@@ -34,8 +34,7 @@ def main(argv):
     add_arguments(parser)
     args = parser.parse_args(argv[1:])
 
-    timestamp = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-    #result_dir = os.path.abspath(os.path.join(args.results, timestamp))
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
     result_dir = (args.results / timestamp).resolve()
     os.makedirs(result_dir)
 
