@@ -22,7 +22,11 @@ if(USE_NODAI)
       string(REPLACE "," ";" pair ${TILE_SIZE})
       list(GET pair 0 matrix_size)
       list(GET pair 1 tile_size)
-      string(REPLACE "x" " " TILE_FOR_MATRIX_${matrix_size} ${tile_size})
+      list(GET pair 2 register_size)
+      list(GET pair 3 copy_size)
+      string(REPLACE "x" " " "TILE_FOR_MATRIX_${matrix_size}" "${tile_size}")
+      string(REPLACE "x" " " "REGISTER_FOR_MATRIX_${matrix_size}" "${register_size}")
+      string(REPLACE "x" " " "COPY_FILL_FOR_MATRIX_${matrix_size}" "${copy_size}")
       message(STATUS "Matrix ${matrix_size} has tile size ${tile_size}")
     endif()
   endforeach()
@@ -37,28 +41,33 @@ if(USE_MLIR OR USE_NODAI)
       endif()
       message(STATUS "Using nodai tiles sizes ...")
       set(TILE_SIZES_LOCAL ${TILE_FOR_MATRIX_${M}x${N}x${K}})
+      set(REGISTER_TILE_SIZES_LOCAL ${REGISTER_FOR_MATRIX_${M}x${N}x${K}})
+      set(COPY_FILL_TILE_SIZES_LOCAL ${COPY_FILL_FOR_MATRIX_${M}x${N}x${K}})
+      set(COL_MAJOR_TILE_SIZES "16 0 32")
     else()
       if("${TILE_SIZES}" STREQUAL "")
         message(STATUS "Using default tile sizes")
         if(M GREATER 1000)
           set(TILE_SIZES_LOCAL "128 128 256")
-          set(REGISTER_TILE_SIZES "8 16 8")
-          set(COPY_FILL_TILE_SIZES "4 16")
+          set(REGISTER_TILE_SIZES_LOCAL "8 16 8")
+          set(COPY_FILL_TILE_SIZES_LOCAL "4 16")
           set(COL_MAJOR_TILE_SIZES "16 0 32")
         else()
           set(TILE_SIZES_LOCAL "12 32 16")
-          set(REGISTER_TILE_SIZES "")
-          set(COPY_FILL_TILE_SIZES "4 16")
+          set(REGISTER_TILE_SIZES_LOCAL "")
+          set(COPY_FILL_TILE_SIZES_LOCAL "4 16")
           set(COL_MAJOR_TILE_SIZES "16 0 32")
         endif()
       else()
         set(TILE_SIZES_LOCAL "${TILE_SIZES}")
+        set(REGISTER_TILE_SIZES_LOCAL "${REGISTER_TILE_SIZES}")
+	set(COPY_FILL_TILE_SIZES_LOCAL "${COPY_FILL_TILE_SIZES}")
         message(STATUS "Using custom tile sizes ...")
       endif()
     endif()
     message(STATUS "Tile sizes = ${TILE_SIZES_LOCAL}")
-    message(STATUS "Register Tile sizes = ${REGISTER_TILE_SIZES}")
-    message(STATUS "Copy Fill Tile sizes = ${COPY_FILL_TILE_SIZES}")
+    message(STATUS "Register Tile sizes = ${REGISTER_TILE_SIZES_LOCAL}")
+    message(STATUS "Copy Fill Tile sizes = ${COPY_FILL_TILE_SIZES_LOCAL}")
     if(${USE_COLUMN_MAJOR} STREQUAL "ON")
       message(STATUS "Compiling linalg.matmul_column_major ...")
       configure_file(${CMAKE_SOURCE_DIR}/matmul_column_major_mlir_MxNxK.mlir.in ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
@@ -71,8 +80,8 @@ if(USE_MLIR OR USE_NODAI)
       add_custom_command(OUTPUT ${OBJ}
         COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile
         -M=${M} -N=${N} -K=${K} -target-cpu=${TARGET_CPU} -vector-width=${VECTOR_WIDTH}
-        -tile-sizes=${TILE_SIZES_LOCAL} -register-tile-sizes=${REGISTER_TILE_SIZES}
-        -copy-fill-tile-sizes=${COPY_FILL_TILE_SIZES}
+        -tile-sizes=${TILE_SIZES_LOCAL} -register-tile-sizes=${REGISTER_TILE_SIZES_LOCAL}
+        -copy-fill-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL}
         -promote=true -promote-full-tile-pad=true -vectorize=true
         -vectorize-to=outerproduct -split-vector-transfers-to=vector-transfers
         -unroll-vector-transfers=true
@@ -86,15 +95,15 @@ if(USE_MLIR OR USE_NODAI)
     else()
       string(REPLACE " " "," TILE_SIZES_LOCAL "${TILE_SIZES_LOCAL}")
       string(REPLACE " " "," COL_MAJOR_TILE_SIZES "${COL_MAJOR_TILE_SIZES}")
-      string(REPLACE " " "," COPY_FILL_TILE_SIZES "${COPY_FILL_TILE_SIZES}")
+      string(REPLACE " " "," COPY_FILL_TILE_SIZES_LOCAL "${COPY_FILL_TILE_SIZES_LOCAL}")
       set(MLIR_OPT ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-opt)
       set(MLIR_TRANSLATE ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-translate)
       add_custom_command(OUTPUT ${OBJ}
 	COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
 	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.matmul_column_major register-tile-sizes=${COL_MAJOR_TILE_SIZES} vectorize\" |
 	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.matmul register-tile-sizes=${TILE_SIZES_LOCAL} vectorize\" |
-	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.fill register-tile-sizes=${COPY_FILL_TILE_SIZES} vectorize\" |
-	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.copy register-tile-sizes=${COPY_FILL_TILE_SIZES} vectorize\" |
+	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.fill register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
+	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.copy register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
 	${MLIR_OPT} -canonicalize -convert-vector-to-scf -lower-affine -convert-linalg-to-loops -canonicalize -convert-scf-to-std -convert-vector-to-llvm |
 	${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
         COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
