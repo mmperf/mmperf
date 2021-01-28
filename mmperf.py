@@ -17,14 +17,14 @@ import matplotlib.pyplot as plt
 
 plt.style.use('ggplot')
 width = 0.15
-colors = {'mkl': 'red',
+colors = {'mkl': 'orange',
           'accelerate': 'deepskyblue',
           'mlir': 'dodgerblue',
           'openblas': 'mediumseagreen',
           'halide': 'gold',
           'ruy': 'violet',
           'naive': 'black',
-          'nodai': 'orange'}
+          'nodai': 'red'}
 
 def add_arguments(parser):
     parser.add_argument('bins', type=Path, help='Path where the test binaries are')

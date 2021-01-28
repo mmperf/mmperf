@@ -19,8 +19,10 @@ set(TILE_SIZES "" CACHE STRING "Tile sizes for MLIR")
 set(REGISTER_TILE_SIZES "" CACHE STRING "Register Tile sizes for MLIR")
 set(COPY_FILL_TILE_SIZES "" CACHE STRING "Copy and Fill Tile sizes for MLIR")
 
-if (TILE_FILE AND TILE_SIZES)
-    message(FATAL_ERROR "Individual and global tile sizes were both specified.")
+if ("${TILE_FILE}" STREQUAL "")
+  set(USE_NODAI OFF CACHE INTERNAL "Enable Nod.AI")
+else()
+  set(USE_NODAI ON CACHE INTERNAL "Enable Nod.AI")
 endif()
 
 set(VARS_TO_COPY
