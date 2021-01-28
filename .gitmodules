@@ -7,3 +7,6 @@
 [submodule "external/cpuinfo"]
 	path = external/cpuinfo
 	url = https://github.com/pytorch/cpuinfo
+[submodule "external/Halide"]
+	path = external/Halide
+	url = https://github.com/halide/Halide.git
