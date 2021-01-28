@@ -15,6 +15,24 @@
 #define STRING(s) #s
 #define TO_STRING(x) STRING(x)
 
+#ifdef COLUMN_MAJOR
+#if defined(MKL) || defined(OPENBLAS) || defined(ACCELERATE)
+#define MATRIX_FORMAT CblasColMajor
+#elif defined(HALIDE)
+#define MATRIX_FORMAT HblasColMajor
+#elif defined(RUY)
+#define MATRIX_FORMAT ruy::Order::kColMajor
+#endif
+#else
+#if defined(MKL) || defined(OPENBLAS) || defined(ACCELERATE)
+#define MATRIX_FORMAT CblasRowMajor
+#elif defined(HALIDE)
+#define MATRIX_FORMAT HblasRowMajor
+#elif defined(RUY)
+#define MATRIX_FORMAT ruy::Order::kRowMajor
+#endif
+#endif
+
 #ifdef MLIR
 extern "C" {
 struct memref_t {
@@ -52,19 +70,32 @@ void init_matrix(float *a, int nrows, int ncols) {
 }
 
 void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, size_t n) {
-  // correctness check - column major
+  // correctness check
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
+#ifdef COLUMN_MAJOR
       size_t ci = i + j*m;
+#else
+      size_t ci = i*n + j;
+#endif
       c[ci] = 0.0f;
       for (size_t p = 0; p < k; p++) {
+#ifdef COLUMN_MAJOR
         c[ci] += a[i + p*m] * b[p + j*k];
+#else
+        c[ci] += a[i*k + p] * b[p*n + j];
+#endif
       }
     }
   }
 }
 
 int main(int argc, char **argv) {
+#ifdef COLUMN_MAJOR
+  printf("Matrix-format: Column-Major\n");
+#else
+  printf("Matrix-format: Row-Major\n");
+#endif
 #ifdef MKL
   printf("Benchmarking MKL %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(ACCELERATE)
@@ -89,9 +120,15 @@ int main(int argc, char **argv) {
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
 
+#ifdef COLUMN_MAJOR
   int LDA = MDIM;
   int LDB = KDIM;
   int LDC = MDIM;
+#else
+  int LDA = KDIM;
+  int LDB = NDIM;
+  int LDC = NDIM;
+#endif
   float alpha = 1.0;
   float beta = 0.0;
 
@@ -99,30 +136,36 @@ int main(int argc, char **argv) {
   ruy::Context context;
   context.set_max_num_threads(1);
   ruy::Matrix<float> lhs;
-  ruy::MakeSimpleLayout(MDIM, KDIM, ruy::Order::kColMajor, lhs.mutable_layout());
+  ruy::MakeSimpleLayout(MDIM, KDIM, MATRIX_FORMAT, lhs.mutable_layout());
   lhs.set_data(A);
   ruy::Matrix<float> rhs;
-  ruy::MakeSimpleLayout(KDIM, NDIM, ruy::Order::kColMajor, rhs.mutable_layout());
+  ruy::MakeSimpleLayout(KDIM, NDIM, MATRIX_FORMAT, rhs.mutable_layout());
   rhs.set_data(B);
   ruy::Matrix<float> dst;
-  ruy::MakeSimpleLayout(MDIM, NDIM, ruy::Order::kColMajor, dst.mutable_layout());
+  ruy::MakeSimpleLayout(MDIM, NDIM, MATRIX_FORMAT, dst.mutable_layout());
   dst.set_data(C);
   ruy::MulParams<float, float> mul_params;
 #endif
 
   for (int t = 0; t < NUM_REPS; ++t) {
 #if defined(MKL) || defined(OPENBLAS) || defined(ACCELERATE)
-    cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
+    cblas_sgemm(MATRIX_FORMAT, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);
 #elif defined(HALIDE)
-    hblas_sgemm(HblasColMajor, HblasNoTrans, HblasNoTrans, MDIM, NDIM, KDIM, alpha,
+    hblas_sgemm(MATRIX_FORMAT, HblasNoTrans, HblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);
 #elif defined(RUY)
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 #elif defined(MLIR)
+#ifdef COLUMN_MAJOR
     matmul(A, A, 0, MDIM, KDIM, 1, LDA,
            B, B, 0, KDIM, NDIM, 1, LDB,
-	   C, C, 0, MDIM, NDIM, 1, LDC);
+           C, C, 0, MDIM, NDIM, 1, LDC);
+#else
+    matmul(A, A, 0, MDIM, KDIM, LDA, 1,
+           B, B, 0, KDIM, NDIM, LDB, 1,
+           C, C, 0, MDIM, NDIM, LDC, 1);
+#endif
 #elif defined(NAIVE)
     naive_matmul(A,B,C,MDIM,KDIM,NDIM);
 #endif

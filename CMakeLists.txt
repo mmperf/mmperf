@@ -7,7 +7,7 @@ include(common)
 include(ExternalProject)
 
 if(NOT DEFINED MLIR_SOURCE)
-  set(MLIR_SOURCE ../external/llvm-project/llvm)
+  set(MLIR_SOURCE ${CMAKE_SOURCE_DIR}/external/llvm-project/llvm)
 endif()
 if(NOT DEFINED MLIR_BUILD)
   set(MLIR_BUILD ${CMAKE_BINARY_DIR}/mlir)
@@ -34,12 +34,16 @@ ExternalProject_Add(cpuinfo
     -DCPUINFO_BUILD_UNIT_TESTS=OFF
 )
 
+find_package(Git REQUIRED)
+set(PATCH_FILE ${CMAKE_SOURCE_DIR}/nico.patch)
 set(MLIR_INSTALL ${CMAKE_BINARY_DIR}/mlir-install)
+set(PATCH_CMD cd ${MLIR_SOURCE}/.. && ${GIT_EXECUTABLE} apply ${PATCH_FILE})
 ExternalProject_Add(mlir
   PREFIX ${CMAKE_BINARY_DIR}/mlir
   SOURCE_DIR ${MLIR_SOURCE}
   BINARY_DIR ${MLIR_BUILD}
   INSTALL_DIR ${MLIR_INSTALL}
+  PATCH_COMMAND ${PATCH_CMD}
   CMAKE_ARGS
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}

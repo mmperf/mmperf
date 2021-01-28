@@ -43,11 +43,13 @@ if(USE_MLIR OR USE_NODAI)
         if(M GREATER 1000)
           set(TILE_SIZES_LOCAL "128 128 256")
           set(REGISTER_TILE_SIZES "8 16 8")
-	  set(COPY_FILL_TILE_SIZES "4 16")
+          set(COPY_FILL_TILE_SIZES "4 16")
+          set(COL_MAJOR_TILE_SIZES "16 0 32")
         else()
           set(TILE_SIZES_LOCAL "12 32 16")
           set(REGISTER_TILE_SIZES "")
-	  set(COPY_FILL_TILE_SIZES "")
+          set(COPY_FILL_TILE_SIZES "4 16")
+          set(COL_MAJOR_TILE_SIZES "16 0 32")
         endif()
       else()
         set(TILE_SIZES_LOCAL "${TILE_SIZES}")
@@ -57,22 +59,50 @@ if(USE_MLIR OR USE_NODAI)
     message(STATUS "Tile sizes = ${TILE_SIZES_LOCAL}")
     message(STATUS "Register Tile sizes = ${REGISTER_TILE_SIZES}")
     message(STATUS "Copy Fill Tile sizes = ${COPY_FILL_TILE_SIZES}")
-    configure_file(${CMAKE_SOURCE_DIR}/matmul_mlir_MxNxK.mlir.in ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
-    add_custom_command(OUTPUT ${OBJ}
-      COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile
-      -M=${M} -N=${N} -K=${K} -target-cpu=${TARGET_CPU} -vector-width=${VECTOR_WIDTH}
-      --tile-sizes=${TILE_SIZES_LOCAL} -register-tile-sizes=${REGISTER_TILE_SIZES}
-      -copy-fill-tile-sizes=${COPY_FILL_TILE_SIZES}
-      -promote=true -promote-full-tile-pad=true -vectorize=true
-      -vectorize-to=outerproduct -split-vector-transfers-to=vector-transfers
-      -unroll-vector-transfers=true
-      ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir
-      COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
-      -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
-      -c -o ${OBJ} -g
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
-      DEPENDS matmul-compile
-    )
+    if(${USE_COLUMN_MAJOR} STREQUAL "ON")
+      message(STATUS "Compiling linalg.matmul_column_major ...")
+      configure_file(${CMAKE_SOURCE_DIR}/matmul_column_major_mlir_MxNxK.mlir.in ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+    else()
+      message(STATUS "Compiling linalg.matmul ...")
+      configure_file(${CMAKE_SOURCE_DIR}/matmul_mlir_MxNxK.mlir.in ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+    endif()
+    # For larger sizes, we will still use matmul-compile
+    if((${USE_MATMUL_COMPILE} STREQUAL "ON") OR (M GREATER 1000))
+      add_custom_command(OUTPUT ${OBJ}
+        COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile
+        -M=${M} -N=${N} -K=${K} -target-cpu=${TARGET_CPU} -vector-width=${VECTOR_WIDTH}
+        -tile-sizes=${TILE_SIZES_LOCAL} -register-tile-sizes=${REGISTER_TILE_SIZES}
+        -copy-fill-tile-sizes=${COPY_FILL_TILE_SIZES}
+        -promote=true -promote-full-tile-pad=true -vectorize=true
+        -vectorize-to=outerproduct -split-vector-transfers-to=vector-transfers
+        -unroll-vector-transfers=true
+        ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir
+        COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+        -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
+        -c -o ${OBJ} -g
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
+        DEPENDS matmul-compile
+      )
+    else()
+      string(REPLACE " " "," TILE_SIZES_LOCAL "${TILE_SIZES_LOCAL}")
+      string(REPLACE " " "," COL_MAJOR_TILE_SIZES "${COL_MAJOR_TILE_SIZES}")
+      string(REPLACE " " "," COPY_FILL_TILE_SIZES "${COPY_FILL_TILE_SIZES}")
+      set(MLIR_OPT ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-opt)
+      set(MLIR_TRANSLATE ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-translate)
+      add_custom_command(OUTPUT ${OBJ}
+	COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
+	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.matmul_column_major register-tile-sizes=${COL_MAJOR_TILE_SIZES} vectorize\" |
+	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.matmul register-tile-sizes=${TILE_SIZES_LOCAL} vectorize\" |
+	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.fill register-tile-sizes=${COPY_FILL_TILE_SIZES} vectorize\" |
+	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.copy register-tile-sizes=${COPY_FILL_TILE_SIZES} vectorize\" |
+	${MLIR_OPT} -canonicalize -convert-vector-to-scf -lower-affine -convert-linalg-to-loops -canonicalize -convert-scf-to-std -convert-vector-to-llvm |
+	${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+        COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+        -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
+        -c -o ${OBJ} -g
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
+      )
+    endif()
   endfunction()
 
   # Build matmul-compile and pass
@@ -143,6 +173,9 @@ foreach(BACKEND ${BACKENDS})
     target_compile_definitions(${MATMUL} PRIVATE KDIM=${K})
     target_compile_definitions(${MATMUL} PRIVATE NUM_REPS=${NUM_REPS})
     target_compile_definitions(${MATMUL} PRIVATE FILE_NAME=${MATMUL}_perf.out)
+    if(${USE_COLUMN_MAJOR} STREQUAL "ON")
+      target_compile_definitions(${MATMUL} PRIVATE COLUMN_MAJOR)
+    endif()
     if (ENABLE_CHECK)
         target_compile_definitions(${MATMUL} PRIVATE ENABLE_CHECK)
     endif()
