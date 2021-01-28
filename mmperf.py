@@ -23,7 +23,8 @@ colors = {'mkl': 'red',
           'openblas': 'mediumseagreen',
           'halide': 'gold',
           'ruy': 'violet',
-          'naive': 'black'}
+          'naive': 'black',
+          'nodai': 'orange'}
 
 def add_arguments(parser):
     parser.add_argument('bins', type=Path, help='Path where the test binaries are')
