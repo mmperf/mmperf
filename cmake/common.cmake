@@ -9,9 +9,6 @@ option(USE_TVM "Enable TVM" OFF)
 option(USE_NAIVE "Enable naive implementation by c/c++ loop" OFF)
 option(USE_MATMUL_COMPILE "Use matmul-compile instead of mlir-opt for small and medium sizes" OFF)
 option(USE_COLUMN_MAJOR "Matrix format" OFF)
-if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_RUY OR USE_NAIVE))
-    message(FATAL_ERROR "No backend was enabled!")
-endif()
 
 option(ENABLE_CHECK "Enable verification by naive implementation" ON)
 
@@ -30,6 +27,9 @@ else()
   set(USE_NODAI ON CACHE INTERNAL "Enable Nod.AI")
 endif()
 option(SEARCH_MODE "Read tile size file as permutations instead of associations" OFF)
+if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_RUY OR USE_NAIVE OR USE_NODAI OR USE_ACCELERATE OR USE_BLIS OR USE_TVM))
+  message(FATAL_ERROR "No backend was enabled!")
+endif()
 
 set(VARS_TO_COPY
     USE_ACCELERATE
@@ -52,5 +52,4 @@ set(VARS_TO_COPY
     COL_MAJOR_TILE_SIZES
     REGISTER_TILE_SIZES
     COPY_FILL_TILE_SIZES
-    ENABLE_CHECK
     SEARCH_MODE)
