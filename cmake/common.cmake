@@ -6,7 +6,7 @@ option(USE_HALIDE "Enable Halide" OFF)
 option(USE_RUY "Enable Ruy" OFF)
 option(USE_NAIVE "Enable naive implementation by c/c++ loop" OFF)
 option(USE_MATMUL_COMPILE "Use matmul-compile instead of mlir-opt for small and medium sizes" OFF)
-option(USE_COLUMN_MAJOR "Matrix format" ON)
+option(USE_COLUMN_MAJOR "Matrix format" OFF)
 if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_RUY OR USE_NAIVE))
     message(FATAL_ERROR "No backend was enabled!")
 endif()
@@ -27,6 +27,7 @@ if ("${TILE_FILE}" STREQUAL "")
 else()
   set(USE_NODAI ON CACHE INTERNAL "Enable Nod.AI")
 endif()
+option(SEARCH_MODE "Read tile size file as permutations instead of associations" OFF)
 
 set(VARS_TO_COPY
     USE_ACCELERATE
@@ -47,4 +48,5 @@ set(VARS_TO_COPY
     COL_MAJOR_TILE_SIZES
     REGISTER_TILE_SIZES
     COPY_FILL_TILE_SIZES
-    ENABLE_CHECK)
+    ENABLE_CHECK
+    SEARCH_MODE)

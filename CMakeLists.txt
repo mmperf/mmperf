@@ -37,7 +37,7 @@ ExternalProject_Add(cpuinfo
 find_package(Git REQUIRED)
 set(PATCH_FILE ${CMAKE_SOURCE_DIR}/nico.patch)
 set(MLIR_INSTALL ${CMAKE_BINARY_DIR}/mlir-install)
-set(PATCH_CMD cd ${MLIR_SOURCE}/.. && ${GIT_EXECUTABLE} apply ${PATCH_FILE})
+set(PATCH_CMD cd ${MLIR_SOURCE}/.. && ${GIT_EXECUTABLE} reset --hard HEAD && ${GIT_EXECUTABLE} clean -f && ${GIT_EXECUTABLE} apply ${PATCH_FILE})
 ExternalProject_Add(mlir
   PREFIX ${CMAKE_BINARY_DIR}/mlir
   SOURCE_DIR ${MLIR_SOURCE}
