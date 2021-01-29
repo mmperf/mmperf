@@ -26,7 +26,8 @@ BAR_COLORS = {'mkl': 'orange',
               'ruy': 'violet',
               'naive': 'black',
               'nodai': 'red'}
-BENCHMARK_ENV = os.environ.copy().update({
+BENCHMARK_ENV = os.environ.copy()
+BENCHMARK_ENV.update({
     "MKL_NUM_THREADS": "1",
     "OPENBLAS_NUM_THREADS": "1",
     "HL_NUM_THREADS": "1",
