@@ -27,6 +27,7 @@ if ("${TILE_FILE}" STREQUAL "")
 else()
   set(USE_NODAI ON CACHE INTERNAL "Enable Nod.AI")
 endif()
+option(SEARCH_MODE "Read tile size file as permutations instead of associations" OFF)
 
 set(VARS_TO_COPY
     USE_ACCELERATE
@@ -47,4 +48,5 @@ set(VARS_TO_COPY
     COL_MAJOR_TILE_SIZES
     REGISTER_TILE_SIZES
     COPY_FILL_TILE_SIZES
-    ENABLE_CHECK)
+    ENABLE_CHECK
+    SEARCH_MODE)
