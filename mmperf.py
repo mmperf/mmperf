@@ -107,6 +107,7 @@ def main(argv):
     binaries = {}
     for path in bin_paths:
         parts = path.name.split('_')[1:]
+        parts[1] = parts[1].replace('m', '', 1)
         size = tuple(int(y) for y in parts[1].split('x'))
         binaries.setdefault(parts[0], []).append(
             {'path': path.resolve(), 'size': size})
