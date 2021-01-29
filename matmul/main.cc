@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
 
-#ifdef COLUMN_MAJOR
+#if defined(COLUMN_MAJOR)
   int LDA = MDIM;
   int LDB = KDIM;
   int LDC = MDIM;
@@ -152,8 +152,19 @@ int main(int argc, char **argv) {
     cblas_sgemm(MATRIX_FORMAT, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);
 #elif defined(HALIDE)
+#if defined(COLUMN_MAJOR)
     hblas_sgemm(MATRIX_FORMAT, HblasNoTrans, HblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);
+#else
+    // We assume A, B are row-major (_rm)
+    // Since hblas_sgemm only does column major (_cm), we do
+    // C_rm = C_cm'
+    //      = hblas_sgemm(A_cm, B_cm)'
+    //      = hblas_sgemm(B_cm', A_cm')
+    //      = hblas_sgemm(B_rm, A_rm)
+    hblas_sgemm(MATRIX_FORMAT, HblasNoTrans, HblasNoTrans, NDIM, MDIM, KDIM, alpha,
+                B, LDB, A, LDA, beta, C, LDC);
+#endif
 #elif defined(RUY)
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 #elif defined(MLIR)
