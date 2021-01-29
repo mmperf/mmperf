@@ -85,6 +85,15 @@ To run a specific matrix size (say 24x64x512), run
 sudo apt install libopenblas-dev
 ```
 
+### BLIS
+```
+git clone https://github.com/flame/blis
+cd blis
+./configure --prefix=/home/foo/lokal/ --enable-cblas -c amd64
+make -j 16
+make install
+```
+
 #### Intel MKL
 Download and install from https://software.intel.com/content/www/us/en/develop/articles/installation-guide-for-intel-oneapi-toolkits.html
 

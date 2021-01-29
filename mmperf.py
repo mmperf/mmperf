@@ -22,6 +22,7 @@ BAR_COLORS = {'mkl': 'orange',
               'accelerate': 'deepskyblue',
               'mlir': 'dodgerblue',
               'openblas': 'mediumseagreen',
+              'blis': 'mediumspringgreen',
               'halide': 'gold',
               'ruy': 'violet',
               'naive': 'black',
@@ -30,6 +31,7 @@ BENCHMARK_ENV = os.environ.copy()
 BENCHMARK_ENV.update({
     "MKL_NUM_THREADS": "1",
     "OPENBLAS_NUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
     "HL_NUM_THREADS": "1",
     "VECLIB_MAXIMUM_THREADS": "1",
 })

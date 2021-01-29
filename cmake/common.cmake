@@ -2,6 +2,7 @@ option(USE_ACCELERATE "Enable Apple Accelerate Framework" OFF)
 option(USE_MLIR "Enable MLIR" OFF)
 option(USE_MKL "Enable MKL" OFF)
 option(USE_OPENBLAS "Enable OpenBLAS" OFF)
+option(USE_BLIS "Enable OpenBLAS" OFF)
 option(USE_HALIDE "Enable Halide" OFF)
 option(USE_RUY "Enable Ruy" OFF)
 option(USE_NAIVE "Enable naive implementation by c/c++ loop" OFF)
@@ -34,6 +35,7 @@ set(VARS_TO_COPY
     USE_MLIR
     USE_MKL
     USE_OPENBLAS
+    USE_BLIS
     USE_HALIDE
     USE_RUY
     USE_NAIVE

@@ -1,6 +1,6 @@
 #ifdef MKL
 #include "mkl.h"
-#elif defined(OPENBLAS) || defined (ACCELERATE)
+#elif defined(OPENBLAS) || defined(BLIS) || defined (ACCELERATE)
 #include <cblas.h>
 #elif defined(HALIDE)
 #include "halide_blas.h"
@@ -16,7 +16,7 @@
 #define TO_STRING(x) STRING(x)
 
 #ifdef COLUMN_MAJOR
-#if defined(MKL) || defined(OPENBLAS) || defined(ACCELERATE)
+#if defined(MKL) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
 #define MATRIX_FORMAT CblasColMajor
 #elif defined(HALIDE)
 #define MATRIX_FORMAT HblasColMajor
@@ -24,7 +24,7 @@
 #define MATRIX_FORMAT ruy::Order::kColMajor
 #endif
 #else
-#if defined(MKL) || defined(OPENBLAS) || defined(ACCELERATE)
+#if defined(MKL) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
 #define MATRIX_FORMAT CblasRowMajor
 #elif defined(HALIDE)
 #define MATRIX_FORMAT HblasRowMajor
@@ -102,6 +102,8 @@ int main(int argc, char **argv) {
   printf("Benchmarking Accelerate %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(OPENBLAS)
   printf("Benchmarking OpenBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(BLIS)
+  printf("Benchmarking BLIS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(HALIDE)
   printf("Benchmarking Halide %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(RUY)
@@ -148,7 +150,7 @@ int main(int argc, char **argv) {
 #endif
 
   for (int t = 0; t < NUM_REPS; ++t) {
-#if defined(MKL) || defined(OPENBLAS) || defined(ACCELERATE)
+#if defined(MKL) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
     cblas_sgemm(MATRIX_FORMAT, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);
 #elif defined(HALIDE)
