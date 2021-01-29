@@ -3,6 +3,8 @@
 This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries and code generation stacks on a single thread on one CPU core. The focus will be on machine learning workloads so FP32 or smaller and irregular sizes of matrices. The goal is to expose high performance atomic kernels that can then be used to build highly efficient higher level implemenations spanning multiple cores or distributed across systems. 
 
 
+### Results on AMD Ryzen 5950x (ZenV3, compared to AMD's BLIS and OpenBLAS for RESNET50 sizes)
+![Results](https://github.com/mmperf/mmperf/raw/main/official_results/znver2/2021-01-29_06-25-31-351049/matmul.png)
 
 ### Results on Intel XEON Skylake (GCP C2 instance, AVX512)
 ![Results](https://github.com/mmperf/mmperf/raw/main/official_results/skylake-avx512/2021-01-26_01-12-27/matmul.png)
