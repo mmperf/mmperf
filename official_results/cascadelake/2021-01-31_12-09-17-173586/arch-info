@@ -1,0 +1,177 @@
+Packages:
+	0: Intel Xeon
+Microarchitectures:
+	30x Sky Lake
+Cores:
+	0: 2 processors (0-1), Intel Sky Lake
+	1: 2 processors (2-3), Intel Sky Lake
+	2: 2 processors (4-5), Intel Sky Lake
+	3: 2 processors (6-7), Intel Sky Lake
+	4: 2 processors (8-9), Intel Sky Lake
+	5: 2 processors (10-11), Intel Sky Lake
+	6: 2 processors (12-13), Intel Sky Lake
+	7: 2 processors (14-15), Intel Sky Lake
+	8: 2 processors (16-17), Intel Sky Lake
+	9: 2 processors (18-19), Intel Sky Lake
+	10: 2 processors (20-21), Intel Sky Lake
+	11: 2 processors (22-23), Intel Sky Lake
+	12: 2 processors (24-25), Intel Sky Lake
+	13: 2 processors (26-27), Intel Sky Lake
+	14: 2 processors (28-29), Intel Sky Lake
+	15: 2 processors (30-31), Intel Sky Lake
+	16: 2 processors (32-33), Intel Sky Lake
+	17: 2 processors (34-35), Intel Sky Lake
+	18: 2 processors (36-37), Intel Sky Lake
+	19: 2 processors (38-39), Intel Sky Lake
+	20: 2 processors (40-41), Intel Sky Lake
+	21: 2 processors (42-43), Intel Sky Lake
+	22: 2 processors (44-45), Intel Sky Lake
+	23: 2 processors (46-47), Intel Sky Lake
+	24: 2 processors (48-49), Intel Sky Lake
+	25: 2 processors (50-51), Intel Sky Lake
+	26: 2 processors (52-53), Intel Sky Lake
+	27: 2 processors (54-55), Intel Sky Lake
+	28: 2 processors (56-57), Intel Sky Lake
+	29: 2 processors (58-59), Intel Sky Lake
+Logical processors (System ID):
+	0 (0): APIC ID 0x00000000
+	1 (30): APIC ID 0x00000001
+	2 (1): APIC ID 0x00000002
+	3 (31): APIC ID 0x00000003
+	4 (2): APIC ID 0x00000004
+	5 (32): APIC ID 0x00000005
+	6 (3): APIC ID 0x00000006
+	7 (33): APIC ID 0x00000007
+	8 (4): APIC ID 0x00000008
+	9 (34): APIC ID 0x00000009
+	10 (5): APIC ID 0x0000000a
+	11 (35): APIC ID 0x0000000b
+	12 (6): APIC ID 0x0000000c
+	13 (36): APIC ID 0x0000000d
+	14 (7): APIC ID 0x0000000e
+	15 (37): APIC ID 0x0000000f
+	16 (8): APIC ID 0x00000010
+	17 (38): APIC ID 0x00000011
+	18 (9): APIC ID 0x00000012
+	19 (39): APIC ID 0x00000013
+	20 (10): APIC ID 0x00000014
+	21 (40): APIC ID 0x00000015
+	22 (11): APIC ID 0x00000016
+	23 (41): APIC ID 0x00000017
+	24 (12): APIC ID 0x00000018
+	25 (42): APIC ID 0x00000019
+	26 (13): APIC ID 0x0000001a
+	27 (43): APIC ID 0x0000001b
+	28 (14): APIC ID 0x0000001c
+	29 (44): APIC ID 0x0000001d
+	30 (15): APIC ID 0x00000020
+	31 (45): APIC ID 0x00000021
+	32 (16): APIC ID 0x00000022
+	33 (46): APIC ID 0x00000023
+	34 (17): APIC ID 0x00000024
+	35 (47): APIC ID 0x00000025
+	36 (18): APIC ID 0x00000026
+	37 (48): APIC ID 0x00000027
+	38 (19): APIC ID 0x00000028
+	39 (49): APIC ID 0x00000029
+	40 (20): APIC ID 0x0000002a
+	41 (50): APIC ID 0x0000002b
+	42 (21): APIC ID 0x0000002c
+	43 (51): APIC ID 0x0000002d
+	44 (22): APIC ID 0x0000002e
+	45 (52): APIC ID 0x0000002f
+	46 (23): APIC ID 0x00000030
+	47 (53): APIC ID 0x00000031
+	48 (24): APIC ID 0x00000032
+	49 (54): APIC ID 0x00000033
+	50 (25): APIC ID 0x00000034
+	51 (55): APIC ID 0x00000035
+	52 (26): APIC ID 0x00000036
+	53 (56): APIC ID 0x00000037
+	54 (27): APIC ID 0x00000038
+	55 (57): APIC ID 0x00000039
+	56 (28): APIC ID 0x0000003a
+	57 (58): APIC ID 0x0000003b
+	58 (29): APIC ID 0x0000003c
+	59 (59): APIC ID 0x0000003d
+Scalar instructions:
+	LAHF/SAHF: yes
+	LZCNT: yes
+	POPCNT: yes
+	TBM: no
+	BMI: yes
+	BMI2: yes
+	ADCX/ADOX: yes
+Memory instructions:
+	MOVBE: yes
+	PREFETCH: no
+	PREFETCHW: yes
+	PREFETCHWT1: no
+	CLZERO: no
+SIMD extensions:
+	MMX: yes
+	MMX+: yes
+	3dnow!: no
+	3dnow!+: no
+	3dnow! Geode: no
+	DAZ: yes
+	SSE: yes
+	SSE2: yes
+	SSE3: yes
+	SSSE3: yes
+	SSE4.1: yes
+	SSE4.2: yes
+	SSE4a: no
+	Misaligned SSE: no
+	AVX: yes
+	FMA3: yes
+	FMA4: no
+	XOP: no
+	F16C: yes
+	AVX2: yes
+	AVX512F: yes
+	AVX512PF: no
+	AVX512ER: no
+	AVX512CD: yes
+	AVX512DQ: yes
+	AVX512BW: yes
+	AVX512VL: yes
+	AVX512IFMA: no
+	AVX512VBMI: no
+	AVX512VBMI2: no
+	AVX512BITALG: no
+	AVX512VPOPCNTDQ: no
+	AVX512VNNI: yes
+	AVX512BF16: no
+	AVX512VP2INTERSECT: no
+	AVX512_4VNNIW: no
+	AVX512_4FMAPS: no
+Multi-threading extensions:
+	MONITOR/MWAIT: yes
+	MONITORX/MWAITX: no
+	CMPXCHG16B: yes
+	HLE: yes
+	RTM: yes
+	XTEST: yes
+	RDPID: no
+Cryptography extensions:
+	AES: yes
+	VAES: no
+	PCLMULQDQ: yes
+	VPCLMULQDQ: no
+	GFNI: no
+	RDRAND: yes
+	RDSEED: yes
+	SHA: no
+Profiling instructions:
+	RDTSCP: yes
+	MPX: yes
+System instructions:
+	CLWB: yes
+	FXSAVE/FXSTOR: yes
+	XSAVE/XSTOR: yes
+Max cache size (upper bound): 25952256 bytes
+L1 instruction cache: 30 x 32 KB, 8-way set associative (64 sets), 64 byte lines, shared by 2 processors
+L1 data cache: 30 x 32 KB, 8-way set associative (64 sets), 64 byte lines, shared by 2 processors
+L2 unified cache: 30 x 1 MB (exclusive), 16-way set associative (1024 sets), 64 byte lines, shared by 2 processors
+L3 unified cache: 2 x 25344 KB (exclusive), 11-way set associative (36864 sets, complex indexing), 64 byte lines, shared by 30 processors
