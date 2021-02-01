@@ -158,6 +158,9 @@ else()
   if(USE_RUY)
     list(APPEND BACKENDS ruy)
   endif()
+  if(USE_TVM)
+    list(APPEND BACKENDS tvm)
+  endif()
   if(USE_NAIVE)
     list(APPEND BACKENDS naive)
   endif()
@@ -241,6 +244,18 @@ foreach(BACKEND ${BACKENDS})
       target_compile_definitions(${MATMUL} PRIVATE RUY)
       target_include_directories(${MATMUL} PRIVATE ${RUY_SOURCE})
       target_link_libraries(${MATMUL} PRIVATE ruy)
+    elseif(${BACKEND} STREQUAL "tvm")
+      target_compile_definitions(${MATMUL} PRIVATE TVM)
+      set(TVM_INSTALL_DIR  ${CMAKE_BINARY_DIR}/../tvm-install)
+      set(TVM_SOURCE_DIR ${CMAKE_SOURCE_DIR}/../external/tvm)
+      target_link_directories(${MATMUL} PRIVATE ${TVM_INSTALL_DIR}/lib)
+      target_link_libraries(${MATMUL} PRIVATE tvm)
+      target_include_directories(${MATMUL} PRIVATE
+        ${TVM_SOURCE_DIR}/include
+        ${TVM_SOURCE_DIR}/3rdparty/dmlc-core/include
+        ${TVM_SOURCE_DIR}/3rdparty/dlpack/include
+        ${TVM_INSTALL_DIR}/include
+      )
     elseif(${BACKEND} STREQUAL "mlir")
       target_compile_definitions(${MATMUL} PRIVATE MLIR)
     elseif(${BACKEND} STREQUAL "nodai")

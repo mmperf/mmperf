@@ -6,6 +6,16 @@
 #include "halide_blas.h"
 #elif defined(RUY)
 #include "ruy/ruy.h"
+#elif defined(TVM)
+#include <unordered_map>
+#include "tvm/te/schedule_pass.h"
+#include "tvm/te/schedule.h"
+#include "tvm/te/operation.h"
+#include "tvm/driver/driver_api.h"
+#include "tvm/runtime/registry.h"
+#include "tvm/runtime/packed_func.h"
+#include "tvm/runtime/module.h"
+#include "tvm/target/codegen.h"
 #endif
 #include <cstdio>
 #include <cstdlib>
@@ -49,6 +59,58 @@ void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
             int64_t size_b0, int64_t size_b1, int64_t strides_b0, int64_t strides_b1,
             float *aligned_c, float *allocated_c, int64_t offset_c,
             int64_t size_c0, int64_t size_c1, int64_t strides_c0, int64_t strides_c1);
+}
+#endif
+
+#ifdef TVM
+tvm::runtime::Module create_module() {
+  // Define algorithm
+  tvm::te::Tensor A = tvm::te::placeholder({MDIM, KDIM}, tvm::DataType::Float(32), "A");
+  tvm::te::Tensor B = tvm::te::placeholder({KDIM, NDIM}, tvm::DataType::Float(32), "B");
+  auto k = tvm::te::reduce_axis(tvm::Range{0, KDIM}, "k");
+  // TODO: Add column major support to TVM
+  int bn = 32;
+  auto packedB = tvm::te::compute({NDIM / bn, KDIM, bn},
+    [&](tvm::te::Var i, tvm::te::Var j, tvm::te::Var k) {
+       return B[j][i * bn + k];
+    }, "packedB");
+  auto C = tvm::te::compute({MDIM, NDIM},
+    [&](tvm::te::Var i, tvm::te::Var j) {
+      return tvm::sum(A[i][k] * packedB[tvm::floordiv(j, bn)][k][tvm::indexmod(j, bn)], {k});
+    }, "C");
+
+  // Define schedule
+  // This schedule is based on: https://tvm.apache.org/docs/tutorials/optimize/opt_gemm.html
+  auto s = tvm::te::create_schedule({C->op});
+  auto CC = s.cache_write(C, "global");
+
+  tvm::te::IterVar x_outer, y_outer, x_inner, y_inner;
+  auto cAxis = C->op.as<tvm::te::ComputeOpNode>()->axis;
+  s[C].tile(cAxis[0], cAxis[1], bn, bn,
+            &x_outer, &y_outer, &x_inner, &y_inner);
+  s[CC].compute_at(s[C], y_outer);
+  auto newAxis = s[CC]->op.as<tvm::te::ComputeOpNode>()->axis;
+  auto xc = newAxis[0];
+  auto yc = newAxis[1];
+  auto kk = s[CC]->op.as<tvm::te::ComputeOpNode>()->reduce_axis;
+  tvm::te::IterVar k_outer, k_inner;
+  s[CC].split(kk[0], 4, &k_outer, &k_inner);
+  s[CC].reorder({k_outer, xc, k_inner, yc});
+  s[CC].unroll(k_inner);
+  s[CC].vectorize(yc);
+
+  s[C].parallel(x_outer);
+
+  auto bAxis = s[packedB]->op.as<tvm::te::ComputeOpNode>()->axis;
+  s[packedB].vectorize(bAxis[2]);
+  s[packedB].parallel(bAxis[0]);
+
+  auto args = tvm::Array<tvm::te::Tensor>({A, B, C});
+  std::unordered_map<tvm::te::Tensor, tvm::te::Buffer> binds;
+  auto target = tvm::Target("llvm");
+  auto lowered = tvm::lower(s, args, "matmul", binds);
+  auto module = tvm::build(lowered, target, tvm::Target());
+  return module;
 }
 #endif
 
@@ -108,6 +170,8 @@ int main(int argc, char **argv) {
   printf("Benchmarking Halide %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(RUY)
   printf("Benchmarking Ruy %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(TVM)
+  printf("Benchmarking TVM %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(MLIR)
   printf("Benchmarking MLIR %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(NAIVE)
@@ -121,6 +185,21 @@ int main(int argc, char **argv) {
   init_matrix(A, MDIM, KDIM);
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
+
+#if defined(TVM)
+  auto module = create_module();
+  DLTensor *x, *y, *z;
+  int64_t xshape[2] = {MDIM, KDIM};
+  TVMArrayAlloc(xshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &x);
+  x->data = A;
+  int64_t yshape[2] = {KDIM, NDIM};
+  TVMArrayAlloc(yshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &y);
+  y->data = B;
+  int64_t zshape[2] = {MDIM, NDIM};
+  TVMArrayAlloc(zshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &z);
+  z->data = C;
+  tvm::runtime::PackedFunc matmul = module->GetFunction("matmul");
+#endif
 
 #if defined(COLUMN_MAJOR)
   int LDA = MDIM;
@@ -169,6 +248,8 @@ int main(int argc, char **argv) {
 #endif
 #elif defined(RUY)
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
+#elif defined(TVM)
+    matmul(x, y, z);
 #elif defined(MLIR)
 #ifdef COLUMN_MAJOR
     matmul(A, A, 0, MDIM, KDIM, 1, LDA,
@@ -215,6 +296,12 @@ int main(int argc, char **argv) {
   free(A);
   free(B);
   free(C);
+#endif
+
+#if defined(TVM)
+  TVMArrayFree(x);
+  TVMArrayFree(y);
+  TVMArrayFree(z);
 #endif
   return return_code;
 }

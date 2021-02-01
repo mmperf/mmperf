@@ -25,6 +25,7 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'blis': 'mediumspringgreen',
               'halide': 'gold',
               'ruy': 'violet',
+              'tvm' : 'indigo',
               'naive': 'black',
               'nodai': 'red'}
 BENCHMARK_ENV = os.environ.copy()
@@ -34,6 +35,7 @@ BENCHMARK_ENV.update({
     "BLIS_NUM_THREADS": "1",
     "HL_NUM_THREADS": "1",
     "VECLIB_MAXIMUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
 })
 
 def add_arguments(parser):
