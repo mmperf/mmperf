@@ -18,9 +18,9 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 
 BAR_WIDTH = 0.15
-BAR_COLORS = {'mkl': 'orange',
-              'accelerate': 'deepskyblue',
-              'mlir': 'dodgerblue',
+BAR_COLORS = {'mkl': 'cornflowerblue',
+              'accelerate': 'lightgray',
+              'mlir': 'sandybrown',
               'openblas': 'mediumseagreen',
               'blis': 'mediumspringgreen',
               'halide': 'gold',
@@ -90,6 +90,14 @@ def write_system_info(output_dir, cpuinfo_dir):
                               capture_output=True, text=True, check=True)
         fh.write(proc.stdout)
 
+def autolabel(rects):
+    """
+    Attach a text label above each bar displaying its height
+    """
+    for rect in rects:
+        height = rect.get_height()
+        plt.text(rect.get_x() + rect.get_width()/2., 1.02*height,
+                '%d' % int(height), fontsize=5, ha='center', va='bottom')
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -134,13 +142,18 @@ def main(argv):
                 speeds.append(float(gflops_path.read_text().split()[0]))
                 bar_x.append(bar_ordering.index(binary['size']) + idx * BAR_WIDTH)
         if len(bar_x) > 0:
-            plt.bar(bar_x, speeds, BAR_WIDTH, color=BAR_COLORS[backend], label=backend)
+            autolabel(plt.bar(bar_x, speeds, BAR_WIDTH, color=BAR_COLORS[backend], label=backend))
         else:
             print("No results could be collected for backend", backend)
 
     plt.xlabel("Matrix sizes")
     plt.ylabel("GFLOPS")
     plt.title("Single Precision Matrix Multiplication")
+
+    f=open(result_dir / 'arch-info')
+    lines=f.readlines()
+    plt.suptitle("CPU:%s: cores x Microarch (%s)" % (lines[1].strip(), lines[3].strip()))
+
     x_pos = [i + 0.5*(len(binaries) - 1)*BAR_WIDTH for i in range(len(bar_ordering))]
     plt.xticks(x_pos, ['x'.join(str(d) for d in s) for s in bar_ordering], rotation=90, fontsize=5)
     plt.legend(loc='best')
