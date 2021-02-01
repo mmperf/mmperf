@@ -152,7 +152,7 @@ def main(argv):
 
     f=open(result_dir / 'arch-info')
     lines=f.readlines()
-    plt.suptitle("CPU:%s: cores x Microarch (%s)" % (lines[1].strip(), lines[3].strip()))
+    plt.suptitle("CPU:%s: %s (cores x Microarch)" % (lines[1].strip(), lines[3].strip()), fontsize=8)
 
     x_pos = [i + 0.5*(len(binaries) - 1)*BAR_WIDTH for i in range(len(bar_ordering))]
     plt.xticks(x_pos, ['x'.join(str(d) for d in s) for s in bar_ordering], rotation=90, fontsize=5)
