@@ -7,11 +7,10 @@ This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries a
 ![Results](https://github.com/mmperf/mmperf/raw/main/official_results/skylake-avx512/2021-01-31_19-11-51-528540/matmul.png)
 
 ### Results on Xeon Cascade Lake (GCP C2 instance, AVX 512)
-![Results](https://github.com/mmperf/mmperf/raw/main/official_results/znver2/2021-01-29_16-16-24-502902/matmul.png)
-
+![Results](https://github.com/mmperf/mmperf/raw/main/official_results/cascadelake/2021-01-31_15-47-19-968148/matmul.png)
 
 ### Results on AMD Ryzen 5950x (ZenV3, compared to AMD's BLIS and OpenBLAS for RESNET50 sizes)
-![Results](https://github.com/mmperf/mmperf/raw/main/official_results/cascadelake/2021-01-31_15-47-19-968148/matmul.png)
+![Results](https://github.com/mmperf/mmperf/raw/main/official_results/znver2/2021-01-29_16-16-24-502902/matmul.png)
 
 ### Results on Intel XEON E-2276M Coffee lake (Thinkpad P53, AVX2)
 ![Results](https://github.com/mmperf/mmperf/raw/main/official_results/haswell/2021-01-26_16-42-20/matmul.png)
