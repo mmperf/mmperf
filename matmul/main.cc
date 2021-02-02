@@ -1,5 +1,7 @@
 #ifdef MKL
 #include "mkl.h"
+#elif defined(BLASFEO)
+#include <blasfeo_s_blas_api.h>
 #elif defined(OPENBLAS) || defined(BLIS) || defined (ACCELERATE)
 #include <cblas.h>
 #elif defined(HALIDE)
@@ -26,7 +28,7 @@
 #define TO_STRING(x) STRING(x)
 
 #ifdef COLUMN_MAJOR
-#if defined(MKL) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
+#if defined(MKL) || defined(BLASFEO) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
 #define MATRIX_FORMAT CblasColMajor
 #elif defined(HALIDE)
 #define MATRIX_FORMAT HblasColMajor
@@ -34,7 +36,7 @@
 #define MATRIX_FORMAT ruy::Order::kColMajor
 #endif
 #else
-#if defined(MKL) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
+#if defined(MKL) || defined(BLASFEO) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
 #define MATRIX_FORMAT CblasRowMajor
 #elif defined(HALIDE)
 #define MATRIX_FORMAT HblasRowMajor
@@ -162,6 +164,8 @@ int main(int argc, char **argv) {
   printf("Benchmarking MKL %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(ACCELERATE)
   printf("Benchmarking Accelerate %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(BLASFEO)
+  printf("Benchmarking BLASFEO %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(OPENBLAS)
   printf("Benchmarking OpenBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(BLIS)
@@ -246,6 +250,12 @@ int main(int argc, char **argv) {
     hblas_sgemm(MATRIX_FORMAT, HblasNoTrans, HblasNoTrans, NDIM, MDIM, KDIM, alpha,
                 B, LDB, A, LDA, beta, C, LDC);
 #endif
+#elif defined(BLASFEO)
+    char c_t = 't';
+    int m0 = MDIM;
+    int n0 = NDIM;
+    int k0 = KDIM;
+    blas_sgemm(&c_t, &c_t, &m0, &n0, &k0, &alpha, A, &LDA, B, &LDB, &beta, C, &LDC);
 #elif defined(RUY)
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 #elif defined(TVM)

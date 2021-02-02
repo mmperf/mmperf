@@ -4,6 +4,7 @@ option(USE_MKL "Enable MKL" OFF)
 option(USE_OPENBLAS "Enable OpenBLAS" OFF)
 option(USE_BLIS "Enable OpenBLAS" OFF)
 option(USE_HALIDE "Enable Halide" OFF)
+option(USE_BLASFEO "Enable BLASFEO" OFF)
 option(USE_RUY "Enable Ruy" OFF)
 option(USE_TVM "Enable TVM" OFF)
 option(USE_NAIVE "Enable naive implementation by c/c++ loop" OFF)
@@ -27,7 +28,7 @@ else()
   set(USE_NODAI ON CACHE INTERNAL "Enable Nod.AI")
 endif()
 option(SEARCH_MODE "Read tile size file as permutations instead of associations" OFF)
-if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_RUY OR USE_NAIVE OR USE_NODAI OR USE_ACCELERATE OR USE_BLIS OR USE_TVM))
+if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_BLASFEO OR USE_RUY OR USE_NAIVE OR USE_NODAI OR USE_ACCELERATE OR USE_BLIS OR USE_TVM))
   message(FATAL_ERROR "No backend was enabled!")
 endif()
 
@@ -38,6 +39,7 @@ set(VARS_TO_COPY
     USE_OPENBLAS
     USE_BLIS
     USE_HALIDE
+    USE_BLASFEO
     USE_RUY
     USE_TVM
     USE_NAIVE
