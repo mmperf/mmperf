@@ -5,15 +5,18 @@ import argparse
 import os
 import os.path
 import platform
-from datetime import datetime
+import time
 import subprocess
 import shutil
 import re
 import collections
 import signal
+from datetime import datetime
+from multiprocessing import Pool
 from pathlib import Path
 from functools import reduce
 import matplotlib.pyplot as plt
+import numpy as np
 
 plt.style.use('ggplot')
 
@@ -39,9 +42,13 @@ BENCHMARK_ENV.update({
     "OMP_NUM_THREADS": "1",
 })
 
+def path_expand(s):
+    return Path(s).expanduser().resolve()
+
 def add_arguments(parser):
-    parser.add_argument('bins', type=Path, help='Path where the test binaries are')
-    parser.add_argument('results', type=Path, help='Result directory')
+    parser.add_argument('bins', type=path_expand, help='Path where the test binaries are')
+    parser.add_argument('results', type=path_expand, help='Result directory')
+    parser.add_argument('-j', '--jobs', type=int, default=1, help='Number of parallel jobs for running the benchmarks')
 
 def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
@@ -102,6 +109,59 @@ def autolabel(rects):
         plt.text(rect.get_x() + rect.get_width()/2., 1.02*height,
                 '%d' % int(height), fontsize=5, ha='center', va='bottom')
 
+_result_dir = None
+_env = None
+
+def _do_single_permutation(i, path):
+    t0 = time.perf_counter()
+    result = subprocess.run([path], stdout=subprocess.DEVNULL, cwd=_result_dir, env=_env, check=False)
+    t1 = time.perf_counter()
+    gflops_path = _result_dir / (path.name + '_perf.out')
+    if gflops_path.is_file():
+        speed = float(gflops_path.read_text().split()[0])
+    runtime = t1 - t0
+    if result.returncode != 0:
+        print("Benchmark failed with error code:",
+              signal.Signals(-result.returncode) if result.returncode < 0
+              else result.returncode)
+        return i, False, runtime
+    else:
+        return i, speed, runtime
+
+def _worker_init(result_dir, env):
+    global _result_dir, _env, _num_tasks, _done_tasks
+    print('worker init')
+    _result_dir = result_dir
+    _env = env
+
+def do_permutations(jobs, perms, bin_path, result_dir, env):
+    num_tasks = len(perms)
+    speeds = np.zeros((num_tasks,))
+    runtimes = np.zeros((num_tasks,))
+    async_results = [None] * num_tasks
+    done_tasks = 0
+    def callback(job_values):
+        nonlocal done_tasks
+        index, speed, runtime = job_values
+        runtimes[index] = runtime
+        done_tasks += 1
+        if speed is False:
+            print(f'{done_tasks}/{num_tasks} done, {perms[index]} took {runtime} and FAILED!')
+        else:
+            speeds[index] = speed
+            print(f'{done_tasks}/{num_tasks} done, {perms[index]} took {runtime} and yields {speed}')
+
+    with Pool(jobs, _worker_init, (result_dir, env)) as pool:
+        for i, perm in enumerate(perms):
+            async_results[i] = pool.apply_async(_do_single_permutation, (i, bin_path / perm), callback=callback)
+        print("Submitted all jobs to pool")
+        for ar in async_results:
+            ar.get()
+        pool.close()
+        pool.join()
+
+    return speeds
+
 def main(argv):
     parser = argparse.ArgumentParser()
     add_arguments(parser)
@@ -114,14 +174,18 @@ def main(argv):
     # get only the executables
     bin_paths = [x for x in args.bins.iterdir() if
                 x.is_file() and x.stat().st_mode & 0o111 and x.name.startswith('matmul')]
+
+    # run them in parallel and collect the results
+    speeds = do_permutations(args.jobs, list(x.name for x in bin_paths), args.bins, result_dir, BENCHMARK_ENV)
+
     # break up and interpret the file names
     binaries = {}
-    for path in bin_paths:
+    for i, path in enumerate(bin_paths):
         parts = path.name.split('_')[1:]
         parts[1] = parts[1].replace('m', '', 1)
         size = tuple(int(y) for y in parts[1].split('x'))
         binaries.setdefault(parts[0], []).append(
-            {'path': path.resolve(), 'size': size})
+            {'path': path.resolve(), 'size': size, 'speed': speeds[i]})
 
     # used to impose a consistent sorting of the matrix sizes in the plot
     bar_ordering = list(collections.OrderedDict.fromkeys(y['size'] for x in binaries for y in binaries[x]))
@@ -134,16 +198,8 @@ def main(argv):
         speeds = []
         for binary in binaries[backend]:
             print(backend, binary)
-            result = subprocess.run([binary['path']], cwd=result_dir, env=BENCHMARK_ENV, check=False)
-            gflops_path = result_dir / (binary['path'].name + '_perf.out')
-            if result.returncode != 0:
-                print("Benchmark failed with error code:",
-                      signal.Signals(-result.returncode) if result.returncode < 0
-                      else result.returncode)
-                any_error = True
-            if gflops_path.is_file():
-                speeds.append(float(gflops_path.read_text().split()[0]))
-                bar_x.append(bar_ordering.index(binary['size']) + idx * BAR_WIDTH)
+            speeds.append(binary['speed'])
+            bar_x.append(bar_ordering.index(binary['size']) + idx * BAR_WIDTH)
         if len(bar_x) > 0:
             autolabel(plt.bar(bar_x, speeds, BAR_WIDTH, color=BAR_COLORS[backend], label=backend))
         else:
