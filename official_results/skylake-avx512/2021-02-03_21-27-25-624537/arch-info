@@ -1,0 +1,111 @@
+Packages:
+	0: Intel Xeon
+Microarchitectures:
+	8x Sky Lake
+Cores:
+	0: 2 processors (0-1), Intel Sky Lake
+	1: 2 processors (2-3), Intel Sky Lake
+	2: 2 processors (4-5), Intel Sky Lake
+	3: 2 processors (6-7), Intel Sky Lake
+	4: 2 processors (8-9), Intel Sky Lake
+	5: 2 processors (10-11), Intel Sky Lake
+	6: 2 processors (12-13), Intel Sky Lake
+	7: 2 processors (14-15), Intel Sky Lake
+Logical processors (System ID):
+	0 (0): APIC ID 0x00000000
+	1 (8): APIC ID 0x00000001
+	2 (1): APIC ID 0x00000002
+	3 (9): APIC ID 0x00000003
+	4 (2): APIC ID 0x00000004
+	5 (10): APIC ID 0x00000005
+	6 (3): APIC ID 0x00000006
+	7 (11): APIC ID 0x00000007
+	8 (4): APIC ID 0x00000008
+	9 (12): APIC ID 0x00000009
+	10 (5): APIC ID 0x0000000a
+	11 (13): APIC ID 0x0000000b
+	12 (6): APIC ID 0x0000000c
+	13 (14): APIC ID 0x0000000d
+	14 (7): APIC ID 0x0000000e
+	15 (15): APIC ID 0x0000000f
+Scalar instructions:
+	LAHF/SAHF: yes
+	LZCNT: yes
+	POPCNT: yes
+	TBM: no
+	BMI: yes
+	BMI2: yes
+	ADCX/ADOX: yes
+Memory instructions:
+	MOVBE: yes
+	PREFETCH: no
+	PREFETCHW: yes
+	PREFETCHWT1: no
+	CLZERO: no
+SIMD extensions:
+	MMX: yes
+	MMX+: yes
+	3dnow!: no
+	3dnow!+: no
+	3dnow! Geode: no
+	DAZ: yes
+	SSE: yes
+	SSE2: yes
+	SSE3: yes
+	SSSE3: yes
+	SSE4.1: yes
+	SSE4.2: yes
+	SSE4a: no
+	Misaligned SSE: no
+	AVX: yes
+	FMA3: yes
+	FMA4: no
+	XOP: no
+	F16C: yes
+	AVX2: yes
+	AVX512F: yes
+	AVX512PF: no
+	AVX512ER: no
+	AVX512CD: yes
+	AVX512DQ: yes
+	AVX512BW: yes
+	AVX512VL: yes
+	AVX512IFMA: no
+	AVX512VBMI: no
+	AVX512VBMI2: no
+	AVX512BITALG: no
+	AVX512VPOPCNTDQ: no
+	AVX512VNNI: yes
+	AVX512BF16: no
+	AVX512VP2INTERSECT: no
+	AVX512_4VNNIW: no
+	AVX512_4FMAPS: no
+Multi-threading extensions:
+	MONITOR/MWAIT: no
+	MONITORX/MWAITX: no
+	CMPXCHG16B: yes
+	HLE: yes
+	RTM: yes
+	XTEST: yes
+	RDPID: no
+Cryptography extensions:
+	AES: yes
+	VAES: no
+	PCLMULQDQ: yes
+	VPCLMULQDQ: no
+	GFNI: no
+	RDRAND: yes
+	RDSEED: yes
+	SHA: no
+Profiling instructions:
+	RDTSCP: yes
+	MPX: yes
+System instructions:
+	CLWB: yes
+	FXSAVE/FXSTOR: yes
+	XSAVE/XSTOR: yes
+Max cache size (upper bound): 25952256 bytes
+L1 instruction cache: 8 x 32 KB, 8-way set associative (64 sets), 64 byte lines, shared by 2 processors
+L1 data cache: 8 x 32 KB, 8-way set associative (64 sets), 64 byte lines, shared by 2 processors
+L2 unified cache: 8 x 1 MB (exclusive), 16-way set associative (1024 sets), 64 byte lines, shared by 2 processors
+L3 unified cache: 25344 KB (exclusive), 11-way set associative (36864 sets, complex indexing), 64 byte lines, shared by 16 processors
