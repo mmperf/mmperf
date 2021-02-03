@@ -191,7 +191,17 @@ int main(int argc, char **argv) {
   init_matrix(C, MDIM, NDIM);
 
 #if defined(TVM)
+#if defined(USE_TVM_TUNED)
+  std::cout << "Using tuned module " << TO_STRING(TVM_LIB) << std::endl;
+  tvm::runtime::Module module = tvm::runtime::Module::LoadFromFile(TO_STRING(TVM_LIB));
+  assert(module != nullptr);
+  tvm::runtime::PackedFunc matmul = module->GetFunction("matmul");
+  assert(matmul != nullptr);
+#else
+  std::cout << "Using baseline module " << std::endl;
   auto module = create_module();
+  tvm::runtime::PackedFunc matmul = module->GetFunction("matmul");
+#endif
   DLTensor *x, *y, *z;
   int64_t xshape[2] = {MDIM, KDIM};
   TVMArrayAlloc(xshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &x);
@@ -201,8 +211,6 @@ int main(int argc, char **argv) {
   y->data = B;
   int64_t zshape[2] = {MDIM, NDIM};
   TVMArrayAlloc(zshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &z);
-  z->data = C;
-  tvm::runtime::PackedFunc matmul = module->GetFunction("matmul");
 #endif
 
 #if defined(COLUMN_MAJOR)
@@ -277,6 +285,10 @@ int main(int argc, char **argv) {
   t_end = rtclock();
 
   int return_code = 0;
+
+#if defined(TVM)
+  TVMArrayCopyToBytes(z, C, MDIM * NDIM * sizeof(float));
+#endif
 
 #ifdef ENABLE_CHECK
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
