@@ -230,6 +230,7 @@ int main(int argc, char **argv) {
   ruy::MakeSimpleLayout(MDIM, NDIM, MATRIX_FORMAT, dst.mutable_layout());
   dst.set_data(C);
   ruy::MulParams<float, float> mul_params;
+  lhs.set_cache_policy(ruy::CachePolicy::kCacheIfSignificantSpeedup);
 #endif
 
   for (int t = 0; t < NUM_REPS; ++t) {
