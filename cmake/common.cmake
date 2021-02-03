@@ -7,6 +7,7 @@ option(USE_HALIDE "Enable Halide" OFF)
 option(USE_BLASFEO "Enable BLASFEO" OFF)
 option(USE_RUY "Enable Ruy" OFF)
 option(USE_TVM "Enable TVM" OFF)
+option(USE_TVM_TUNED "Use TVM Autotuned ops" OFF)
 option(USE_NAIVE "Enable naive implementation by c/c++ loop" OFF)
 option(USE_MATMUL_COMPILE "Use matmul-compile instead of mlir-opt for small and medium sizes" OFF)
 option(USE_COLUMN_MAJOR "Matrix format" OFF)
@@ -42,6 +43,7 @@ set(VARS_TO_COPY
     USE_BLASFEO
     USE_RUY
     USE_TVM
+    USE_TVM_TUNED
     USE_NAIVE
     USE_MATMUL_COMPILE
     USE_COLUMN_MAJOR
