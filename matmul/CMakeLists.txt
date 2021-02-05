@@ -88,7 +88,7 @@ if(USE_MLIR OR USE_NODAI)
         -vectorize-to=outerproduct -split-vector-transfers-to=vector-transfers
         -unroll-vector-transfers=true
         ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir
-        COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+        COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
         -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
         -c -o ${OBJ} -g
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
@@ -108,7 +108,7 @@ if(USE_MLIR OR USE_NODAI)
 	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.copy register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
 	${MLIR_OPT} -canonicalize -convert-vector-to-scf -lower-affine -convert-linalg-to-loops -canonicalize -convert-scf-to-std -convert-vector-to-llvm |
 	${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
-        COMMAND ${CMAKE_CXX_COMPILER} -O3 ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+        COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
         -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
         -c -o ${OBJ} -g
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
