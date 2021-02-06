@@ -34,6 +34,8 @@ ExternalProject_Add(cpuinfo
     -DCPUINFO_BUILD_UNIT_TESTS=OFF
 )
 
+set(MATMUL_DEPS "")
+if(${USE_MLIR} STREQUAL "ON")
 find_package(Git REQUIRED)
 set(PATCH_FILE ${CMAKE_SOURCE_DIR}/nico.patch)
 set(MLIR_INSTALL ${CMAKE_BINARY_DIR}/mlir-install)
@@ -58,7 +60,10 @@ ExternalProject_Add(mlir
     -DLLVM_ENABLE_ASSERTIONS:BOOL=ON
     -DLLVM_ENABLE_RTTI:BOOL=ON
 )
+list(APPEND MATMUL_DEPS mlir)
+endif()
 
+if(${USE_HALIDE} STREQUAL "ON")
 find_package(LLVM REQUIRED)
 set(HALIDE_SOURCE ${CMAKE_SOURCE_DIR}/external/Halide)
 set(HALIDE_BUILD ${CMAKE_BINARY_DIR}/halide)
@@ -76,10 +81,14 @@ ExternalProject_Add(halide
     -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
     -DWITH_PYTHON_BINDINGS=OFF
 )
+list(APPEND MATMUL_DEPS halide)
+endif()
 
+if(${USE_TVM} STREQUAL "ON")
 set(TVM_SOURCE ${CMAKE_SOURCE_DIR}/external/tvm)
 set(TVM_BUILD ${CMAKE_BINARY_DIR}/tvm)
 set(TVM_INSTALL ${CMAKE_BINARY_DIR}/tvm-install)
+option(TVM_ENABLE_CUDA "Enable CUDA in TVM" OFF)
 ExternalProject_Add(tvm
   PREFIX ${CMAKE_BINARY_DIR}/tvm
   SOURCE_DIR ${TVM_SOURCE}
@@ -88,13 +97,15 @@ ExternalProject_Add(tvm
   CMAKE_ARGS
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    -DUSE_CUDA:BOOL=OFF
+    -DUSE_CUDA=${TVM_ENABLE_CUDA}
     -DUSE_RPC:BOOL=ON
     -DUSE_THREADS:BOOL=OFF
     -DUSE_LLVM:BOOL=ON
     -DCMAKE_BUILD_TYPE:STRING=Release
     -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
 )
+list(APPEND MATMUL_DEPS tvm)
+endif()
 
 set(MATMUL_CMAKE_ARGS "")
 foreach(var IN LISTS VARS_TO_COPY)
@@ -102,7 +113,7 @@ foreach(var IN LISTS VARS_TO_COPY)
 endforeach()
 
 ExternalProject_Add(matmul
-  DEPENDS mlir tvm halide
+  DEPENDS ${MATMUL_DEPS}
   PREFIX ${CMAKE_BINARY_DIR}/matmul
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/matmul
   BINARY_DIR ${CMAKE_BINARY_DIR}/matmul
@@ -118,5 +129,6 @@ ExternalProject_Add(matmul
     -DBLIS_DIR=${BLIS_DIR}
     -DRUY_SOURCE=${RUY_SOURCE}
     -DTVM_LIB_DIR=${TVM_LIB_DIR}
+    -DTVM_ENABLE_CUDA=${TVM_ENABLE_CUDA}
     ${MATMUL_CMAKE_ARGS}
 )

@@ -18,6 +18,10 @@
 #include "tvm/runtime/packed_func.h"
 #include "tvm/runtime/module.h"
 #include "tvm/target/codegen.h"
+#elif defined(CUBLAS)
+#include "cuda_runtime.h"
+#include "cublas_v2.h"
+#include <sstream>
 #endif
 #include <cstdio>
 #include <cstdlib>
@@ -62,6 +66,24 @@ void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
             float *aligned_c, float *allocated_c, int64_t offset_c,
             int64_t size_c0, int64_t size_c1, int64_t strides_c0, int64_t strides_c1);
 }
+#endif
+
+#ifdef CUBLAS
+#define CHECK_CUBLAS(status) do {				\
+  std::stringstream error;					\
+  if (status != CUBLAS_STATUS_SUCCESS) {			\
+    printf("Error %d at %s:%d\n", status, __FILE__, __LINE__); 	\
+    exit(1);							\
+  }								\
+} while(0)
+
+#define CHECK_CUDA(status) do {				        \
+  std::stringstream error;					\
+  if (status != cudaSuccess) {					\
+    printf("Error %d at %s:%d\n", status, __FILE__, __LINE__); 	\
+    exit(1);							\
+  }								\
+} while(0)
 #endif
 
 #ifdef TVM
@@ -160,26 +182,28 @@ int main(int argc, char **argv) {
 #else
   printf("Matrix-format: Row-Major\n");
 #endif
-#ifdef MKL
-  printf("Benchmarking MKL %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
-#elif defined(ACCELERATE)
+#if defined(ACCELERATE)
   printf("Benchmarking Accelerate %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(BLASFEO)
   printf("Benchmarking BLASFEO %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
-#elif defined(OPENBLAS)
-  printf("Benchmarking OpenBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(BLIS)
   printf("Benchmarking BLIS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(CUBLAS)
+  printf("Benchmarking CUBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(HALIDE)
   printf("Benchmarking Halide %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
-#elif defined(RUY)
-  printf("Benchmarking Ruy %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
-#elif defined(TVM)
-  printf("Benchmarking TVM %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(MKL)
+  printf("Benchmarking MKL %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(MLIR)
   printf("Benchmarking MLIR %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(NAIVE)
   printf("Benchmarking Naive C %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(OPENBLAS)
+  printf("Benchmarking OpenBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(RUY)
+  printf("Benchmarking Ruy %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(TVM)
+  printf("Benchmarking TVM %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #endif
   double t_start, t_end;
   t_start = rtclock();
@@ -189,6 +213,18 @@ int main(int argc, char **argv) {
   init_matrix(A, MDIM, KDIM);
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
+
+#if defined(CUBLAS)
+  cublasHandle_t handle;
+  float *AA, *BB, *CC;
+  CHECK_CUBLAS(cublasCreate(&handle));
+  CHECK_CUDA(cudaMalloc((void **)(&AA), MDIM * KDIM * sizeof(float)));
+  CHECK_CUDA(cudaMalloc((void **)(&BB), KDIM * NDIM * sizeof(float)));
+  CHECK_CUDA(cudaMalloc((void **)(&CC), MDIM * NDIM * sizeof(float)));
+  CHECK_CUBLAS(cublasSetVector(MDIM * KDIM, sizeof(float), A, 1, AA, 1));
+  CHECK_CUBLAS(cublasSetVector(KDIM * NDIM, sizeof(float), B, 1, BB, 1));
+  CHECK_CUBLAS(cublasSetVector(MDIM * NDIM, sizeof(float), C, 1, CC, 1));
+#endif
 
 #if defined(TVM)
 #if defined(USE_TVM_TUNED)
@@ -202,15 +238,20 @@ int main(int argc, char **argv) {
   auto module = create_module();
   tvm::runtime::PackedFunc matmul = module->GetFunction("matmul");
 #endif
+#if defined(TVM_ENABLE_CUDA)
+  int deviceType = kDLGPU;
+#else
+  int deviceType = kDLCPU;
+#endif
   DLTensor *x, *y, *z;
   int64_t xshape[2] = {MDIM, KDIM};
-  TVMArrayAlloc(xshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &x);
-  x->data = A;
+  TVMArrayAlloc(xshape, 2, kDLFloat, 32, 1, deviceType, 0, &x);
+  TVMArrayCopyFromBytes(x, A, MDIM * KDIM * sizeof(float));
   int64_t yshape[2] = {KDIM, NDIM};
-  TVMArrayAlloc(yshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &y);
-  y->data = B;
+  TVMArrayAlloc(yshape, 2, kDLFloat, 32, 1, deviceType, 0, &y);
+  TVMArrayCopyFromBytes(y, B, KDIM * NDIM * sizeof(float));
   int64_t zshape[2] = {MDIM, NDIM};
-  TVMArrayAlloc(zshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &z);
+  TVMArrayAlloc(zshape, 2, kDLFloat, 32, 1, deviceType, 0, &z);
 #endif
 
 #if defined(COLUMN_MAJOR)
@@ -281,6 +322,14 @@ int main(int argc, char **argv) {
 #endif
 #elif defined(NAIVE)
     naive_matmul(A,B,C,MDIM,KDIM,NDIM);
+#elif defined(CUBLAS)
+#if defined(COLUMN_MAJOR)
+    CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
+			     &alpha, AA, LDA, BB, LDB, &beta, CC, LDC));
+#else
+    CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
+			     &alpha, BB, LDB, AA, LDA, &beta, CC, LDC));
+#endif
 #endif
   }
   t_end = rtclock();
@@ -289,6 +338,8 @@ int main(int argc, char **argv) {
 
 #if defined(TVM)
   TVMArrayCopyToBytes(z, C, MDIM * NDIM * sizeof(float));
+#elif defined(CUBLAS)
+  CHECK_CUBLAS(cublasGetVector(MDIM * NDIM, sizeof(float), CC, 1, C, 1));
 #endif
 
 #ifdef ENABLE_CHECK
@@ -325,6 +376,11 @@ int main(int argc, char **argv) {
   TVMArrayFree(x);
   TVMArrayFree(y);
   TVMArrayFree(z);
+#elif defined(CUBLAS)
+  CHECK_CUDA(cudaFree(AA));
+  CHECK_CUDA(cudaFree(BB));
+  CHECK_CUDA(cudaFree(CC));
+  CHECK_CUBLAS(cublasDestroy(handle));
 #endif
   return return_code;
 }
