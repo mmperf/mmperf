@@ -238,15 +238,20 @@ int main(int argc, char **argv) {
   auto module = create_module();
   tvm::runtime::PackedFunc matmul = module->GetFunction("matmul");
 #endif
+#if defined(TVM_ENABLE_CUDA)
+  int deviceType = kDLGPU;
+#else
+  int deviceType = kDLCPU;
+#endif
   DLTensor *x, *y, *z;
   int64_t xshape[2] = {MDIM, KDIM};
-  TVMArrayAlloc(xshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &x);
-  x->data = A;
+  TVMArrayAlloc(xshape, 2, kDLFloat, 32, 1, deviceType, 0, &x);
+  TVMArrayCopyFromBytes(x, A, MDIM * KDIM * sizeof(float));
   int64_t yshape[2] = {KDIM, NDIM};
-  TVMArrayAlloc(yshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &y);
-  y->data = B;
+  TVMArrayAlloc(yshape, 2, kDLFloat, 32, 1, deviceType, 0, &y);
+  TVMArrayCopyFromBytes(y, B, KDIM * NDIM * sizeof(float));
   int64_t zshape[2] = {MDIM, NDIM};
-  TVMArrayAlloc(zshape, 2, kDLFloat, 32, 1, kDLCPU, 0, &z);
+  TVMArrayAlloc(zshape, 2, kDLFloat, 32, 1, deviceType, 0, &z);
 #endif
 
 #if defined(COLUMN_MAJOR)

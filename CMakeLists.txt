@@ -129,5 +129,6 @@ ExternalProject_Add(matmul
     -DBLIS_DIR=${BLIS_DIR}
     -DRUY_SOURCE=${RUY_SOURCE}
     -DTVM_LIB_DIR=${TVM_LIB_DIR}
+    -DTVM_ENABLE_CUDA=${TVM_ENABLE_CUDA}
     ${MATMUL_CMAKE_ARGS}
 )
