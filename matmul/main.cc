@@ -238,7 +238,7 @@ int main(int argc, char **argv) {
   auto module = create_module();
   tvm::runtime::PackedFunc matmul = module->GetFunction("matmul");
 #endif
-#if defined(TVM_ENABLE_CUDA)
+#if defined(TVM_ENABLE_CUDA) || defined(TVM_ENABLE_METAL) || defined(TVM_ENABLE_ROCM)
   int deviceType = kDLGPU;
 #else
   int deviceType = kDLCPU;
