@@ -26,6 +26,7 @@ set(LIBS
   ${dialect_libs}
   ${conversion_libs}
   MLIRExecutionEngine
+  ${MLIR_BUILD}/lib/libLLVMX86AsmParser.a
 )
 add_llvm_executable(matmul-compile matmul-compile.cpp)
 llvm_update_compile_flags(matmul-compile)
