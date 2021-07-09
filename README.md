@@ -40,7 +40,28 @@ cmake --build build
 Another example to build with all backends. Assumes you have MKL, OpenBLAS and Halide installed (see below to install)
 
 ```
-HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DMKL_DIR=/opt/intel/oneapi/mkl/latest/ -DUSE_MLIR=ON -DUSE_MKL=ON -DUSE_RUY=ON -DUSE_HALIDE=ON -DUSE_OPENBLAS=ON -B build .
+cmake -GNinja \
+    -DCMAKE_CXX_COMPILER=clang++-11 \
+    -DCMAKE_C_COMPILER=clang-11 \
+    -DMKL_DIR=/home/foo/lokal/intel/oneapi/mkl/latest/ \
+    -DHAILE_DIR=/home/foo/lokal/halide \
+    -DUSE_MLIR=ON -DUSE_MKL=ON -DUSE_RUY=ON -DUSE_HALIDE=ON -DUSE_OPENBLAS=ON \
+    -B build .
+
+cmake --build build
+```
+
+#### Compiling with a separately installed `llvm` distribution
+
+Another example could be that you don't want to fetch and compile the source for `llvm-project` in the `external` folder, since you might already have your own compiled `llvm` distribution on your system. In that case, you can specify the path to your `llvm` distribution with `-DLLVM_DIR`:
+
+```
+cmake -GNinja \
+    -DCMAKE_CXX_COMPILER=clang++-11 \
+    -DCMAKE_C_COMPILER=clang-11 \
+    -DLLVM_DIR=$HOME/opt/llvm \
+    -DUSE_MLIR=ON \
+    -B build .
 
 cmake --build build
 ```
@@ -49,6 +70,20 @@ To plot the results, you will need to install matplotlib.
 
 ```
 pip install matplotlib
+```
+
+If you want to compile the code with `llvm`, you might need these:
+
+```bash
+echo "deb http://apt.llvm.org/DISTRO_NAME/ llvm-toolchain-DISTRO_NAME main" >> /etc/apt/sources.list
+wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - 
+apt-get update && apt-get upgrade -y
+apt-get install -y clang-11 clang-tools-11 libc++1-11 libc++-11-dev \
+    libc++abi1-11 libc++abi-11-dev libclang1-11 libclang-11-dev \
+    libclang-common-11-dev libclang-cpp11 libclang-cpp11-dev liblld-11 \
+    liblld-11-dev liblldb-11 liblldb-11-dev libllvm11 libomp-11-dev \
+    libomp5-11 lld-11 lldb-11 llvm-11 llvm-11-dev llvm-11-runtime \
+    llvm-11-tools libfuzzer-11-dev
 ```
 
 ### Running the code
@@ -75,7 +110,7 @@ To run a specific matrix size (say 24x64x512), run
  git clone https://github.com/halide/Halide.git --recurse-submodules
  cd Halide/
  sudo apt install libclang-11-dev clang-11 liblld-11-dev
- LLD_DIR=/usr/lib/llvm-11/lib/cmake/lld cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DTARGET_WEBASSEMBLY=OFF -DCMAKE_INSTALL_PREFIX=/home/<foo>/lokal/
+ LLD_DIR=/usr/lib/llvm-11/lib/cmake/lld cmake . -GNinja -DCMAKE_BUILD_TYPE=Release -DTARGET_WEBASSEMBLY=OFF -DCMAKE_INSTALL_PREFIX=/home/<foo>/lokal/
  ninja
  ninja install
  export HALIDE_DIR=/home/<foo>/lokal/halide
