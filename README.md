@@ -75,7 +75,7 @@ To run a specific matrix size (say 24x64x512), run
  git clone https://github.com/halide/Halide.git --recurse-submodules
  cd Halide/
  sudo apt install libclang-11-dev clang-11 liblld-11-dev
- LLD_DIR=/usr/lib/llvm-11/lib/cmake/lld cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DTARGET_WEBASSEMBLY=OFF -DCMAKE_INSTALL_PREFIX=/home/<foo>/lokal/
+ LLD_DIR=/usr/lib/llvm-11/lib/cmake/lld cmake . -GNinja -DCMAKE_BUILD_TYPE=Release -DTARGET_WEBASSEMBLY=OFF -DCMAKE_INSTALL_PREFIX=/home/<foo>/lokal/
  ninja
  ninja install
  export HALIDE_DIR=/home/<foo>/lokal/halide
