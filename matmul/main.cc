@@ -22,6 +22,10 @@
 #include "cuda_runtime.h"
 #include "cublas_v2.h"
 #include <sstream>
+#elif defined(CUDA)
+#include "cuda_runtime.h"
+#include "cublas_v2.h"
+#include <sstream>
 #endif
 #include <cstdio>
 #include <cstdlib>
@@ -69,6 +73,24 @@ void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
 #endif
 
 #ifdef CUBLAS
+#define CHECK_CUBLAS(status) do {				\
+  std::stringstream error;					\
+  if (status != CUBLAS_STATUS_SUCCESS) {			\
+    printf("Error %d at %s:%d\n", status, __FILE__, __LINE__); 	\
+    exit(1);							\
+  }								\
+} while(0)
+
+#define CHECK_CUDA(status) do {				        \
+  std::stringstream error;					\
+  if (status != cudaSuccess) {					\
+    printf("Error %d at %s:%d\n", status, __FILE__, __LINE__); 	\
+    exit(1);							\
+  }								\
+} while(0)
+#endif
+
+#ifdef CUDA
 #define CHECK_CUBLAS(status) do {				\
   std::stringstream error;					\
   if (status != CUBLAS_STATUS_SUCCESS) {			\
@@ -190,6 +212,8 @@ int main(int argc, char **argv) {
   printf("Benchmarking BLIS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(CUBLAS)
   printf("Benchmarking CUBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(CUDA)
+  printf("Benchmarking CUDA %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(HALIDE)
   printf("Benchmarking Halide %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(MKL)
@@ -215,6 +239,18 @@ int main(int argc, char **argv) {
   init_matrix(C, MDIM, NDIM);
 
 #if defined(CUBLAS)
+  cublasHandle_t handle;
+  float *AA, *BB, *CC;
+  CHECK_CUBLAS(cublasCreate(&handle));
+  CHECK_CUDA(cudaMalloc((void **)(&AA), MDIM * KDIM * sizeof(float)));
+  CHECK_CUDA(cudaMalloc((void **)(&BB), KDIM * NDIM * sizeof(float)));
+  CHECK_CUDA(cudaMalloc((void **)(&CC), MDIM * NDIM * sizeof(float)));
+  CHECK_CUBLAS(cublasSetVector(MDIM * KDIM, sizeof(float), A, 1, AA, 1));
+  CHECK_CUBLAS(cublasSetVector(KDIM * NDIM, sizeof(float), B, 1, BB, 1));
+  CHECK_CUBLAS(cublasSetVector(MDIM * NDIM, sizeof(float), C, 1, CC, 1));
+#endif
+
+#if defined(CUDA)
   cublasHandle_t handle;
   float *AA, *BB, *CC;
   CHECK_CUBLAS(cublasCreate(&handle));
@@ -330,6 +366,14 @@ int main(int argc, char **argv) {
     CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
 			     &alpha, BB, LDB, AA, LDA, &beta, CC, LDC));
 #endif
+#elif defined(CUDA)
+#if defined(COLUMN_MAJOR)
+    CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
+			     &alpha, AA, LDA, BB, LDB, &beta, CC, LDC));
+#else
+    CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
+			     &alpha, BB, LDB, AA, LDA, &beta, CC, LDC));
+#endif
 #endif
   }
   t_end = rtclock();
@@ -339,6 +383,8 @@ int main(int argc, char **argv) {
 #if defined(TVM)
   TVMArrayCopyToBytes(z, C, MDIM * NDIM * sizeof(float));
 #elif defined(CUBLAS)
+  CHECK_CUBLAS(cublasGetVector(MDIM * NDIM, sizeof(float), CC, 1, C, 1));
+#elif defined(CUDA)
   CHECK_CUBLAS(cublasGetVector(MDIM * NDIM, sizeof(float), CC, 1, C, 1));
 #endif
 
@@ -377,6 +423,11 @@ int main(int argc, char **argv) {
   TVMArrayFree(y);
   TVMArrayFree(z);
 #elif defined(CUBLAS)
+  CHECK_CUDA(cudaFree(AA));
+  CHECK_CUDA(cudaFree(BB));
+  CHECK_CUDA(cudaFree(CC));
+  CHECK_CUBLAS(cublasDestroy(handle));
+#elif defined(CUDA)
   CHECK_CUDA(cudaFree(AA));
   CHECK_CUDA(cudaFree(BB));
   CHECK_CUDA(cudaFree(CC));

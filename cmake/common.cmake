@@ -3,6 +3,7 @@ option(USE_ACCELERATE "Enable Apple Accelerate Framework" OFF)
 option(USE_BLASFEO "Enable BLASFEO" OFF)
 option(USE_BLIS "Enable OpenBLAS" OFF)
 option(USE_CUBLAS "Enable cublas" OFF)
+option(USE_CUDA "Enable cuda" OFF)
 option(USE_HALIDE "Enable Halide" OFF)
 option(USE_MLIR "Enable MLIR" OFF)
 option(USE_MKL "Enable MKL" OFF)
@@ -33,7 +34,7 @@ else()
   set(USE_NODAI ON CACHE INTERNAL "Enable Nod.AI")
 endif()
 option(SEARCH_MODE "Read tile size file as permutations instead of associations" OFF)
-if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_BLASFEO OR USE_RUY OR USE_NAIVE OR USE_NODAI OR USE_ACCELERATE OR USE_BLIS OR USE_TVM OR USE_CUBLAS))
+if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_BLASFEO OR USE_RUY OR USE_NAIVE OR USE_NODAI OR USE_ACCELERATE OR USE_BLIS OR USE_TVM OR USE_CUBLAS OR USE_CUDA))
   message(FATAL_ERROR "No backend was enabled!")
 endif()
 
@@ -42,6 +43,7 @@ set(VARS_TO_COPY
     USE_BLASFEO
     USE_BLIS
     USE_CUBLAS
+    USE_CUDA
     USE_HALIDE
     USE_MLIR
     USE_MKL
