@@ -13,3 +13,6 @@
 [submodule "external/tvm"]
 	path = external/tvm
 	url = https://github.com/apache/tvm.git
+[submodule "external/iree"]
+	path = external/iree
+	url = https://github.com/google/iree.git
