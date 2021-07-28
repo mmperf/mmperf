@@ -108,6 +108,22 @@ ExternalProject_Add(tvm
 list(APPEND MATMUL_DEPS tvm)
 endif()
 
+if(${USE_IREE} STREQUAL "ON")
+set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external/iree)
+ExternalProject_Add(matmul-iree
+  PREFIX ${CMAKE_BINARY_DIR}/matmul-iree
+  SOURCE_DIR ${CMAKE_SOURCE_DIR}/matmul-iree
+  BINARY_DIR ${CMAKE_BINARY_DIR}/matmul-iree
+  INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step."
+  CMAKE_ARGS
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON
+    -DIREE_SRC=${EXTERNAL_DIR}
+)
+# list(APPEND MATMUL_DEPS iree)
+endif()
+
 set(MATMUL_CMAKE_ARGS "")
 foreach(var IN LISTS VARS_TO_COPY)
     list(APPEND MATMUL_CMAKE_ARGS -D${var}=${${var}})
