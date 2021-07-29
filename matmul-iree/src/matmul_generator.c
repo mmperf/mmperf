@@ -18,7 +18,15 @@
 #include "iree/vm/api.h"
 #include "iree/vm/bytecode_module.h"
 
-#include "matmul.h"
+#include MATMUL_HEADER
+
+void init_matrix(float *a, int nrows, int ncols) {
+  for (int j = 0; j < ncols; j++) {
+    for (int i = 0; i < nrows; i++) {
+      a[i + j * nrows] = ((float) rand() / (float) RAND_MAX);
+    }
+  }
+}
 
 // A function to create the HAL device from the different backend targets.
 // The HAL device is returned based on the implementation, and it must be
@@ -68,9 +76,53 @@ iree_status_t Run() {
   iree_vm_function_t main_function;
   IREE_RETURN_IF_ERROR(iree_vm_context_resolve_function(
       context, iree_make_cstring_view(kMainFunctionName), &main_function));
+  
+  // Allocate memory for input
+  static iree_hal_dim_t arg0_shape[] = {MDIM, KDIM};
+  static iree_hal_dim_t arg1_shape[] = {KDIM, NDIM};
 
-  // Setup call inputs.
+  float *arg0 = (float *) malloc(MDIM * KDIM * sizeof(float));
+  float *arg1 = (float *) malloc(KDIM * NDIM * sizeof(float));
+
+  init_matrix(arg0, MDIM, KDIM);
+  init_matrix(arg1, KDIM, NDIM);
+
+  iree_hal_buffer_view_t* arg0_buffer_view = NULL;
+  iree_hal_buffer_view_t* arg1_buffer_view = NULL;
+
+  IREE_RETURN_IF_ERROR(iree_hal_buffer_view_wrap_or_clone_heap_buffer(
+      iree_hal_device_allocator(device), arg0_shape, IREE_ARRAYSIZE(arg0_shape),
+      IREE_HAL_ELEMENT_TYPE_FLOAT_32,
+      IREE_HAL_MEMORY_TYPE_HOST_LOCAL | IREE_HAL_MEMORY_TYPE_DEVICE_VISIBLE,
+      IREE_HAL_MEMORY_ACCESS_ALL, IREE_HAL_BUFFER_USAGE_ALL,
+      iree_make_byte_span((void*)arg0, MDIM * KDIM * sizeof(float)),
+      iree_allocator_null(), &arg0_buffer_view));
+  IREE_RETURN_IF_ERROR(iree_hal_buffer_view_wrap_or_clone_heap_buffer(
+      iree_hal_device_allocator(device), arg1_shape, IREE_ARRAYSIZE(arg1_shape),
+      IREE_HAL_ELEMENT_TYPE_FLOAT_32,
+      IREE_HAL_MEMORY_TYPE_HOST_LOCAL | IREE_HAL_MEMORY_TYPE_DEVICE_VISIBLE,
+      IREE_HAL_MEMORY_ACCESS_ALL, IREE_HAL_BUFFER_USAGE_ALL,
+      iree_make_byte_span((void*)arg1, KDIM * NDIM * sizeof(float)),
+      iree_allocator_null(), &arg1_buffer_view));
+
+  // Pass in the tensor as an expanded HAL buffer.
   iree_vm_list_t* inputs = NULL;
+
+  IREE_RETURN_IF_ERROR(iree_vm_list_create(
+                           /*element_type=*/NULL,
+                           /*capacity=*/2, iree_allocator_system(), &inputs),
+                       "can't allocate input vm list");
+
+  iree_vm_ref_t arg0_input_buffer_view_ref =
+      iree_hal_buffer_view_move_ref(arg0_buffer_view);
+  IREE_RETURN_IF_ERROR(
+      iree_vm_list_push_ref_move(inputs, &arg0_input_buffer_view_ref));
+
+  iree_vm_ref_t arg1_input_buffer_view_ref =
+      iree_hal_buffer_view_move_ref(arg1_buffer_view);
+  IREE_RETURN_IF_ERROR(
+      iree_vm_list_push_ref_move(inputs, &arg1_input_buffer_view_ref));
+
   iree_vm_list_t* outputs = NULL;
   IREE_RETURN_IF_ERROR(iree_vm_list_create(
                            /*element_type=*/NULL,
@@ -99,8 +151,12 @@ iree_status_t Run() {
   for (int i = 0; i < mapped_memory.contents.data_length / sizeof(float); ++i) {
     // Accessing the output elements
     float matmul_output_element = ((const float*)mapped_memory.contents.data)[i];
+    // printf("%f\n", matmul_output_element);
   }
   iree_hal_buffer_unmap_range(&mapped_memory);
+
+  free(arg0);
+  free(arg1);
 
   iree_vm_list_release(inputs);
   iree_vm_list_release(outputs);
