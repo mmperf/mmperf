@@ -113,6 +113,23 @@ foreach(var IN LISTS VARS_TO_COPY)
     list(APPEND MATMUL_CMAKE_ARGS -D${var}=${${var}})
 endforeach()
 
+if(${USE_IREE} STREQUAL "ON")
+set(IREE_SOURCE ${CMAKE_SOURCE_DIR}/external/iree)
+ExternalProject_Add(matmul-iree
+  PREFIX ${CMAKE_BINARY_DIR}/matmul-iree
+  SOURCE_DIR ${CMAKE_SOURCE_DIR}/matmul-iree
+  BINARY_DIR ${CMAKE_BINARY_DIR}/matmul-iree
+  INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step."
+  CMAKE_ARGS
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON
+    -DIREE_SOURCE=${IREE_SOURCE}
+    ${MATMUL_CMAKE_ARGS}
+)
+# list(APPEND MATMUL_DEPS iree)
+endif()
+
 ExternalProject_Add(matmul
   DEPENDS ${MATMUL_DEPS}
   PREFIX ${CMAKE_BINARY_DIR}/matmul
