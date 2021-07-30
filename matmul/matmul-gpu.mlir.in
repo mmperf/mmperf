@@ -1,33 +1,33 @@
 module {
-    func @matmul_linalg(%A: memref<4x4xf32>, %B: memref<4x4xf32>, %C: memref<4x4xf32>) {
-        linalg.matmul ins(%A, %B : memref<4x4xf32>, memref<4x4xf32>)
-            outs(%C: memref<4x4xf32>)
+    func @matmul_linalg(%A: memref<${M}x${K}xf32>, %B: memref<${K}x${N}xf32>, %C: memref<${M}x${N}xf32>) {
+        linalg.matmul ins(%A, %B : memref<${M}x${K}xf32>, memref<${K}x${N}xf32>)
+            outs(%C: memref<${M}x${N}xf32>)
         return
     }
 
     func @main() {
-        %A = memref.alloc() : memref<4x4xf32>
-        %B = memref.alloc() : memref<4x4xf32>
-        %C = memref.alloc() : memref<4x4xf32>
+        %A = memref.alloc() : memref<${M}x${K}xf32>
+        %B = memref.alloc() : memref<${K}x${N}xf32>
+        %C = memref.alloc() : memref<${M}x${N}xf32>
         
         %cf1 = constant 1.0 : f32
 
-        %AC = memref.cast %A : memref<4x4xf32> to memref<*xf32>
-        %BC = memref.cast %B : memref<4x4xf32> to memref<*xf32>
-        %CC = memref.cast %C : memref<4x4xf32> to memref<*xf32>
+        %AC = memref.cast %A : memref<${M}x${K}xf32> to memref<*xf32>
+        %BC = memref.cast %B : memref<${K}x${N}xf32> to memref<*xf32>
+        %CC = memref.cast %C : memref<${M}x${N}xf32> to memref<*xf32>
 
         gpu.host_register %AC : memref<*xf32>
         gpu.host_register %BC : memref<*xf32>
         gpu.host_register %CC : memref<*xf32>
         
-        linalg.fill(%A, %cf1) : memref<4x4xf32>, f32
-        linalg.fill(%B, %cf1) : memref<4x4xf32>, f32
-        linalg.fill(%C, %cf1) : memref<4x4xf32>, f32
+        linalg.fill(%A, %cf1) : memref<${M}x${K}xf32>, f32
+        linalg.fill(%B, %cf1) : memref<${K}x${N}xf32>, f32
+        linalg.fill(%C, %cf1) : memref<${M}x${N}xf32>, f32
         
         call @print_memref_f32(%AC) : (memref<*xf32>) -> ()
         call @print_memref_f32(%BC) : (memref<*xf32>) -> ()
         
-        call @matmul_linalg(%A, %B, %C) : (memref<4x4xf32>, memref<4x4xf32>, memref<4x4xf32>) -> ()
+        call @matmul_linalg(%A, %B, %C) : (memref<${M}x${K}xf32>, memref<${K}x${N}xf32>, memref<${M}x${N}xf32>) -> ()
         
         call @print_memref_f32(%CC) : (memref<*xf32>) -> ()
         return
