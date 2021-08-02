@@ -51,7 +51,7 @@ To plot the results, you will need to install matplotlib.
 pip install matplotlib
 ```
 
-If you want to compile the code with llvm, you might need these:
+If you want to compile the code with `llvm`, you might need these:
 
 ```bash
 echo "deb http://apt.llvm.org/DISTRO_NAME/ llvm-toolchain-DISTRO_NAME main" >> /etc/apt/sources.list
