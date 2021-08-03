@@ -40,7 +40,13 @@ cmake --build build
 Another example to build with all backends. Assumes you have MKL, OpenBLAS and Halide installed (see below to install)
 
 ```
-HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -GNinja -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DMKL_DIR=/opt/intel/oneapi/mkl/latest/ -DUSE_MLIR=ON -DUSE_MKL=ON -DUSE_RUY=ON -DUSE_HALIDE=ON -DUSE_OPENBLAS=ON -B build .
+cmake -GNinja \
+    -DCMAKE_CXX_COMPILER=clang++-11 \
+    -DCMAKE_C_COMPILER=clang-11 \
+    -DMKL_DIR=/home/foo/lokal/intel/oneapi/mkl/latest/ \
+    -DHAILE_DIR=/home/foo/lokal/halide \
+    -DUSE_MLIR=ON -DUSE_MKL=ON -DUSE_RUY=ON -DUSE_HALIDE=ON -DUSE_OPENBLAS=ON \
+    -B build .
 
 cmake --build build
 ```
