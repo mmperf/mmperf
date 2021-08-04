@@ -12,12 +12,6 @@ endif()
 if(NOT DEFINED MLIR_BUILD)
   set(MLIR_BUILD ${CMAKE_BINARY_DIR}/mlir)
 endif()
-# if using your own llvm/mlir, don't download and rebuild
-if(DEFINED MLIR_DIR)
-    set(USE_MLIR "OFF")
-    set(MLIR_LIB ${MLIR_DIR}/lib)
-    set(MLIR_BUILD ${MLIR_DIR}/bin)
-endif()
 set(RUY_SOURCE ../external/ruy)
 set(CPUINFO_SOURCE ../external/cpuinfo)
 
@@ -41,7 +35,7 @@ ExternalProject_Add(cpuinfo
 )
 
 set(MATMUL_DEPS "")
-if(${USE_MLIR} STREQUAL "ON")
+if((${USE_MLIR} STREQUAL "ON") AND (NOT DEFINED LLVM_DIR))
 find_package(Git REQUIRED)
 set(MLIR_INSTALL ${CMAKE_BINARY_DIR}/mlir-install)
 set(MLIR_LIB ${MLIR_INSTALL}/cmake/lib/mlir)
@@ -150,7 +144,8 @@ ExternalProject_Add(matmul
   CMAKE_ARGS
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    -DMLIR_DIR=${MLIR_LIB}
+    -DLLVM_DIR=${LLVM_DIR}  # switch if you want to build the source with your custom built llvm
+    -DMLIR_DIR=${MLIR_INSTALL}/lib/cmake/mlir
     -DMLIR_BUILD=${MLIR_BUILD}
     -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
     -DMKL_DIR=${MKL_DIR}
