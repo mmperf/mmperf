@@ -1,14 +1,10 @@
-# Generate MLIR artifacts of specified sizes
-function(compile_mlir mlir_prefix M N K)
-    configure_file(${CMAKE_SOURCE_DIR}/src/matmul_MxNxK.mlir ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
-endfunction()
-
 # Matrix sizes to benchmark
 message(STATUS "Reading matrix sizes from ... ${SIZE_FILE}")
 file(READ ${SIZE_FILE} MATRIX_SIZES)
 string(REGEX REPLACE "#[^\n]*\n" "" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE ";" "\\\\;" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE "\n" ";" MATRIX_SIZES "${MATRIX_SIZES}")
+set(NUM_REPS ${NUM_REPS})
 
 # Use `iree-translate` to transform an MLIR file into an VM bytcode module.
 # Resolve the executable binary path for iree-translate from the target name.
@@ -40,9 +36,9 @@ foreach(MATRIX_SIZE ${MATRIX_SIZES})
   set(_ARGS)
   list(APPEND _ARGS "-iree-input-type=mhlo")
   list(APPEND _ARGS "-iree-mlir-to-vm-bytecode-module")
+  # Backend here is just used to create bytecode module and doesn't reflect the
+  # backend used to run the program. Could be set to any of the available ones.
   list(APPEND _ARGS "-iree-hal-target-backends=vmvx")
-  # Uncomment the line below to use vulkan-spirv backend
-  #list(APPEND _ARGS "-iree-hal-target-backends=vulkan-spirv")
   list(APPEND _ARGS "${MATMUL_MLIR_FILE}")
   list(APPEND _ARGS "-o")
   list(APPEND _ARGS "${MATMUL}.vmfb")
@@ -78,6 +74,7 @@ foreach(MATRIX_SIZE ${MATRIX_SIZES})
   #-------------------------------------------------------------------------------
   # Create a library and thus a CMake target.
   #-------------------------------------------------------------------------------
+
   string(CONCAT MLIR_LIB ${MATMUL} "_c")
   add_library(${MLIR_LIB} STATIC "")
   target_sources(${MLIR_LIB}
@@ -87,36 +84,20 @@ foreach(MATRIX_SIZE ${MATRIX_SIZES})
   )
 
   #-------------------------------------------------------------------------------
-  # Build the excutable.
+  # Build the excutable for each available backend.
   #-------------------------------------------------------------------------------
-  add_executable(${MATMUL} "")
-  target_sources(${MATMUL}
-    PRIVATE
-    matmul_generator.c
-    device_vmvx.c
-  )
-
-  set_target_properties(${MATMUL} PROPERTIES OUTPUT_NAME ${MATMUL})
-
-  target_include_directories(${MATMUL}
-    PUBLIC
-      ${CMAKE_CURRENT_BINARY_DIR}
-  )
-
-  target_link_libraries(${MATMUL}
-    ${MLIR_LIB}
-    iree_base_base
-    iree_hal_hal
-    iree_hal_vmvx_registration_registration
-    iree_modules_hal_hal
-    iree_vm_vm
-    iree_vm_bytecode_module
-  )
-
-  target_compile_definitions(${MATMUL}
-   PRIVATE "MATMUL_HEADER=\"${MATMUL}.h\"")
-  target_compile_definitions(${MATMUL} PRIVATE MDIM=${M})
-  target_compile_definitions(${MATMUL} PRIVATE NDIM=${N})
-  target_compile_definitions(${MATMUL} PRIVATE KDIM=${K})
-
+  if(${IREE_VMVX} STREQUAL "ON")
+    generate_matmul_binary(${MATRIX_SIZE} vmvx ${M} ${N} ${K} ${MLIR_LIB} ${NUM_REPS})
+  endif()
+  if(${IREE_CUDA} STREQUAL "ON")
+    generate_matmul_binary(${MATRIX_SIZE} cuda ${M} ${N} ${K} ${MLIR_LIB} ${NUM_REPS})
+  endif()
+  
 endforeach()
+
+# file(GLOB iree_binaries "${CMAKE_BINARY_DIR}/src/matmul_iree*")
+# foreach(iree_binary ${iree_binaries})
+#     # file(RENAME ${iree_binary}
+#     #     ${CMAKE_BINARY_DIR}/../matmul/${iree_executable_name})
+#     message("xXxXxX-----" ${iree_binary})
+# endforeach()
