@@ -51,6 +51,19 @@ cmake -GNinja \
 cmake --build build
 ```
 
+Another example could be that you don't want to fetch and compile the source for `llvm` in the `external` folder, since you might already have your own compiled `llvm` distribution. In that case, if you want to compile the code with your `llvm`, then the command will look like below
+
+```
+cmake -GNinja \
+    -DCMAKE_CXX_COMPILER=clang++-11 \
+    -DCMAKE_C_COMPILER=clang-11 \
+    -DLLVM_DIR=$HOME/opt/llvm \
+    -DUSE_MLIR=ON \
+    -B build .
+
+cmake --build build
+```
+
 To plot the results, you will need to install matplotlib.
 
 ```
