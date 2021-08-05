@@ -125,10 +125,10 @@ if(USE_MLIR OR USE_NODAI)
     endif()
   endfunction()
 
-  set(TEMP ${LLVM_DIR})
+  set(LLVM_DIR_ ${LLVM_DIR})
   # Build matmul-compile and pass
   add_subdirectory(matmul-compile)
-  set(LLVM_DIR ${TEMP})
+  set(LLVM_DIR ${LLVM_DIR_})
 endif()
 
 if(USE_MLIR_CUDA)
