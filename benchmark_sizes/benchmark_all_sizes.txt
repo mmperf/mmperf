@@ -10,13 +10,14 @@
 384x256x256
 480x512x16
 480x512x256
-1024x1024x1024
+#1024x1024x1024 doesn't compile on mlir-cuda
 #1020x1152x1152
 #1920x2304x2304
-2304x2304x2560
+#2304x2304x2560 doesn't compile on mlir-cuda
 # Resnet50 Sizes
-12544x64x147
-3136x64x64
+#12544x64x147 doesn't compile on mlir-cuda
+#3136x64x64 doesn't compile on mlir-cuda
+#3136x64x64
 #3136x64x576
 #3136x256x64
 #3136x64x256
@@ -36,20 +37,21 @@
 49x2048x1024
 49x512x2048
 #inceptionv3
-22500x32x27
-22201x32x288
-22201x64x288
-5625x80x64
-5329x192x720
-1369x64x192
+#22500x32x27 doesn't compile on mlir-cuda
+#22201x32x288 doesn't compile on mlir-cuda
+#22201x64x288 doesn't compile on mlir-cuda
+#22201x64x288
+#5625x80x64 doesn't compile on mlir-cuda
+#5329x192x720 doesn't compile on mlir-cuda
+#1369x64x192 doesn't compile on mlir-cuda
 #1369x48x192
 #1369x64x1200
 #1369x96x576
 #1369x96x864
 #1369x32x192
 #1369x64x256
-1369x48x256
-1369x64x288
+#1369x48x256 doesn't compile on mlir-cuda
+#1369x64x288 doesn't compile on mlir-cuda
 #1369x48x288
 324x384x2592
 324x96x864
