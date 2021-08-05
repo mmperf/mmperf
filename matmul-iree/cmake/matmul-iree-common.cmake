@@ -3,8 +3,9 @@ function(compile_mlir mlir_prefix M N K)
     configure_file(${CMAKE_SOURCE_DIR}/src/matmul_MxNxK.mlir ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
 endfunction()
 
-# Method that generated a matmul binary for a specific backend.
+# Method to generate a IREE matmul binary for a specific backend and matrix size 
 function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
+
     string(CONCAT iree_executable_name "matmul_iree" ${backend} "_" ${matrix_size})
     string(CONCAT mlir_lib "matmul_" "_" ${backend} ${matrix_size} )
 
@@ -16,8 +17,6 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
     set(_ARGS)
     list(APPEND _ARGS "-iree-input-type=mhlo")
     list(APPEND _ARGS "-iree-mlir-to-vm-bytecode-module")
-    # Backend here is just used to create bytecode module and doesn't reflect the
-    # backend used to run the program. Could be set to any of the available ones.
     list(APPEND _ARGS "-iree-hal-target-backends=${backend}")
     list(APPEND _ARGS "${mlir_file}")
     list(APPEND _ARGS "-o")
@@ -63,6 +62,10 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
         ${mlir_lib}.h
     )
 
+    #-------------------------------------------------------------------------------
+    # Build the executable.
+    #-------------------------------------------------------------------------------
+
     add_executable(${iree_executable_name} "")
     target_sources(${iree_executable_name}
         PRIVATE
@@ -70,8 +73,8 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
         device_${backend}.c
     )
 
+    # Set output directory to matmul build directory to plot performance.
     set_target_properties(${iree_executable_name} PROPERTIES OUTPUT_NAME ${iree_executable_name})
-    # Setting the output directory to matmul build directory to plot performance.
     set_target_properties(${iree_executable_name} PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/../matmul")
 

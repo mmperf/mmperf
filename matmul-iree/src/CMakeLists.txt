@@ -28,15 +28,11 @@ foreach(MATRIX_SIZE ${MATRIX_SIZES})
 
   set(MATMUL_MLIR_FILE ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.mlir)
 
-  #-------------------------------------------------------------------------------
-  # Build the excutable for each available backend.
-  #-------------------------------------------------------------------------------
+  # Generate binary for each backend and specific matrix size
   if(${IREE_VMVX} STREQUAL "ON")
-    # generate_mlir_lib(${MATMUL_MLIR_FILE} vmvx ${MATMUL})
     generate_matmul_binary(${MATMUL_MLIR_FILE} ${MATRIX_SIZE} vmvx ${M} ${N} ${K} ${NUM_REPS})
   endif()
   if(${IREE_CUDA} STREQUAL "ON")
-    # generate_mlir_lib(${MATMUL_MLIR_FILE} cuda ${MATMUL})
     generate_matmul_binary(${MATMUL_MLIR_FILE} ${MATRIX_SIZE} cuda ${M} ${N} ${K} ${NUM_REPS})
   endif()
   
