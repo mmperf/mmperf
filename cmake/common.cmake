@@ -41,7 +41,7 @@ endif()
 
 # Set IREE backends to use
 if(${USE_IREE} STREQUAL "ON")
-  option(IREE_VMVX "Enable IREE vmvx (CPU) backend" ON)
+  option(IREE_VMVX "Enable IREE vmvx (CPU) backend" OFF)
   option(IREE_DYLIB "Enable IREE dylib (CPU) backend" ON)
   option(IREE_CUDA "Enable IREE cuda (GPU) backend" ON)
 endif()
