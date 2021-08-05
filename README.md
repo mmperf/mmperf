@@ -60,7 +60,7 @@ and run them to generate the benchmarking numbers. To run all tests and generate
 cmake --build build/matmul --target run_all_tests
 ```
 
-`results` folder will be created in the mmperf top-level directory which will contain GLOPS for every matmul size and backend. A plot comparing performances of backends will also be generated as `matmul.png`.  
+`results` folder will be created in the mmperf top-level directory which will contain GLOPS for every matmul size and every backend. A plot comparing performances of backends will also be generated in `matmul.png`.  
 
 Each generated binary can also be executed individually. To run a specific matrix size (say 24x64x512) for a backend run:
 
