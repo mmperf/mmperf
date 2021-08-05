@@ -11,6 +11,10 @@
 // create_sample_driver().
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <math.h>
 
 #include "iree/base/api.h"
 #include "iree/hal/api.h"
@@ -20,10 +24,35 @@
 
 #include MATMUL_HEADER
 
+#define STRING(s) #s
+#define TO_STRING(x) STRING(x)
+
+double rtclock() {
+  struct timezone Tzp;
+  struct timeval Tp;
+  int stat = gettimeofday(&Tp, &Tzp);
+  if (stat != 0)
+    printf("Error return from gettimeofday: %d", stat);
+  return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
+}
+
 void init_matrix(float *a, int nrows, int ncols) {
   for (int j = 0; j < ncols; j++) {
     for (int i = 0; i < nrows; i++) {
       a[i + j * nrows] = ((float) rand() / (float) RAND_MAX);
+    }
+  }
+}
+
+void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, size_t n) {
+  // correctness check
+  for (size_t i = 0; i < m; i++) {
+    for (size_t j = 0; j < n; j++) {
+      size_t ci = i*n + j;
+      c[ci] = 0.0f;
+      for (size_t p = 0; p < k; p++) {
+        c[ci] += a[i*k + p] * b[p*n + j];
+      }
     }
   }
 }
@@ -34,6 +63,9 @@ void init_matrix(float *a, int nrows, int ncols) {
 extern iree_status_t create_sample_device(iree_hal_device_t** device);
 
 iree_status_t Run() {
+
+  double t_start, t_end;
+  t_start = rtclock();
   // TODO(benvanik): move to instance-based registration.
   IREE_RETURN_IF_ERROR(iree_hal_module_register_types());
 
@@ -128,11 +160,13 @@ iree_status_t Run() {
                            /*element_type=*/NULL,
                            /*capacity=*/1, iree_allocator_system(), &outputs),
                        "can't allocate output vm list");
-
-  // Synchronously invoke the function.
-  IREE_RETURN_IF_ERROR(iree_vm_invoke(context, main_function,
-                                      /*policy=*/NULL, inputs, outputs,
-                                      iree_allocator_system()));
+  
+  for (int t = 0; t < NUM_REPS; ++t) {
+    // Synchronously invoke the function.
+    IREE_RETURN_IF_ERROR(iree_vm_invoke(context, main_function,
+                                        /*policy=*/NULL, inputs, outputs,
+                                        iree_allocator_system()));
+  }
 
   // Get the result buffers from the invocation.
   iree_hal_buffer_view_t* ret_buffer_view =
@@ -143,16 +177,40 @@ iree_status_t Run() {
                             "can't find return buffer view");
   }
 
+  t_end = rtclock();
+
   // Read back the results and ensure we got the right values.
   iree_hal_buffer_mapping_t mapped_memory;
+  float *C = (float *) malloc(MDIM * NDIM * sizeof(float));
   IREE_RETURN_IF_ERROR(iree_hal_buffer_map_range(
       iree_hal_buffer_view_buffer(ret_buffer_view), IREE_HAL_MEMORY_ACCESS_READ,
       0, IREE_WHOLE_BUFFER, &mapped_memory));
   for (int i = 0; i < mapped_memory.contents.data_length / sizeof(float); ++i) {
     // Accessing the output elements
     float matmul_output_element = ((const float*)mapped_memory.contents.data)[i];
-    // printf("%f\n", matmul_output_element);
+    C[i] = ((const float*)mapped_memory.contents.data)[i];
   }
+
+  const char *filename = TO_STRING(FILE_NAME);
+  FILE *file = fopen(filename, "w");
+  fprintf(file, "%0.2lf GFLOPS\n", 2.0 * NUM_REPS * MDIM * NDIM * KDIM / (t_end - t_start) / 1E9);
+  fclose(file);
+
+#ifdef ENABLE_CHECK
+  float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
+  size_t errors = 0;
+  naive_matmul(arg0,arg1,C2,MDIM,KDIM,NDIM);
+  for (size_t i = 0; i < MDIM; i++) {
+    for (size_t j = 0; j < NDIM; j++) {
+      size_t ci = i + j*MDIM;
+      if (fabs(C[ci] - C2[ci]) > 0.01f) {
+        errors++;
+        }
+    }
+  }
+  printf("Detected %ld errors.\n", errors);
+#endif
+
   iree_hal_buffer_unmap_range(&mapped_memory);
 
   free(arg0);

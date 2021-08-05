@@ -20,6 +20,9 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_BINARY_DIR}/lib/cmake/mlir")
 
 add_subdirectory(${IREE_SOURCE} iree EXCLUDE_FROM_ALL)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+include(matmul-iree-common)
+
 #-------------------------------------------------------------------------------
 # Top-level components
 #-------------------------------------------------------------------------------

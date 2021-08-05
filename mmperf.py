@@ -32,7 +32,9 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'ruy': 'violet',
               'tvm' : 'indigo',
               'naive': 'black',
-              'nodai': 'red'}
+              'nodai': 'red',
+              'ireevmvx': 'aqua',
+              'ireecuda': 'darkturquoise'}
 BENCHMARK_ENV = os.environ.copy()
 BENCHMARK_ENV.update({
     "MKL_NUM_THREADS": "1",
