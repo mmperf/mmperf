@@ -11,7 +11,7 @@ option(USE_NAIVE "Enable naive implementation by c/c++ loop" OFF)
 option(USE_OPENBLAS "Enable OpenBLAS" OFF)
 option(USE_RUY "Enable Ruy" OFF)
 option(USE_TVM "Enable TVM" OFF)
-option(USE_CUDA "Enable cuda for TVM" OFF)
+option(USE_TVM_CUDA "Enable cuda for TVM" OFF)
 option(USE_IREE "Enable IREE" OFF)
 
 # Backend specific options
@@ -36,7 +36,7 @@ else()
   set(USE_NODAI ON CACHE INTERNAL "Enable Nod.AI")
 endif()
 option(SEARCH_MODE "Read tile size file as permutations instead of associations" OFF)
-if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MLIR_CUDA OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_BLASFEO OR USE_RUY OR USE_NAIVE OR USE_NODAI OR USE_ACCELERATE OR USE_BLIS OR USE_TVM OR USE_CUDA OR USE_CUBLAS OR USE_IREE))
+if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MLIR_CUDA OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_BLASFEO OR USE_RUY OR USE_NAIVE OR USE_NODAI OR USE_ACCELERATE OR USE_BLIS OR USE_TVM OR USE_TVM_CUDA OR USE_CUBLAS OR USE_IREE))
   message(FATAL_ERROR "No backend was enabled!")
 endif()
 
@@ -53,7 +53,7 @@ set(VARS_TO_COPY
     USE_OPENBLAS
     USE_RUY
     USE_TVM
-    USE_CUDA
+    USE_TVM_CUDA
     USE_TVM_TUNED
     USE_MATMUL_COMPILE
     USE_IREE
