@@ -1,9 +1,9 @@
-#12544x64x147 doesn't compile on mlir-cuda
-#3136x64x64 doesn't compile on mlir-cuda
-#3136x64x576 doesn't compile on mlir-cuda
-#3136x256x64 doesn't compile on mlir-cuda
-#3136x64x256 doesn't compile on mlir-cuda
-#3136x128x256 doesn't compile on mlir-cuda
+12544x64x147
+3136x64x64
+3136x64x576
+3136x256x64
+3136x64x256
+3136x128x256
 784x128x1152
 784x512x128
 784x512x256

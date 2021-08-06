@@ -1,7 +1,7 @@
 # Counts 192
 512x1024x1024
 # Counts 96
-#1024x1024x512 doesn't compile on mlir-cuda
+1024x1024x512
 # Counts 72
 16x512x64x512
 # Counts 48
@@ -9,15 +9,15 @@
 16x512x512x64
 512x3072x1024
 # Counts 24
-#1024x3072x512 doesn't compile on mlir-cuda
+1024x3072x512
 16x64x512x512
-#3072x1024x512 doesn't compile on mlir-cuda
+3072x1024x512
 # Counts 2
 1x1024x1024
 # Counts 1
 1x1024x5
-#1024x5x1 doesn't compile on mlir-cuda
-#1024x1024x1 doesn't compile on mlir-cuda
+1024x5x1
+1024x1024x1
 16x1024x512
 512x1024x16
 1x5x1024
