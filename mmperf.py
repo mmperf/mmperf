@@ -33,6 +33,8 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'tvm' : 'indigo',
               'naive': 'black',
               'nodai': 'red',
+              'nodai-1': 'dodgerblue',
+              'nodai-2': 'purple',
               'ireevmvx': 'thistle',
               'ireedylib': 'aqua',
               'ireecuda': 'deeppink'}
@@ -117,9 +119,12 @@ def autolabel(rects):
 _result_dir = None
 _env = None
 
-def _do_single_permutation(i, path):
+def _do_single_permutation(i, path, duration=None):
     t0 = time.perf_counter()
-    result = subprocess.run([path], stdout=subprocess.DEVNULL, cwd=_result_dir, env=_env, check=False)
+    if not duration:
+        duration = 1
+    reps = str(duration)
+    result = subprocess.run([str(path), f'{reps}'], stdout=subprocess.DEVNULL, cwd=_result_dir, env=_env, check=False)
     t1 = time.perf_counter()
     gflops_path = _result_dir / (path.name + '_perf.out')
     if gflops_path.is_file():
@@ -139,7 +144,7 @@ def _worker_init(result_dir, env):
     _result_dir = result_dir
     _env = env
 
-def do_permutations(jobs, perms, bin_path, result_dir, env):
+def do_permutations(jobs, perms, bin_path, result_dir, env, duration=None):
     num_tasks = len(perms)
     speeds = np.zeros((num_tasks,))
     runtimes = np.zeros((num_tasks,))
@@ -158,7 +163,7 @@ def do_permutations(jobs, perms, bin_path, result_dir, env):
 
     with Pool(jobs, _worker_init, (result_dir, env)) as pool:
         for i, perm in enumerate(perms):
-            async_results[i] = pool.apply_async(_do_single_permutation, (i, bin_path / perm), callback=callback)
+            async_results[i] = pool.apply_async(_do_single_permutation, (i, bin_path / perm, duration), callback=callback)
         print("Submitted all jobs to pool")
         for ar in async_results:
             ar.get()
@@ -182,7 +187,6 @@ def main(argv):
 
     # run them in parallel and collect the results
     speeds = do_permutations(args.jobs, list(x.name for x in bin_paths), args.bins, result_dir, BENCHMARK_ENV)
-
     # break up and interpret the file names
     binaries = {}
     for i, path in enumerate(bin_paths):
