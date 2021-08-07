@@ -23,8 +23,9 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/FileUtilities.h"
 #include "mlir/Support/MlirOptMain.h"
-#include "mlir/Target/LLVMIR.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
+#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
 
 #include <filesystem>
@@ -59,10 +60,10 @@ struct Options {
     cl::desc("Number of rows of first matrix"),
     cl::init(1024)};
   cl::opt<int> N{"N", cl::Required,
-    cl::desc("Number of rows of first matrix"),
+    cl::desc("Number of columns of second matrix"),
     cl::init(1024)};
   cl::opt<int> K{"K", cl::Required,
-    cl::desc("Number of rows of first matrix"),
+    cl::desc("Number of columns/rows of first/second matrix"),
     cl::init(1024)};
 
   // CPU info
@@ -170,13 +171,15 @@ static void convertToVector(const std::string &tileSizes, llvm::SmallVectorImpl<
 void LinalgCodegenPass::runOnFunction() {
   MLIRContext *ctx = getFunction().getContext();
   SmallVector<Attribute, 4> attrs;
-  attrs.push_back(ArrayAttr::get({StringAttr::get("prefer-vector-width", ctx),
-                                  StringAttr::get(params.vectorWidth, ctx)},
-                                  ctx));
-  attrs.push_back(ArrayAttr::get({StringAttr::get("target-cpu", ctx),
-                                  StringAttr::get(params.targetCPU, ctx)},
-                                  ctx));
-  getFunction()->setAttr("passthrough", ArrayAttr::get(attrs, ctx));
+  attrs.push_back(ArrayAttr::get(ctx,
+                                 {StringAttr::get(ctx, "prefer-vector-width"),
+                                  StringAttr::get(ctx, params.vectorWidth)}
+                                ));
+  attrs.push_back(ArrayAttr::get(ctx,
+                                 {StringAttr::get(ctx, "target-cpu"),
+                                  StringAttr::get(ctx, params.targetCPU)}
+                                ));
+  getFunction()->setAttr("passthrough", ArrayAttr::get(ctx, attrs));
 
   vector::VectorContractLowering vectorContractLowering =
       llvm::StringSwitch<vector::VectorContractLowering>(
@@ -298,8 +301,8 @@ static Error make_string_error(const Twine &message) {
 }
 
 Error compile(Options &options, mlir::DialectRegistry &registry) {
-  MLIRContext context;
-  registry.loadAll(&context);
+  MLIRContext context(registry);
+  context.loadAllAvailableDialects();
   llvm::errs() << "Read file: " << options.inputFile << "\n";
   OwningModuleRef moduleRef = parseSourceFile(options.inputFile, &context);
   if (!moduleRef)
@@ -323,6 +326,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   }
 
   // Convert from MLIR to LLVMIR
+  mlir::registerLLVMDialectTranslation(*module->getContext());
   llvm::LLVMContext llvmContext;
   auto llvmModule = mlir::translateModuleToLLVMIR(module, llvmContext);
   if (!llvmModule) {
@@ -350,6 +354,7 @@ int main(int argc, char **argv) {
   llvm::InitLLVM y(argc, argv);
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
+  llvm::InitializeNativeTargetAsmParser();
   mlir::initializeLLVMPasses();
   mlir::registerAsmPrinterCLOptions();
   mlir::registerPassManagerCLOptions();

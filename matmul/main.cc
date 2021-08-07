@@ -22,6 +22,10 @@
 #include "cuda_runtime.h"
 #include "cublas_v2.h"
 #include <sstream>
+// TODO: fix the cuMemHostRegister/Unregister problem
+// #elif defined(MLIR_CUDA)
+// #include "cuda_runtime_api.h"
+// #include "cuda.h"
 #endif
 #include <cstdio>
 #include <cstdlib>
@@ -49,7 +53,7 @@
 #endif
 #endif
 
-#ifdef MLIR
+#if defined(MLIR) || defined(MLIR_CUDA)
 extern "C" {
 struct memref_t {
   float *aligned;
@@ -155,6 +159,16 @@ void init_matrix(float *a, int nrows, int ncols) {
   }
 }
 
+// A print function for sanity check
+void print_matrix(float *a, int nrows, int ncols) {
+  for (int j = 0; j < ncols; j++) {
+    for (int i = 0; i < nrows; i++) {
+      printf("%.2f ", a[i + j * nrows]);
+    }
+    printf("\n");
+  }
+}
+
 void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, size_t n) {
   // correctness check
   for (size_t i = 0; i < m; i++) {
@@ -196,6 +210,8 @@ int main(int argc, char **argv) {
   printf("Benchmarking MKL %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(MLIR)
   printf("Benchmarking MLIR %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(MLIR_CUDA)
+  printf("Benchmarking MLIR CUDA %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(NAIVE)
   printf("Benchmarking Naive C %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(OPENBLAS)
@@ -213,6 +229,20 @@ int main(int argc, char **argv) {
   init_matrix(A, MDIM, KDIM);
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
+
+// TODO: May be this way cuMemHostRegister problem can be solved, 
+// but in this case, we need to move gpu.host_register outside of the
+// loop. 
+// #if defined(MLIR_CUDA)
+//   float *DA, *DB, *DC;
+//   cudaMalloc((void **)&DA, MDIM * KDIM * sizeof(float));
+//   cudaMalloc((void **)&DB, MDIM * KDIM * sizeof(float));
+//   cudaMalloc((void **)&DC, MDIM * KDIM * sizeof(float));
+// 
+//   cudaMemcpy(DA, A, MDIM * KDIM * sizeof(float), cudaMemcpyHostToDevice);
+//   cudaMemcpy(DB, B, MDIM * KDIM * sizeof(float), cudaMemcpyHostToDevice);
+//   cudaMemcpy(DC, C, MDIM * KDIM * sizeof(float), cudaMemcpyHostToDevice);
+// #endif
 
 #if defined(CUBLAS)
   cublasHandle_t handle;
@@ -308,9 +338,11 @@ int main(int argc, char **argv) {
     blas_sgemm(&c_t, &c_t, &m0, &n0, &k0, &alpha, A, &LDA, B, &LDB, &beta, C, &LDC);
 #elif defined(RUY)
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
+
 #elif defined(TVM)
     matmul(x, y, z);
-#elif defined(MLIR)
+
+#elif defined(MLIR) || defined(MLIR_CUDA)
 #ifdef COLUMN_MAJOR
     matmul(A, A, 0, MDIM, KDIM, 1, LDA,
            B, B, 0, KDIM, NDIM, 1, LDB,
@@ -320,6 +352,19 @@ int main(int argc, char **argv) {
            B, B, 0, KDIM, NDIM, LDB, 1,
            C, C, 0, MDIM, NDIM, LDC, 1);
 #endif
+
+// TODO: Similar attempt to solve host register problem.
+// #elif defined(MLIR_CUDA) 
+// #ifdef COLUMN_MAJOR
+//     matmul(DA, DA, 0, MDIM, KDIM, 1, LDA,
+//            DB, DB, 0, KDIM, NDIM, 1, LDB,
+//            DC, DC, 0, MDIM, NDIM, 1, LDC);
+// #else
+//     matmul(DA, DA, 0, MDIM, KDIM, LDA, 1,
+//            DB, DB, 0, KDIM, NDIM, LDB, 1,
+//            DC, DC, 0, MDIM, NDIM, LDC, 1);
+// #endif
+
 #elif defined(NAIVE)
     naive_matmul(A,B,C,MDIM,KDIM,NDIM);
 #elif defined(CUBLAS)
@@ -341,6 +386,9 @@ int main(int argc, char **argv) {
 #elif defined(CUBLAS)
   CHECK_CUBLAS(cublasGetVector(MDIM * NDIM, sizeof(float), CC, 1, C, 1));
 #endif
+
+// print result here
+// print_matrix(C, MDIM, NDIM);
 
 #ifdef ENABLE_CHECK
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
@@ -371,6 +419,13 @@ int main(int argc, char **argv) {
   free(B);
   free(C);
 #endif
+
+// TODO: We will need this if we use cudaMalloc.
+// #if defined(MLIR_CUDA)
+//     cudaFree(DA);
+//     cudaFree(DB);
+//     cudaFree(DC);
+// #endif
 
 #if defined(TVM)
   TVMArrayFree(x);

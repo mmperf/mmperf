@@ -28,6 +28,7 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'blis': 'mediumspringgreen',
               'blasfeo': 'olivedrab',
               'cublas': 'chocolate',
+              'mlircuda': 'green',
               'halide': 'gold',
               'ruy': 'violet',
               'tvm' : 'indigo',
@@ -41,6 +42,7 @@ BENCHMARK_ENV.update({
     "HL_NUM_THREADS": "1",
     "VECLIB_MAXIMUM_THREADS": "1",
     "OMP_NUM_THREADS": "1",
+    "TVM_NUM_THREADS": "1",
 })
 
 def path_expand(s):
