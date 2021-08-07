@@ -363,7 +363,7 @@ int main(int argc, char **argv) {
 
   const char *filename = TO_STRING(FILE_NAME);
   FILE *file = fopen(filename, "w");
-  fprintf(file, "%0.2lf GFLOPS\n", 2.0 * NUM_REPS * MDIM * NDIM * KDIM / (t_end - t_start) / 1E9);
+  fprintf(file, "%0.5lf GFLOPS\n", 2.0 * NUM_REPS * MDIM * NDIM * KDIM / (t_end - t_start) / 1E9);
   fclose(file);
 #if 0
   // TODO: For the largest 3 matrix sizes in MLIR, this throws a munmap_chunk(): invalid_pointer

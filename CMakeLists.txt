@@ -127,7 +127,6 @@ ExternalProject_Add(matmul-iree
     -DIREE_SOURCE=${IREE_SOURCE}
     ${MATMUL_CMAKE_ARGS}
 )
-# list(APPEND MATMUL_DEPS iree)
 endif()
 
 ExternalProject_Add(matmul
