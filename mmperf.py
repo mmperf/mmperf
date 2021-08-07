@@ -113,8 +113,13 @@ def autolabel(rects):
     """
     for rect in rects:
         height = rect.get_height()
-        plt.text(rect.get_x() + rect.get_width()/2., 1.02*height,
-                '%d' % int(height), fontsize=5, ha='center', va='bottom')
+        # If the floor value of GFLOPS is 0 print its float value
+        if(int(height) is 0):
+            plt.text(rect.get_x() + rect.get_width()/2., 1.02*height,
+                    '%.3f' % float(height), fontsize=5, ha='center', va='bottom')
+        else:
+            plt.text(rect.get_x() + rect.get_width()/2., 1.02*height,
+                    '%d' % int(height), fontsize=5, ha='center', va='bottom')
 
 _result_dir = None
 _env = None

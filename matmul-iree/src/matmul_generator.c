@@ -193,7 +193,7 @@ iree_status_t Run() {
 
   const char *filename = TO_STRING(FILE_NAME);
   FILE *file = fopen(filename, "w");
-  fprintf(file, "%0.2lf GFLOPS\n", 2.0 * NUM_REPS * MDIM * NDIM * KDIM / (t_end - t_start) / 1E9);
+  fprintf(file, "%0.5lf GFLOPS\n", 2.0 * NUM_REPS * MDIM * NDIM * KDIM / (t_end - t_start) / 1E9);
   fclose(file);
 
 #ifdef ENABLE_CHECK
