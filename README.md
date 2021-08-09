@@ -26,13 +26,13 @@ Note: 8GB Mac Mini runs roughly 25% slower than the 16GB version on other tests.
 ### Installation
 Clone the repo along with submodules.
 
-```bash
+```
 git clone --recurse-submodules https://github.com/mmperf/mmperf.git
 ```
 
 Build the project specifying the backend(s) to run matmul. Below is a command to build mmperf with MLIR backend.
 
-```bash
+```
 cmake -GNinja \
     -DCMAKE_CXX_COMPILER=clang++-11 \
     -DCMAKE_C_COMPILER=clang-11 \
@@ -44,7 +44,7 @@ cmake --build build
 
 Another example to build with all available backends. Assumes you have MKL, OpenBLAS, and Halide installed (see below for installation details)
 
-```bash
+```
 HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -GNinja \
     -DCMAKE_CXX_COMPILER=clang++-11 \
     -DCMAKE_C_COMPILER=clang-11 \
@@ -62,7 +62,7 @@ cmake --build build
 
 Install `matplotlib` to generate performance plot.
 
-```bash
+```
 pip install matplotlib
 ```
 
@@ -99,7 +99,7 @@ apt-get install -y clang-11 clang-tools-11 libc++1-11 libc++-11-dev \
 We use AOT compilation to generate binaries for matrix multiplication for specified backends
 and run them to generate the benchmarking numbers. To run all tests and generate performance numbers run: 
 
-```bash
+```
 cmake --build build/matmul --target run_all_tests
 ```
 
@@ -107,7 +107,7 @@ cmake --build build/matmul --target run_all_tests
 
 Each generated binary can also be executed individually. To run a specific matrix size (say 24x64x512) for a backend run:
 
-```bash
+```
 ./build/matmul/matmul_<LIBRARY>_24x64x512
 ```
 
@@ -120,7 +120,7 @@ Number of iterations: The number of iterations for a matmul to be benchmarked ca
 ### Installing optional dependencies: Halide, OpenBLAS, MKL
 
 #### Halide
-```bash
+```
 git clone https://github.com/halide/Halide.git --recurse-submodules
 cd Halide/
 sudo apt install libclang-11-dev clang-11 liblld-11-dev
@@ -134,12 +134,12 @@ export HALIDE_DIR=/home/<foo>/lokal/halide
 ```
 
 #### OpenBLAS
-```bash
+```
 sudo apt install libopenblas-dev
 ```
 
 ### BLIS
-```bash
+```
 git clone https://github.com/flame/blis
 cd blis
 ./configure --prefix=/home/foo/lokal/ --enable-cblas -c amd64

@@ -142,7 +142,7 @@ if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
   endfunction()
 
   set(LLVM_DIR_ ${LLVM_DIR})
-  # Build matmul-compile and pass
+  # Build matmul-compile and pass, this line will overwrite LLVM_DIR
   add_subdirectory(matmul-compile)
   set(LLVM_DIR ${LLVM_DIR_})
 endif()
@@ -240,13 +240,13 @@ foreach(BACKEND ${BACKENDS})
     list(GET SIZES 2 K)
 
     if(${BACKEND} STREQUAL "mlir")
-      compile_mlir(${MATMUL} ${M} ${N} ${K} OFF OFF)
+      compile_mlir(${MATMUL} ${M} ${N} ${K} OFF OFF) # nodai == OFF, mlircuda == OFF
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     elseif(${BACKEND} STREQUAL "nodai")
-      compile_mlir(${MATMUL} ${M} ${N} ${K} ON OFF)
+      compile_mlir(${MATMUL} ${M} ${N} ${K} ON OFF) # nodai == ON, mlircuda == OFF
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     elseif(${BACKEND} STREQUAL "mlircuda")
-      compile_mlir(${MATMUL} ${M} ${N} ${K} OFF ON)
+      compile_mlir(${MATMUL} ${M} ${N} ${K} OFF ON) # nodai == OFF, mlircuda == ON
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     endif()
     add_executable(${MATMUL} ${SRC})
@@ -327,19 +327,13 @@ foreach(BACKEND ${BACKENDS})
       target_compile_definitions(${MATMUL} PRIVATE MLIR_CUDA)
       target_link_libraries(${MATMUL} PRIVATE ${LLVM_DIR}/lib/libmlir_cuda_runtime.so)
       target_link_libraries(${MATMUL} PRIVATE ${LLVM_DIR}/lib/libmlir_runner_utils.so)
-      # TODO: We might need these to solve the cuMemHostRegister problem
-      # target_link_libraries(${MATMUL} PRIVATE /usr/local/cuda-11.0/targets/x86_64-linux/lib/libcudart.so)
-      # target_include_directories(${MATMUL} PRIVATE /usr/local/cuda-11.0/targets/x86_64-linux/include)
-      # target_compile_options(${MATMUL} PRIVATE -lcuda) # We might need this in future
     elseif(${BACKEND} STREQUAL "nodai")
       target_compile_definitions(${MATMUL} PRIVATE MLIR)
     elseif(${BACKEND} STREQUAL "naive")
       target_compile_definitions(${MATMUL} PRIVATE NAIVE)
       target_compile_options(${MATMUL} PRIVATE -O3)
     endif()
-    if(NOT ${BACKEND} STREQUAL "mlircuda")
-        target_link_libraries(${MATMUL} PRIVATE m)
-    endif()
+    target_link_libraries(${MATMUL} PRIVATE m)
     list(APPEND ALL_TARGETS ${MATMUL})
   endforeach()
 endforeach()
