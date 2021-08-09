@@ -34,8 +34,8 @@ if(USE_NODAI)
   endif()
 endif()
 
-if(USE_MLIR OR USE_NODAI)
-  function(compile_mlir mlir_prefix M N K nodai_mode)
+if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
+  function(compile_mlir mlir_prefix M N K nodai_mode mlircuda_mode)
     set(OBJ ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.o)
     if(nodai_mode)
       if(NOT DEFINED "TILE_FOR_MATRIX_${M}x${N}x${K}")
@@ -63,7 +63,7 @@ if(USE_MLIR OR USE_NODAI)
       else()
         set(TILE_SIZES_LOCAL "${TILE_SIZES}")
         set(REGISTER_TILE_SIZES_LOCAL "${REGISTER_TILE_SIZES}")
-	set(COPY_FILL_TILE_SIZES_LOCAL "${COPY_FILL_TILE_SIZES}")
+        set(COPY_FILL_TILE_SIZES_LOCAL "${COPY_FILL_TILE_SIZES}")
         message(STATUS "Using custom tile sizes ...")
       endif()
     endif()
@@ -74,8 +74,13 @@ if(USE_MLIR OR USE_NODAI)
       message(STATUS "Compiling linalg.matmul_column_major ...")
       configure_file(${CMAKE_SOURCE_DIR}/matmul_column_major_mlir_MxNxK.mlir.in ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
     else()
-      message(STATUS "Compiling linalg.matmul ...")
-      configure_file(${CMAKE_SOURCE_DIR}/matmul_mlir_MxNxK.mlir.in ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+      if(mlircuda_mode)
+        message(STATUS "Compiling linalg.matmul with CUDA backend ...")
+        configure_file(${CMAKE_SOURCE_DIR}/matmul_mlircuda_MxNxK.mlir.in ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+      else()
+        message(STATUS "Compiling linalg.matmul ...")
+        configure_file(${CMAKE_SOURCE_DIR}/matmul_mlir_MxNxK.mlir.in ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+      endif()
     endif()
     # For larger sizes, we will still use matmul-compile
     if((${USE_MATMUL_COMPILE} STREQUAL "ON") OR (M GREATER 1000))
@@ -92,32 +97,54 @@ if(USE_MLIR OR USE_NODAI)
         -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
         -c -o ${OBJ} -g
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
-        DEPENDS matmul-compile
-      )
+        DEPENDS matmul-compile)
     else()
       string(REPLACE " " "," TILE_SIZES_LOCAL "${TILE_SIZES_LOCAL}")
       string(REPLACE " " "," COL_MAJOR_TILE_SIZES "${COL_MAJOR_TILE_SIZES}")
       string(REPLACE " " "," COPY_FILL_TILE_SIZES_LOCAL "${COPY_FILL_TILE_SIZES_LOCAL}")
-      set(MLIR_OPT ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-opt)
-      set(MLIR_TRANSLATE ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-translate)
-      add_custom_command(OUTPUT ${OBJ}
-	COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
-	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul_column_major register-tile-sizes=${COL_MAJOR_TILE_SIZES} vectorize\" |
-	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul register-tile-sizes=${TILE_SIZES_LOCAL} vectorize\" |
-	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.fill register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
-	${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.copy register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
-	${MLIR_OPT} -canonicalize -convert-vector-to-scf -lower-affine -convert-linalg-to-loops -canonicalize -convert-scf-to-std -convert-vector-to-llvm -convert-std-to-llvm |
-	${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
-        COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
-        -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
-        -c -o ${OBJ} -g
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
-      )
+      if(NOT DEFINED LLVM_DIR)
+        set(MLIR_OPT ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-opt)
+        set(MLIR_TRANSLATE ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-translate)
+      else()
+        if(NOT LLVM_DIR STREQUAL "")
+          set(MLIR_OPT ${LLVM_DIR}/bin/mlir-opt)
+          set(MLIR_TRANSLATE ${LLVM_DIR}/bin/mlir-translate)
+        else()
+          message(FATAL_ERROR "LLVM_DIR not set, aborting." )
+        endif()
+      endif()
+      if(mlircuda_mode)
+        add_custom_command(
+          OUTPUT ${OBJ}
+          COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
+          ${MLIR_OPT} --linalg-tile-to-parallel-loops=\"linalg-tile-sizes=${TILE_SIZES_LOCAL}\" |
+          ${MLIR_OPT} --convert-linalg-to-parallel-loops --test-gpu-greedy-parallel-loop-mapping |
+          ${MLIR_OPT} --convert-parallel-loops-to-gpu --gpu-kernel-outlining --lower-affine |
+          ${MLIR_OPT} --convert-scf-to-std --canonicalize |
+          ${MLIR_OPT} --pass-pipeline=\"gpu.module\(strip-debuginfo, convert-gpu-to-nvvm, gpu-to-cubin\)\" --gpu-to-llvm |
+          ${MLIR_TRANSLATE} --mlir-to-llvmir | opt -O3 -S | llc -O3 | as - -o ${OBJ}
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
+      else()
+        add_custom_command(OUTPUT ${OBJ}
+          COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
+          ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul_column_major register-tile-sizes=${COL_MAJOR_TILE_SIZES} vectorize\" |
+          ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul register-tile-sizes=${TILE_SIZES_LOCAL} vectorize\" |
+          ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.fill register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
+          ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.copy register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
+          ${MLIR_OPT} -canonicalize -convert-vector-to-scf -lower-affine -convert-linalg-to-loops -canonicalize -convert-scf-to-std -convert-vector-to-llvm -convert-std-to-llvm |
+          ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+          COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+          -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
+          -c -o ${OBJ} -g
+          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
+      endif()
     endif()
   endfunction()
 
+  set(LLVM_DIR_ ${LLVM_DIR})
   # Build matmul-compile and pass
   add_subdirectory(matmul-compile)
+  set(LLVM_DIR ${LLVM_DIR_})
 endif()
 
 if(${USE_HALIDE} STREQUAL "ON")
@@ -161,6 +188,9 @@ else()
   endif()
   if(USE_MLIR)
     list(APPEND BACKENDS mlir)
+  endif()
+  if(USE_MLIR_CUDA)
+    list(APPEND BACKENDS mlircuda)
   endif()
   if(USE_NAIVE)
     list(APPEND BACKENDS naive)
@@ -210,10 +240,13 @@ foreach(BACKEND ${BACKENDS})
     list(GET SIZES 2 K)
 
     if(${BACKEND} STREQUAL "mlir")
-      compile_mlir(${MATMUL} ${M} ${N} ${K} OFF)
+      compile_mlir(${MATMUL} ${M} ${N} ${K} OFF OFF)
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     elseif(${BACKEND} STREQUAL "nodai")
-      compile_mlir(${MATMUL} ${M} ${N} ${K} ON)
+      compile_mlir(${MATMUL} ${M} ${N} ${K} ON OFF)
+      list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
+    elseif(${BACKEND} STREQUAL "mlircuda")
+      compile_mlir(${MATMUL} ${M} ${N} ${K} OFF ON)
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     endif()
     add_executable(${MATMUL} ${SRC})
@@ -290,13 +323,23 @@ foreach(BACKEND ${BACKENDS})
       )
     elseif(${BACKEND} STREQUAL "mlir")
       target_compile_definitions(${MATMUL} PRIVATE MLIR)
+    elseif(${BACKEND} STREQUAL "mlircuda")
+      target_compile_definitions(${MATMUL} PRIVATE MLIR_CUDA)
+      target_link_libraries(${MATMUL} PRIVATE ${LLVM_DIR}/lib/libmlir_cuda_runtime.so)
+      target_link_libraries(${MATMUL} PRIVATE ${LLVM_DIR}/lib/libmlir_runner_utils.so)
+      # TODO: We might need these to solve the cuMemHostRegister problem
+      # target_link_libraries(${MATMUL} PRIVATE /usr/local/cuda-11.0/targets/x86_64-linux/lib/libcudart.so)
+      # target_include_directories(${MATMUL} PRIVATE /usr/local/cuda-11.0/targets/x86_64-linux/include)
+      # target_compile_options(${MATMUL} PRIVATE -lcuda) # We might need this in future
     elseif(${BACKEND} STREQUAL "nodai")
       target_compile_definitions(${MATMUL} PRIVATE MLIR)
     elseif(${BACKEND} STREQUAL "naive")
       target_compile_definitions(${MATMUL} PRIVATE NAIVE)
       target_compile_options(${MATMUL} PRIVATE -O3)
     endif()
-    target_link_libraries(${MATMUL} PRIVATE m)
+    if(NOT ${BACKEND} STREQUAL "mlircuda")
+        target_link_libraries(${MATMUL} PRIVATE m)
+    endif()
     list(APPEND ALL_TARGETS ${MATMUL})
   endforeach()
 endforeach()
