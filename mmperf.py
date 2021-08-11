@@ -24,6 +24,7 @@ BAR_WIDTH = 0.15
 BAR_COLORS = {'mkl': 'cornflowerblue',
               'accelerate': 'lightgray',
               'mlir': 'sandybrown',
+              'mlircuda': 'green',
               'openblas': 'mediumseagreen',
               'blis': 'mediumspringgreen',
               'blasfeo': 'olivedrab',
