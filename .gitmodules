@@ -16,3 +16,6 @@
 [submodule "external/iree"]
 	path = external/iree
 	url = https://github.com/google/iree.git
+[submodule "external/iree-llvm-sandbox"]
+	path = external/iree-llvm-sandbox
+	url = https://github.com/google/iree-llvm-sandbox.git
