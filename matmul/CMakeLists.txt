@@ -143,6 +143,34 @@ if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
   set(LLVM_LOCAL_PATH ${LLVM_LOCAL_PATH_})
 endif()
 
+function(run_llvm_sandbox mlir_prefix M N K ITERS)
+
+  set(OBJ ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.o)
+
+  set(MLIR_OPT ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-opt)
+  set(MLIR_PROTO_OPT ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-proto-opt)
+  set(MLIR_TRANSLATE ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-translate)
+  set(MLIR_CPU_RUNNER ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-cpu-runner)
+
+  configure_file(${CMAKE_SOURCE_DIR}/matmul_llvmsandbox_MxNxK.mlir ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+
+  add_custom_command(OUTPUT ${OBJ}
+  COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
+    ${MLIR_PROTO_OPT} -canonicalize -mlir-disable-threading -linalg-tensor-codegen-strategy=\"anchor-func=init_and_matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=16,16\" |
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=init_and_matmul anchor-op=linalg.matmul tile-sizes=0,0,16 vectorize vector-contract-lowering=false vector-to-scf-conversion=false\" |
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=init_and_matmul anchor-op=linalg.fill vectorize vector-contract-lowering=false vector-to-scf-conversion=false\" |
+    ${MLIR_PROTO_OPT} -canonicalize | ${MLIR_PROTO_OPT} -linalg-comprehensive-module-bufferize |
+    ${MLIR_OPT} -fold-memref-subview-ops -convert-vector-to-gpu -canonicalize -convert-linalg-to-loops |
+    ${MLIR_PROTO_OPT} -canonicalize -linalg-tensor-codegen-strategy=\"convert-to-gpu num-gpu-workgrpoups=1,1 distribute-to-gpu-ids tiled-loop-to-scf\" |
+    ${MLIR_OPT} -gpu-kernel-outlining | ${MLIR_OPT} -lower-affine -convert-scf-to-std -convert-vector-to-llvm |
+    ${MLIR_OPT} -pass-pipeline=\"gpu.module(strip-debuginfo,convert-gpu-to-nvvm{index-bitwidth=32},gpu-to-cubin{chip=sm_70})\"  -gpu-to-llvm |
+    ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+    COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+    -O3 -e main -entry-point-result=void -o ${OBJ}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
+
+endfunction()
+
 if(${USE_HALIDE} STREQUAL "ON")
   list(APPEND CMAKE_PREFIX_PATH ${HALIDE_DIR}/lib/cmake/Halide)
   add_subdirectory(halide)
@@ -204,6 +232,9 @@ endif()
 if(USE_NODAI OR SEARCH_MODE)
   list(APPEND BACKENDS nodai)
 endif()
+if(USE_IREE_LLVM_SANDBOX)
+  list(APPEND BACKENDS iree-llvm-sandbox)
+endif()
 
 # Create executables for each size and one for all
 set(ALL_TARGETS "")
@@ -244,6 +275,8 @@ foreach(BACKEND ${BACKENDS})
     elseif(${BACKEND} STREQUAL "mlircuda")
       compile_mlir(${MATMUL} ${M} ${N} ${K} OFF ON) # nodai == OFF, mlircuda == ON
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
+    elseif(${BACKEND} STREQUAL "iree-llvm-sandbox")
+      run_llvm_sandbox(${MATMUL} ${M} ${N} ${K} ${NUM_REPS})
     endif()
     add_executable(${MATMUL} ${SRC})
     target_compile_definitions(${MATMUL} PRIVATE MDIM=${M})
@@ -328,6 +361,9 @@ foreach(BACKEND ${BACKENDS})
         target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_cuda_runtime.so)
         target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_runner_utils.so)
       endif()
+    elseif(${BACKEND} STREQUAL "iree-llvm-sandbox")
+      target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_cuda_runtime.so)
+      target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_runner_utils.so)
     elseif(${BACKEND} STREQUAL "nodai")
       target_compile_definitions(${MATMUL} PRIVATE MLIR)
     elseif(${BACKEND} STREQUAL "naive")
