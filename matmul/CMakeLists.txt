@@ -123,7 +123,7 @@ if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
       else()
         add_custom_command(OUTPUT ${OBJ}
           COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
-	  ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul_column_major register-tile-sizes=${COL_MAJOR_TILE_SIZES} vectorize\" |
+          ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul_column_major register-tile-sizes=${COL_MAJOR_TILE_SIZES} vectorize\" |
           ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul register-tile-sizes=${TILE_SIZES_LOCAL} vectorize\" |
           ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.fill register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
           ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.copy register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |

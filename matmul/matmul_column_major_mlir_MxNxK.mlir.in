@@ -7,4 +7,3 @@ func @matmul(%a: memref<${K}x${M}xf32>, %b: memref<${N}x${K}xf32>, %c: memref<${
     outs(%c: memref<${N}x${M}xf32>)
   return
 }
-
