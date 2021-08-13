@@ -2,7 +2,7 @@ func @matmul(%a: memref<${M}x${K}xf32>, %b: memref<${K}x${N}xf32>, %c: memref<${
   attributes { passthrough = [["target-cpu", "${TARGET_CPU}"], ["prefer-vector-width", "${VECTOR_WIDTH}"]]}
 {
   %f0 = constant 0.0 : f32
-  linalg.fill(%c, %f0) : memref<${M}x${N}xf32>, f32
+  linalg.fill(%f0, %c) : f32, memref<${M}x${N}xf32>
   linalg.matmul ins(%a, %b : memref<${M}x${K}xf32>, memref<${K}x${N}xf32>)
     outs(%c: memref<${M}x${N}xf32>)
   return
