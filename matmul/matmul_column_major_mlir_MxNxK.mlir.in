@@ -1,9 +1,9 @@
-func @matmul(%a: memref<${M}x${K}xf32>, %b: memref<${K}x${N}xf32>, %c: memref<${M}x${N}xf32>)
+func @matmul(%a: memref<${K}x${M}xf32>, %b: memref<${N}x${K}xf32>, %c: memref<${N}x${M}xf32>)
   attributes { passthrough = [["target-cpu", "${TARGET_CPU}"], ["prefer-vector-width", "${VECTOR_WIDTH}"]]}
 {
   %f0 = constant 0.0 : f32
-  linalg.fill(%c, %f0) : memref<${M}x${N}xf32>, f32
-  linalg.matmul_column_major ins(%a, %b : memref<${M}x${K}xf32>, memref<${K}x${N}xf32>)
-    outs(%c: memref<${M}x${N}xf32>)
+  linalg.fill(%f0, %c) : f32, memref<${N}x${M}xf32>
+  linalg.matmul_column_major ins(%a, %b : memref<${K}x${M}xf32>, memref<${N}x${K}xf32>)
+    outs(%c: memref<${N}x${M}xf32>)
   return
 }
