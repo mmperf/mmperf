@@ -59,7 +59,7 @@ struct memref_t {
   int64_t strides[2];
 };
 
-void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
+memref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
             int64_t size_a0, int64_t size_a1, int64_t strides_a0, int64_t strides_a1,
             float *aligned_b, float *allocated_b, int64_t offset_b,
             int64_t size_b0, int64_t size_b1, int64_t strides_b0, int64_t strides_b1,
@@ -215,6 +215,7 @@ int main(int argc, char **argv) {
   init_matrix(A, MDIM, KDIM);
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
+  memref_t ret;
 
 #if defined(CUBLAS)
   cublasHandle_t handle;
@@ -314,13 +315,13 @@ int main(int argc, char **argv) {
     matmul(x, y, z);
 #elif defined(MLIR) || defined(MLIR_CUDA)
 #ifdef COLUMN_MAJOR
-    matmul(A, A, 0, MDIM, KDIM, 1, LDA,
-           B, B, 0, KDIM, NDIM, 1, LDB,
-           C, C, 0, MDIM, NDIM, 1, LDC);
+    ret = matmul(A, A, 0, MDIM, KDIM, 1, LDA,
+                 B, B, 0, KDIM, NDIM, 1, LDB,
+                 C, C, 0, MDIM, NDIM, 1, LDC);
 #else
-    matmul(A, A, 0, MDIM, KDIM, LDA, 1,
-           B, B, 0, KDIM, NDIM, LDB, 1,
-           C, C, 0, MDIM, NDIM, LDC, 1);
+    ret = matmul(A, A, 0, MDIM, KDIM, LDA, 1,
+                 B, B, 0, KDIM, NDIM, LDB, 1,
+                 C, C, 0, MDIM, NDIM, LDC, 1);
 #endif
 
 #elif defined(NAIVE)
@@ -352,7 +353,7 @@ int main(int argc, char **argv) {
   for (size_t i = 0; i < MDIM; i++) {
     for (size_t j = 0; j < NDIM; j++) {
       size_t ci = i + j*MDIM;
-      if (std::abs(C[ci] - C2[ci]) > 0.01f) {
+      if (std::abs(ret.aligned[ci] - C2[ci]) > 0.01f) {
         //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
         errors++;
       }
