@@ -153,9 +153,9 @@ function(run_llvm_sandbox mlir_prefix M N K ITERS)
   set(MLIR_CPU_RUNNER ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-cpu-runner)
 
   configure_file(${CMAKE_SOURCE_DIR}/matmul_llvmsandbox_MxNxK.mlir ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
-
-  add_custom_command(OUTPUT ${OBJ}
-  COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
+  add_custom_command(
+    OUTPUT ${OBJ}
+    COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
     ${MLIR_PROTO_OPT} -canonicalize -mlir-disable-threading -linalg-tensor-codegen-strategy=\"anchor-func=init_and_matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=16,16\" |
     ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=init_and_matmul anchor-op=linalg.matmul tile-sizes=0,0,16 vectorize vector-contract-lowering=false vector-to-scf-conversion=false\" |
     ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=init_and_matmul anchor-op=linalg.fill vectorize vector-contract-lowering=false vector-to-scf-conversion=false\" |
@@ -163,10 +163,11 @@ function(run_llvm_sandbox mlir_prefix M N K ITERS)
     ${MLIR_OPT} -fold-memref-subview-ops -convert-vector-to-gpu -canonicalize -convert-linalg-to-loops |
     ${MLIR_PROTO_OPT} -canonicalize -linalg-tensor-codegen-strategy=\"convert-to-gpu num-gpu-workgrpoups=1,1 distribute-to-gpu-ids tiled-loop-to-scf\" |
     ${MLIR_OPT} -gpu-kernel-outlining | ${MLIR_OPT} -lower-affine -convert-scf-to-std -convert-vector-to-llvm |
-    ${MLIR_OPT} -pass-pipeline=\"gpu.module(strip-debuginfo,convert-gpu-to-nvvm{index-bitwidth=32},gpu-to-cubin{chip=sm_70})\"  -gpu-to-llvm |
+    ${MLIR_OPT} -pass-pipeline=\"gpu.module\(strip-debuginfo,convert-gpu-to-nvvm{index-bitwidth=32},gpu-to-cubin{chip=sm_70}\)\"  -gpu-to-llvm |
     ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
     COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
-    -O3 -e main -entry-point-result=void -o ${OBJ}
+    -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
+    -c -o ${OBJ} -g
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
 
 endfunction()
@@ -277,6 +278,7 @@ foreach(BACKEND ${BACKENDS})
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     elseif(${BACKEND} STREQUAL "iree-llvm-sandbox")
       run_llvm_sandbox(${MATMUL} ${M} ${N} ${K} ${NUM_REPS})
+      list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     endif()
     add_executable(${MATMUL} ${SRC})
     target_compile_definitions(${MATMUL} PRIVATE MDIM=${M})
@@ -362,6 +364,7 @@ foreach(BACKEND ${BACKENDS})
         target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_runner_utils.so)
       endif()
     elseif(${BACKEND} STREQUAL "iree-llvm-sandbox")
+      target_compile_definitions(${MATMUL} PRIVATE IREE_LLVM_SANDBOX)
       target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_cuda_runtime.so)
       target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_runner_utils.so)
     elseif(${BACKEND} STREQUAL "nodai")
