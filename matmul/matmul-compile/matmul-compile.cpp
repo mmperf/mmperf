@@ -312,13 +312,16 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   PassManager pm(module.getContext(), OpPassManager::Nesting::Implicit);
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createLinalgCodegenPass(options));
+  pm.addPass(createLinalgComprehensiveModuleBufferizePass());
 
   // Lower to LLVM
   pm.addPass(createConvertVectorToSCFPass());
   pm.addPass(createLowerAffinePass());
   pm.addPass(createConvertLinalgToLoopsPass());
   pm.addPass(createLowerToCFGPass());
+  pm.addPass(createConvertLinalgToLLVMPass());
   pm.addPass(createConvertVectorToLLVMPass());
+  pm.addPass(createMemRefToLLVMPass());
   pm.addPass(createLowerToLLVMPass());
 
   if (failed(pm.run(module))) {

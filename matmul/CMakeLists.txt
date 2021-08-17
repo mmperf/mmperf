@@ -127,8 +127,7 @@ if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
           ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul register-tile-sizes=${TILE_SIZES_LOCAL} vectorize\" |
           ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.fill register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
           ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.copy register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
-          ${MLIR_OPT} -linalg-bufferize -scf-bufferize -std-bufferize -tensor-constant-bufferize -tensor-bufferize -func-bufferize -finalizing-bufferize -convert-vector-to-scf
-          -lower-affine -convert-linalg-to-loops -convert-scf-to-std -convert-linalg-to-llvm -lower-affine -convert-scf-to-std -convert-vector-to-llvm --convert-memref-to-llvm -convert-std-to-llvm |
+          ${MLIR_OPT} -linalg-comprehensive-module-bufferize -convert-vector-to-scf -convert-linalg-to-loops -convert-scf-to-std -convert-linalg-to-llvm -lower-affine -convert-scf-to-std -convert-vector-to-llvm --convert-memref-to-llvm -convert-std-to-llvm |
           ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
           COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
           -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
