@@ -164,6 +164,7 @@ function(run_llvm_sandbox mlir_prefix M N K ITERS)
     ${MLIR_PROTO_OPT} -canonicalize -linalg-tensor-codegen-strategy=\"convert-to-gpu num-gpu-workgrpoups=1,1 distribute-to-gpu-ids tiled-loop-to-scf\" |
     ${MLIR_OPT} -gpu-kernel-outlining | ${MLIR_OPT} -lower-affine -convert-scf-to-std -convert-vector-to-llvm |
     ${MLIR_OPT} -pass-pipeline=\"gpu.module\(strip-debuginfo,convert-gpu-to-nvvm{index-bitwidth=32},gpu-to-cubin{chip=sm_70}\)\"  -gpu-to-llvm |
+    # ${MLIR_CPU_RUNNER} -O3 -e main -entry-point-result=void -shared-libs=${CMAKE_BINARY_DIR}/../mlir/lib/libmlir_cuda_runtime.so -shared-libs=${CMAKE_BINARY_DIR}/../mlir/lib/libmlir_c_runner_utils.so
     ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
     COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
     -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
