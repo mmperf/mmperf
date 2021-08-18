@@ -49,7 +49,7 @@
 #endif
 #endif
 
-#if defined(MLIR) || defined(MLIR_CUDA)
+#if defined(MLIR)
 extern "C" {
 struct memref_t {
   float *aligned;
@@ -59,6 +59,16 @@ struct memref_t {
   int64_t strides[2];
 };
 
+memref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
+                int64_t size_a0, int64_t size_a1, int64_t strides_a0, int64_t strides_a1,
+                float *aligned_b, float *allocated_b, int64_t offset_b,
+                int64_t size_b0, int64_t size_b1, int64_t strides_b0, int64_t strides_b1,
+                float *aligned_c, float *allocated_c, int64_t offset_c,
+                int64_t size_c0, int64_t size_c1, int64_t strides_c0, int64_t strides_c1);
+}
+#endif
+
+#if defined(MLIR_CUDA)
 void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
             int64_t size_a0, int64_t size_a1, int64_t strides_a0, int64_t strides_a1,
             float *aligned_b, float *allocated_b, int64_t offset_b,
@@ -215,6 +225,7 @@ int main(int argc, char **argv) {
   init_matrix(A, MDIM, KDIM);
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
+  memref_t ret;
 
 #if defined(CUBLAS)
   cublasHandle_t handle;
@@ -312,7 +323,17 @@ int main(int argc, char **argv) {
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 #elif defined(TVM)
     matmul(x, y, z);
-#elif defined(MLIR) || defined(MLIR_CUDA)
+#elif defined(MLIR)
+#ifdef COLUMN_MAJOR
+    ret = matmul(A, A, 0, MDIM, KDIM, 1, LDA,
+                 B, B, 0, KDIM, NDIM, 1, LDB,
+                 C, C, 0, MDIM, NDIM, 1, LDC);
+#else
+    ret = matmul(A, A, 0, MDIM, KDIM, LDA, 1,
+                 B, B, 0, KDIM, NDIM, LDB, 1,
+                 C, C, 0, MDIM, NDIM, LDC, 1);
+#endif
+#elif defined(MLIR_CUDA)
 #ifdef COLUMN_MAJOR
     matmul(A, A, 0, MDIM, KDIM, 1, LDA,
            B, B, 0, KDIM, NDIM, 1, LDB,
@@ -322,7 +343,6 @@ int main(int argc, char **argv) {
            B, B, 0, KDIM, NDIM, LDB, 1,
            C, C, 0, MDIM, NDIM, LDC, 1);
 #endif
-
 #elif defined(NAIVE)
     naive_matmul(A,B,C,MDIM,KDIM,NDIM);
 #elif defined(CUBLAS)
@@ -346,6 +366,9 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef ENABLE_CHECK
+  #if defined(MLIR)
+  C = ret.aligned;
+  #endif
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
   naive_matmul(A,B,C2,MDIM,KDIM,NDIM);

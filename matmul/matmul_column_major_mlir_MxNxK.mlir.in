@@ -1,9 +1,11 @@
-func @matmul(%a: memref<${K}x${M}xf32>, %b: memref<${N}x${K}xf32>, %c: memref<${N}x${M}xf32>)
-  attributes { passthrough = [["target-cpu", "${TARGET_CPU}"], ["prefer-vector-width", "${VECTOR_WIDTH}"]]}
+func @matmul(%a: tensor<${K}x${M}xf32> {linalg.buffer_layout = affine_map<(i, j)[s0, s1] -> (i, j)>},
+             %b: tensor<${N}x${K}xf32> {linalg.buffer_layout = affine_map<(i, j)[s0, s1] -> (i, j)>},
+             %c: tensor<${N}x${M}xf32> {linalg.buffer_layout = affine_map<(i, j)[s0, s1] -> (i, j)>})
+  -> tensor<${N}x${M}xf32> attributes { passthrough = [["target-cpu", "${TARGET_CPU}"], ["prefer-vector-width", "${VECTOR_WIDTH}"]]}
 {
   %f0 = constant 0.0 : f32
-  linalg.fill(%f0, %c) : f32, memref<${N}x${M}xf32>
-  linalg.matmul_column_major ins(%a, %b : memref<${K}x${M}xf32>, memref<${N}x${K}xf32>)
-    outs(%c: memref<${N}x${M}xf32>)
-  return
+  %f1 = linalg.fill(%f0, %c) : f32, tensor<${N}x${M}xf32> -> tensor<${N}x${M}xf32>
+  %d = linalg.matmul_column_major ins(%a, %b : tensor<${K}x${M}xf32>, tensor<${N}x${K}xf32>)
+    outs(%f1: tensor<${N}x${M}xf32>) -> tensor<${N}x${M}xf32>
+  return %d: tensor<${N}x${M}xf32>
 }
