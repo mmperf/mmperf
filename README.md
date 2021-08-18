@@ -60,7 +60,8 @@ HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -
 cmake --build build
 ```
 
-If you want to build `mmperf` with MLIR-CUDA backend, you need to have NVIDIA CUDA-11.0 installed on your system. Make sure it is installed and environment variables `$PATH` and `$LD_LIBRARY_PATH` are correctly configured. Also make sure if you can invoke `nvcc` compiler from the command line. How to install NIVIDIA CUDA-11.0 toolkit, please refer to this [link](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). In order to compile the MLIR-CUDA backend, you need to specify `-DUSE_MLIR_CUDA` switch. For example, if you want to compile both MLIR-CUDA and CUBLAS backend, the compilation command would look like this:
+#### Building mmperf for MLIR-CUDA Backend
+If you want to build `mmperf` for MLIR-CUDA backend, you need to have NVIDIA CUDA-11.0 installed on your system. Make sure it is installed and environment variables `$PATH` and `$LD_LIBRARY_PATH` are correctly configured. Also make sure if you can invoke `nvcc` compiler from the command line. To install NIVIDIA CUDA-11.0 toolkit, please refer to this [link](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). In order to compile the MLIR-CUDA backend, you need to specify `-DUSE_MLIR_CUDA` switch. For example, if you want to compile both MLIR-CUDA and CUBLAS backend, the compilation command would look like this:
 
 ```bash
 cmake -GNinja \
@@ -103,15 +104,15 @@ Matrix sizes: `benchmark_sizes` folder has text files containing the matrix size
 
 Number of iterations: The number of iterations for a matmul to be benchmarked can be set by changing NUM_REPS variable in `cmake/common.cmake`. Default is 100.
 
-### Building with a standalone `llvm`
+### Building with a stand alone `llvm`
 
-The building of submodule `external/llvm-project` can be space and time consuming. If you already have your own standalone `llvm` and don't want to fetch and compile this submodule, you scan specify the `llvm` on your system with `LLVM_DIR` compilation flag:
+The building of submodule `external/llvm-project` can be space and time consuming. If you already have your own standalone `llvm` and don't want to fetch and compile this submodule, you scan specify the `llvm` on your system with `PREBUILT_LLVM_PATH` compilation flag:
 
 ```bash
 cmake -GNinja \
     -DCMAKE_CXX_COMPILER=clang++-11 \
     -DCMAKE_C_COMPILER=clang-11 \
-    -DLLVM_DIR=$HOME/opt/llvm \
+    -DPREBUILT_LLVM_PATH=$HOME/opt/llvm \
     -DUSE_MLIR=ON \
     -B build .
 
