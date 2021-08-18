@@ -358,7 +358,7 @@ int main(int argc, char **argv) {
 
 #ifdef ENABLE_CHECK
   #if defined(MLIR)
-  float *C = ret.aligned;
+  C = ret.aligned;
   #endif
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
