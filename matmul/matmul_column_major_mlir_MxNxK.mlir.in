@@ -1,4 +1,6 @@
-func @matmul(%a: tensor<${K}x${M}xf32>, %b: tensor<${N}x${K}xf32>, %c: tensor<${N}x${M}xf32>)
+func @matmul(%a: tensor<${K}x${M}xf32> {linalg.buffer_layout = affine_map<(i, j)[s0, s1] -> (i, j)>},
+             %b: tensor<${N}x${K}xf32> {linalg.buffer_layout = affine_map<(i, j)[s0, s1] -> (i, j)>},
+             %c: tensor<${N}x${M}xf32> {linalg.buffer_layout = affine_map<(i, j)[s0, s1] -> (i, j)>})
   -> tensor<${N}x${M}xf32> attributes { passthrough = [["target-cpu", "${TARGET_CPU}"], ["prefer-vector-width", "${VECTOR_WIDTH}"]]}
 {
   %f0 = constant 0.0 : f32

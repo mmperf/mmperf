@@ -319,7 +319,6 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   pm.addPass(createLowerAffinePass());
   pm.addPass(createConvertLinalgToLoopsPass());
   pm.addPass(createLowerToCFGPass());
-  pm.addPass(createConvertLinalgToLLVMPass());
   pm.addPass(createConvertVectorToLLVMPass());
   pm.addPass(createMemRefToLLVMPass());
   pm.addPass(createLowerToLLVMPass());
