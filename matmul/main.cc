@@ -323,7 +323,7 @@ int main(int argc, char **argv) {
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 #elif defined(TVM)
     matmul(x, y, z);
-#elif defined(MLIR) || defined(MLIR_CUDA)
+#elif defined(MLIR)
 #ifdef COLUMN_MAJOR
     ret = matmul(A, A, 0, MDIM, KDIM, 1, LDA,
                  B, B, 0, KDIM, NDIM, 1, LDB,
@@ -333,7 +333,16 @@ int main(int argc, char **argv) {
                  B, B, 0, KDIM, NDIM, LDB, 1,
                  C, C, 0, MDIM, NDIM, LDC, 1);
 #endif
-
+#elif defined(MLIR_CUDA)
+#ifdef COLUMN_MAJOR
+    matmul(A, A, 0, MDIM, KDIM, 1, LDA,
+           B, B, 0, KDIM, NDIM, 1, LDB,
+           C, C, 0, MDIM, NDIM, 1, LDC);
+#else
+    matmul(A, A, 0, MDIM, KDIM, LDA, 1,
+           B, B, 0, KDIM, NDIM, LDB, 1,
+           C, C, 0, MDIM, NDIM, LDC, 1);
+#endif
 #elif defined(NAIVE)
     naive_matmul(A,B,C,MDIM,KDIM,NDIM);
 #elif defined(CUBLAS)
