@@ -1,6 +1,6 @@
 # Single CPU Core Matrix Multiplication Benchmarks
 
-This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries and code generation stacks on a single thread on one CPU core. The focus will be on machine learning workloads so FP32 or smaller and irregular sizes of matrices. The goal is to expose high performance atomic kernels that can then be used to build highly efficient higher level implemenations spanning multiple cores or distributed across systems. 
+This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries and code generation stacks on a single thread on one CPU core. The focus will be on machine learning workloads so FP32 or smaller and irregular sizes of matrices. The goal is to expose high performance atomic kernels that can then be used to build highly efficient higher level implemenations spanning multiple cores or distributed across systems.
 
 ## Results
 
@@ -60,13 +60,51 @@ HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -
 cmake --build build
 ```
 
+If you want to build `mmperf` with MLIR-CUDA backend, you need to have NVIDIA CUDA-11.0 installed on your system. Make sure it is installed and environment variables `$PATH` and `$LD_LIBRARY_PATH` are correctly configured. Also make sure if you can invoke `nvcc` compiler from the command line. How to install NIVIDIA CUDA-11.0 toolkit, please refer to this [link](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). In order to compile the MLIR-CUDA backend, you need to specify `-DUSE_MLIR_CUDA` switch. For example, if you want to compile both MLIR-CUDA and CUBLAS backend, the compilation command would look like this:
+
+```bash
+cmake -GNinja \
+    -DCMAKE_CXX_COMPILER=clang++-11 \
+    -DCMAKE_C_COMPILER=clang-11 \
+    -DUSE_MLIR_CUDA=ON \
+    -DUSE_CUBLAS=ON \
+    -DSIZE_FILE=benchmark_sizes/benchmark_small_sizes.txt \
+    -B build .
+
+cmake --build build
+```
+
 Install `matplotlib` to generate performance plot.
 
 ```
 pip install matplotlib
 ```
 
-#### Building with a standalone `llvm`
+### Running the code
+
+We use AOT compilation to generate binaries for matrix multiplication for specified backends
+and run them to generate the benchmarking numbers. To run all tests and generate performance numbers run:
+
+```
+cmake --build build/matmul --target run_all_tests
+```
+
+`results` folder will be created in the mmperf top-level directory which will contain GLOPS for every matmul size and every backend. A plot comparing performances of backends will also be generated in `matmul.png`.
+
+Each generated binary can also be executed individually. To run a specific matrix size (say 24x64x512) for a backend run:
+
+```
+./build/matmul/matmul_<LIBRARY>_24x64x512
+```
+
+### Program configuration
+
+Matrix sizes: `benchmark_sizes` folder has text files containing the matrix sizes that mmperf runs on. You can change the matrix size input file by editing `SIZE_FILE` option in `cmake/common.cmake`. Default is `benchmark_all_sizes.txt`.
+
+Number of iterations: The number of iterations for a matmul to be benchmarked can be set by changing NUM_REPS variable in `cmake/common.cmake`. Default is 100.
+
+### Building with a standalone `llvm`
+
 The building of submodule `external/llvm-project` can be space and time consuming. If you already have your own standalone `llvm` and don't want to fetch and compile this submodule, you scan specify the `llvm` on your system with `LLVM_DIR` compilation flag:
 
 ```bash
@@ -93,29 +131,6 @@ apt-get install -y clang-11 clang-tools-11 libc++1-11 libc++-11-dev \
     libomp5-11 lld-11 lldb-11 llvm-11 llvm-11-dev llvm-11-runtime \
     llvm-11-tools libfuzzer-11-dev
 ```
-
-### Running the code
-
-We use AOT compilation to generate binaries for matrix multiplication for specified backends
-and run them to generate the benchmarking numbers. To run all tests and generate performance numbers run: 
-
-```
-cmake --build build/matmul --target run_all_tests
-```
-
-`results` folder will be created in the mmperf top-level directory which will contain GLOPS for every matmul size and every backend. A plot comparing performances of backends will also be generated in `matmul.png`.  
-
-Each generated binary can also be executed individually. To run a specific matrix size (say 24x64x512) for a backend run:
-
-```
-./build/matmul/matmul_<LIBRARY>_24x64x512
-```
-
-### Program configuration
-
-Matrix sizes: `benchmark_sizes` folder has text files containing the matrix sizes that mmperf runs on. You can change the matrix size input file by editing `SIZE_FILE` option in `cmake/common.cmake`. Default is `benchmark_all_sizes.txt`.
-
-Number of iterations: The number of iterations for a matmul to be benchmarked can be set by changing NUM_REPS variable in `cmake/common.cmake`. Default is 100.
 
 ### Installing optional dependencies: Halide, OpenBLAS, MKL
 

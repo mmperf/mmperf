@@ -35,7 +35,7 @@ ExternalProject_Add(cpuinfo
 )
 
 set(MATMUL_DEPS "")
-if(((${USE_MLIR} STREQUAL "ON") OR (${USE_MLIR_CUDA} STREQUAL ON)) AND (NOT DEFINED LLVM_LOCAL_PATH))
+if(((${USE_MLIR} STREQUAL "ON") OR (${USE_MLIR_CUDA} STREQUAL ON)) AND (NOT DEFINED PREBUILT_LLVM_PATH))
 find_package(Git REQUIRED)
 set(MLIR_INSTALL ${CMAKE_BINARY_DIR}/mlir-install)
 set(MLIR_LIB ${MLIR_INSTALL}/cmake/lib/mlir)
@@ -57,8 +57,7 @@ ExternalProject_Add(mlir
     -DCMAKE_BUILD_TYPE:STRING=Release
     -DLLVM_ENABLE_ASSERTIONS:BOOL=ON
     -DLLVM_ENABLE_RTTI:BOOL=ON
-    -DMLIR_CUDA_RUNNER_ENABLED:BOOL=ON
-    # -DMLIR_ENABLE_CUDA_RUNNER:BOOL=ON # for all the later versions (post 9c21ddb) of llvm/mlir
+    -DMLIR_ENABLE_CUDA_RUNNER:BOOL=ON
 )
 list(APPEND MATMUL_DEPS mlir)
 endif()
@@ -141,7 +140,7 @@ ExternalProject_Add(matmul
   CMAKE_ARGS
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    -DLLVM_LOCAL_PATH=${LLVM_LOCAL_PATH}  # switch if want to compile with a prebuilt llvm
+    -DPREBUILT_LLVM_PATH=${PREBUILT_LLVM_PATH}  # switch if want to compile with a prebuilt llvm
     -DMLIR_DIR=${MLIR_INSTALL}/lib/cmake/mlir
     -DMLIR_BUILD=${MLIR_BUILD}
     -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
