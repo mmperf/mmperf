@@ -225,7 +225,10 @@ int main(int argc, char **argv) {
   init_matrix(A, MDIM, KDIM);
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
+
+#if defined(MLIR)
   memref_t ret;
+#endif
 
 #if defined(CUBLAS)
   cublasHandle_t handle;
