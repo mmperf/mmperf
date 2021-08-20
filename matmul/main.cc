@@ -354,6 +354,7 @@ int main(int argc, char **argv) {
       size_t ci = i + j*MDIM;
       if (std::abs(C[ci] - C2[ci]) > 0.01f) {
         //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
+        printf("Cx=%0.2f C=%0.2f\n", ret.aligned[ci], C2[ci]);
         errors++;
       }
     }
