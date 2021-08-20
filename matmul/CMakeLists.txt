@@ -143,33 +143,38 @@ if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
   set(LLVM_LOCAL_PATH ${LLVM_LOCAL_PATH_})
 endif()
 
-function(run_llvm_sandbox mlir_prefix M N K ITERS)
+function(run_llvm_sandbox mlir_prefix M N K)
 
   set(OBJ ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.o)
 
   set(MLIR_OPT ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-opt)
   set(MLIR_PROTO_OPT ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-proto-opt)
   set(MLIR_TRANSLATE ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-translate)
-  set(MLIR_CPU_RUNNER ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-cpu-runner)
 
   configure_file(${CMAKE_SOURCE_DIR}/matmul_llvmsandbox_MxNxK.mlir ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+
   add_custom_command(
     OUTPUT ${OBJ}
     COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
-    ${MLIR_PROTO_OPT} -canonicalize -mlir-disable-threading -linalg-tensor-codegen-strategy=\"anchor-func=init_and_matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=16,16\" |
-    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=init_and_matmul anchor-op=linalg.matmul tile-sizes=0,0,16 vectorize vector-contract-lowering=false vector-to-scf-conversion=false\" |
-    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=init_and_matmul anchor-op=linalg.fill vectorize vector-contract-lowering=false vector-to-scf-conversion=false\" |
-    ${MLIR_PROTO_OPT} -canonicalize | ${MLIR_PROTO_OPT} -linalg-comprehensive-module-bufferize |
-    ${MLIR_OPT} -fold-memref-subview-ops -convert-vector-to-gpu -canonicalize -convert-linalg-to-loops |
-    ${MLIR_PROTO_OPT} -canonicalize -linalg-tensor-codegen-strategy=\"convert-to-gpu num-gpu-workgrpoups=1,1 distribute-to-gpu-ids tiled-loop-to-scf\" |
-    ${MLIR_OPT} -gpu-kernel-outlining | ${MLIR_OPT} -lower-affine -convert-scf-to-std -convert-vector-to-llvm |
-    ${MLIR_OPT} -pass-pipeline=\"gpu.module\(strip-debuginfo,convert-gpu-to-nvvm{index-bitwidth=32},gpu-to-cubin{chip=sm_70}\)\"  -gpu-to-llvm |
-    # ${MLIR_CPU_RUNNER} -O3 -e main -entry-point-result=void -shared-libs=${CMAKE_BINARY_DIR}/../mlir/lib/libmlir_cuda_runtime.so -shared-libs=${CMAKE_BINARY_DIR}/../mlir/lib/libmlir_c_runner_utils.so
+    ${MLIR_PROTO_OPT} -canonicalize -mlir-disable-threading -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=16,16\" | 
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=4,4\" | 
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul tile-sizes=0,0,4 vectorize\" | 
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.fill vectorize\" | 
+    ${MLIR_OPT} --linalg-comprehensive-module-bufferize |
+    ${MLIR_OPT} -fold-memref-subview-ops -canonicalize |
+    ${MLIR_PROTO_OPT} -canonicalize -linalg-tensor-codegen-strategy=\"convert-to-gpu num-gpu-workgroups=2,2 distribute-to-gpu-ids tiled-loop-to-scf\" | 
+    ${MLIR_OPT} -convert-vector-to-scf=full-unroll=true -convert-linalg-to-loops | 
+    ${MLIR_OPT} -gpu-kernel-outlining | 
+    ${MLIR_OPT} -lower-affine -convert-scf-to-std |
+    ${MLIR_OPT} -convert-vector-to-llvm -convert-memref-to-llvm -canonicalize -cse |
+    ${MLIR_OPT} -pass-pipeline=\"gpu.module\(strip-debuginfo,convert-gpu-to-nvvm,canonicalize,gpu-to-cubin\)\" -gpu-to-llvm |
     ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
     COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
     -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
     -c -o ${OBJ} -g
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
+  
+
 
 endfunction()
 
@@ -278,7 +283,7 @@ foreach(BACKEND ${BACKENDS})
       compile_mlir(${MATMUL} ${M} ${N} ${K} OFF ON) # nodai == OFF, mlircuda == ON
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     elseif(${BACKEND} STREQUAL "iree-llvm-sandbox")
-      run_llvm_sandbox(${MATMUL} ${M} ${N} ${K} ${NUM_REPS})
+      run_llvm_sandbox(${MATMUL} ${M} ${N} ${K})
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     endif()
     add_executable(${MATMUL} ${SRC})
