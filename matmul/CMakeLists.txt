@@ -156,13 +156,13 @@ function(run_llvm_sandbox mlir_prefix M N K)
   add_custom_command(
     OUTPUT ${OBJ}
     COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
-    ${MLIR_PROTO_OPT} -canonicalize -mlir-disable-threading -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=16,16\" | 
-    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=4,4\" | 
-    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul tile-sizes=0,0,4 vectorize\" | 
+    ${MLIR_PROTO_OPT} -canonicalize -mlir-disable-threading -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=18,16\" | 
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=3,2\" | 
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul tile-sizes=0,0,16 vectorize\" | 
     ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.fill vectorize\" | 
     ${MLIR_OPT} --linalg-comprehensive-module-bufferize |
     ${MLIR_OPT} -fold-memref-subview-ops -canonicalize |
-    ${MLIR_PROTO_OPT} -canonicalize -linalg-tensor-codegen-strategy=\"convert-to-gpu num-gpu-workgroups=2,2 distribute-to-gpu-ids tiled-loop-to-scf\" | 
+    ${MLIR_PROTO_OPT} -canonicalize -linalg-tensor-codegen-strategy=\"convert-to-gpu num-gpu-workgrpoups=2,2 distribute-to-gpu-ids tiled-loop-to-scf\" | 
     ${MLIR_OPT} -convert-vector-to-scf=full-unroll=true -convert-linalg-to-loops | 
     ${MLIR_OPT} -gpu-kernel-outlining | 
     ${MLIR_OPT} -lower-affine -convert-scf-to-std |
