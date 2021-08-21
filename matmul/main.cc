@@ -71,7 +71,8 @@ memref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
 }
 #endif
 
-#if defined(MLIR_CUDA)
+#ifdef MLIR_CUDA
+extern "C" {
 void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
             int64_t size_a0, int64_t size_a1, int64_t strides_a0, int64_t strides_a1,
             float *aligned_b, float *allocated_b, int64_t offset_b,
@@ -225,7 +226,7 @@ int main(int argc, char **argv) {
   double t_start, t_end;
   t_start = rtclock();
   float *A, *B, *C;
-#if defined(MLIR_CUDA)
+#ifdef MLIR_CUDA
   CHECK_CUDA(cudaMallocHost((void **) &A, MDIM * KDIM * sizeof(float)));
   CHECK_CUDA(cudaMallocHost((void **) &B, KDIM * NDIM * sizeof(float)));
   CHECK_CUDA(cudaMallocHost((void **) &C, MDIM * NDIM * sizeof(float)));
@@ -238,7 +239,9 @@ int main(int argc, char **argv) {
   init_matrix(A, MDIM, KDIM);
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
+#if defined(MLIR)
   memref_t ret;
+#endif
 
 #if defined(CUBLAS)
   cublasHandle_t handle;
