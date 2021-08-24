@@ -11,7 +11,7 @@ func @matmul(%A: memref<${M}x${K}xf32>, %B: memref<${K}x${N}xf32>, %C: memref<${
     gpu.host_register %BC : memref<*xf32>
     gpu.host_register %CC : memref<*xf32>
 
-    linalg.fill(%C, %cf1) : memref<${M}x${N}xf32>, f32
+    linalg.fill(%cf1, %C) : f32, memref<${M}x${N}xf32>
 
     linalg.matmul ins(%A, %B : memref<${M}x${K}xf32>, memref<${K}x${N}xf32>)
         outs(%C: memref<${M}x${N}xf32>)

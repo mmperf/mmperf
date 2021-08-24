@@ -111,9 +111,9 @@ if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
       string(REPLACE " " "," TILE_SIZES_LOCAL "${TILE_SIZES_LOCAL}")
       string(REPLACE " " "," COL_MAJOR_TILE_SIZES "${COL_MAJOR_TILE_SIZES}")
       string(REPLACE " " "," COPY_FILL_TILE_SIZES_LOCAL "${COPY_FILL_TILE_SIZES_LOCAL}")
-      if (DEFINED LLVM_LOCAL_PATH AND (NOT LLVM_LOCAL_PATH STREQUAL ""))
-        set(MLIR_OPT ${LLVM_LOCAL_PATH}/bin/mlir-opt)
-        set(MLIR_TRANSLATE ${LLVM_LOCAL_PATH}/bin/mlir-translate)
+      if (DEFINED PREBUILT_LLVM_PATH AND (NOT PREBUILT_LLVM_PATH STREQUAL ""))
+        set(MLIR_OPT ${PREBUILT_LLVM_PATH}/bin/mlir-opt)
+        set(MLIR_TRANSLATE ${PREBUILT_LLVM_PATH}/bin/mlir-translate)
       else()
         set(MLIR_OPT ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-opt)
         set(MLIR_TRANSLATE ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-translate)
@@ -136,7 +136,7 @@ if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
           ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul register-tile-sizes=${TILE_SIZES_LOCAL} vectorize\" |
           ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.fill register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
           ${MLIR_OPT} -test-linalg-codegen-strategy=\"anchor-op=linalg.copy register-tile-sizes=${COPY_FILL_TILE_SIZES_LOCAL} vectorize\" |
-          ${MLIR_OPT} -canonicalize -convert-vector-to-scf -lower-affine -convert-linalg-to-loops -canonicalize -convert-scf-to-std -convert-vector-to-llvm --convert-memref-to-llvm -convert-std-to-llvm |
+          ${MLIR_OPT} -linalg-comprehensive-module-bufferize -convert-vector-to-scf -lower-affine -convert-linalg-to-loops -canonicalize -convert-scf-to-std -lower-affine -convert-vector-to-llvm -convert-memref-to-llvm -convert-std-to-llvm |
           ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
           COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
           -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
@@ -146,10 +146,7 @@ if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
     endif()
   endfunction()
 
-  set(LLVM_LOCAL_PATH_ ${LLVM_LOCAL_PATH})
-  # Build matmul-compile and pass, this line will overwrite LLVM_LOCAL_PATH
   add_subdirectory(matmul-compile)
-  set(LLVM_LOCAL_PATH ${LLVM_LOCAL_PATH_})
 endif()
 
 function(run_llvm_sandbox mlir_prefix M N K)
@@ -376,9 +373,9 @@ foreach(BACKEND ${BACKENDS})
       target_compile_definitions(${MATMUL} PRIVATE MLIR)
     elseif(${BACKEND} STREQUAL "mlircuda")
       target_compile_definitions(${MATMUL} PRIVATE MLIR_CUDA)
-      if (DEFINED LLVM_LOCAL_PATH AND (NOT LLVM_LOCAL_PATH STREQUAL ""))
-        target_link_libraries(${MATMUL} PRIVATE ${LLVM_LOCAL_PATH}/lib/libmlir_cuda_runtime.so)
-        target_link_libraries(${MATMUL} PRIVATE ${LLVM_LOCAL_PATH}/lib/libmlir_runner_utils.so)
+      if (DEFINED PREBUILT_LLVM_PATH AND (NOT PREBUILT_LLVM_PATH STREQUAL ""))
+        target_link_libraries(${MATMUL} PRIVATE ${PREBUILT_LLVM_PATH}/lib/libmlir_cuda_runtime.so)
+        target_link_libraries(${MATMUL} PRIVATE ${PREBUILT_LLVM_PATH}/lib/libmlir_runner_utils.so)
       else()
         target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_cuda_runtime.so)
         target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_runner_utils.so)
