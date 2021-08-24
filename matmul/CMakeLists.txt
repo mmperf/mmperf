@@ -11,6 +11,7 @@ string(REGEX REPLACE "#[^\n]*\n" "" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE ";" "\\\\;" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE "\n" ";" MATRIX_SIZES "${MATRIX_SIZES}")
 
+# Read tile sizes from file for iree-llvm-sandbox
 if(USE_IREE_LLVM_SANDBOX)
   file(READ ${SANDBOX_TILE_FILE} SANDBOX_TILE_SIZES)
   string(REGEX REPLACE "#[^\n]*\n" "" SANDBOX_TILE_SIZES "${SANDBOX_TILE_SIZES}")
@@ -149,7 +150,7 @@ if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
   add_subdirectory(matmul-compile)
 endif()
 
-function(run_llvm_sandbox mlir_prefix M N K)
+function(compile_llvm_sandbox_mlir mlir_prefix M N K)
 
   set(OBJ ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.o)
 
@@ -293,7 +294,7 @@ foreach(BACKEND ${BACKENDS})
       list(GET SANDBOX_TILE_SIZES ${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER} THIRD_TILE_SIZE)
       MATH(EXPR SANDBOX_TILE_SIZES_FILE_LINE_COUNTER "${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER}+1")
     
-      run_llvm_sandbox(${MATMUL} ${M} ${N} ${K})
+      compile_llvm_sandbox_mlir(${MATMUL} ${M} ${N} ${K})
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     endif()
     add_executable(${MATMUL} ${SRC})
