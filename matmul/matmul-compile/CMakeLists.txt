@@ -30,8 +30,8 @@ if (DEFINED PREBUILT_LLVM_PATH AND (NOT PREBUILT_LLVM_PATH STREQUAL ""))
     if(EXISTS ${PREBUILT_LLVM_PATH}/lib/libLLVMX86AsmParser.a)
       set(LLVM_X86ASM_PARSER ${PREBUILT_LLVM_PATH}/lib/libLLVMX86AsmParser.a)
     else()
-      message(FATAL_ERROR "Neither of libLLVMX86AsmParser.a nor \
-                            libLLVMX86AsmParser.so was not found, aborting." )
+      message(FATAL_ERROR "Neither libLLVMX86AsmParser.a nor \
+                            libLLVMX86AsmParser.so was found, aborting." )
     endif()
   endif()
 endif()
