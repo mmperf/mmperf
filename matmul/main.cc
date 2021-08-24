@@ -89,6 +89,24 @@ void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
 }
 #endif
 
+#if defined(IREE_LLVM_SANDBOX)
+extern "C" {
+struct memref_t {
+  float *aligned;
+  float *allocated;
+  int64_t offset;
+  int64_t sizes[2];
+  int64_t strides[2];
+};
+memref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
+            int64_t size_a0, int64_t size_a1, int64_t strides_a0, int64_t strides_a1,
+            float *aligned_b, float *allocated_b, int64_t offset_b,
+            int64_t size_b0, int64_t size_b1, int64_t strides_b0, int64_t strides_b1,
+            float *aligned_c, float *allocated_c, int64_t offset_c,
+            int64_t size_c0, int64_t size_c1, int64_t strides_c0, int64_t strides_c1);
+}
+#endif
+
 #ifdef CUBLAS
 #define CHECK_CUBLAS(status) do {				\
   std::stringstream error;					\
@@ -221,6 +239,8 @@ int main(int argc, char **argv) {
   printf("Benchmarking MLIR %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(MLIR_CUDA)
   printf("Benchmarking MLIR CUDA %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+#elif defined(IREE_LLVM_SANDBOX)
+  printf("Benchmarking IREE LLVM Sandbox %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(NAIVE)
   printf("Benchmarking Naive C %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #elif defined(OPENBLAS)
@@ -247,7 +267,7 @@ int main(int argc, char **argv) {
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
 
-#if defined(MLIR)
+#if defined(MLIR) || defined(IREE_LLVM_SANDBOX)
   memref_t ret;
 #endif
 
@@ -377,6 +397,11 @@ int main(int argc, char **argv) {
            B, B, 0, KDIM, NDIM, LDB, 1,
            C, C, 0, MDIM, NDIM, LDC, 1);
 #endif
+#elif defined(IREE_LLVM_SANDBOX)
+    // row-major
+    ret = matmul(A, A, 0, MDIM, KDIM, LDA, 1,
+           B, B, 0, KDIM, NDIM, LDB, 1,
+           C, C, 0, MDIM, NDIM, LDC, 1);
 #elif defined(NAIVE)
     naive_matmul(A,B,C,MDIM,KDIM,NDIM);
 #elif defined(CUBLAS)
@@ -400,7 +425,7 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef ENABLE_CHECK
-  #if defined(MLIR)
+  #if defined(MLIR) || defined(IREE_LLVM_SANDBOX)
   C = ret.aligned;
   #endif
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));

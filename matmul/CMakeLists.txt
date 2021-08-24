@@ -11,6 +11,16 @@ string(REGEX REPLACE "#[^\n]*\n" "" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE ";" "\\\\;" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE "\n" ";" MATRIX_SIZES "${MATRIX_SIZES}")
 
+# Read tile sizes from file for iree-llvm-sandbox
+if(USE_IREE_LLVM_SANDBOX)
+  file(READ ${SANDBOX_TILE_FILE} SANDBOX_TILE_SIZES)
+  string(REGEX REPLACE "#[^\n]*\n" "" SANDBOX_TILE_SIZES "${SANDBOX_TILE_SIZES}")
+  string(REGEX REPLACE ";" "\\\\;" SANDBOX_TILE_SIZES "${SANDBOX_TILE_SIZES}")
+  string(REGEX REPLACE "\n" ";" SANDBOX_TILE_SIZES "${SANDBOX_TILE_SIZES}")
+
+  set(SANDBOX_TILE_SIZES_FILE_LINE_COUNTER 0)
+endif()
+
 if(USE_NODAI)
   message(STATUS "Reading tile sizes from ... ${TILE_FILE}")
   file(READ "${TILE_FILE}" TILE_SIZE_LIST)
@@ -140,6 +150,38 @@ if(USE_MLIR OR USE_NODAI OR USE_MLIR_CUDA)
   add_subdirectory(matmul-compile)
 endif()
 
+function(compile_llvm_sandbox_mlir mlir_prefix M N K)
+
+  set(OBJ ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.o)
+
+  set(MLIR_OPT ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-opt)
+  set(MLIR_PROTO_OPT ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-proto-opt)
+  set(MLIR_TRANSLATE ${CMAKE_BINARY_DIR}/../mlir/bin/mlir-translate)
+
+  configure_file(${CMAKE_SOURCE_DIR}/matmul_llvmsandbox_MxNxK.mlir ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+
+  add_custom_command(
+    OUTPUT ${OBJ}
+    COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
+    ${MLIR_PROTO_OPT} -canonicalize -mlir-disable-threading -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=${FIRST_TILE_SIZE}\" | 
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=${SECOND_TILE_SIZE}\" | 
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul tile-sizes=${THIRD_TILE_SIZE} vectorize\" | 
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.fill vectorize\" | 
+    ${MLIR_OPT} --linalg-comprehensive-module-bufferize |
+    ${MLIR_OPT} -fold-memref-subview-ops -canonicalize |
+    ${MLIR_PROTO_OPT} -canonicalize -linalg-tensor-codegen-strategy=\"convert-to-gpu num-gpu-workgrpoups=2,2 distribute-to-gpu-ids tiled-loop-to-scf\" | 
+    ${MLIR_OPT} -convert-vector-to-scf=full-unroll=true -convert-linalg-to-loops | 
+    ${MLIR_OPT} -gpu-kernel-outlining | 
+    ${MLIR_OPT} -lower-affine -convert-scf-to-std |
+    ${MLIR_OPT} -convert-vector-to-llvm -convert-memref-to-llvm -canonicalize -cse |
+    ${MLIR_OPT} -pass-pipeline=\"gpu.module\(strip-debuginfo,convert-gpu-to-nvvm,canonicalize,gpu-to-cubin\)\" -gpu-to-llvm |
+    ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+    COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+    -c -o ${OBJ}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
+  
+endfunction()
+
 if(${USE_HALIDE} STREQUAL "ON")
   list(APPEND CMAKE_PREFIX_PATH ${HALIDE_DIR}/lib/cmake/Halide)
   add_subdirectory(halide)
@@ -201,6 +243,9 @@ endif()
 if(USE_NODAI OR SEARCH_MODE)
   list(APPEND BACKENDS nodai)
 endif()
+if(USE_IREE_LLVM_SANDBOX)
+  list(APPEND BACKENDS ireellvmsandbox)
+endif()
 
 # Create executables for each size and one for all
 set(ALL_TARGETS "")
@@ -240,6 +285,16 @@ foreach(BACKEND ${BACKENDS})
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     elseif(${BACKEND} STREQUAL "mlircuda")
       compile_mlir(${MATMUL} ${M} ${N} ${K} OFF ON) # nodai == OFF, mlircuda == ON
+      list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
+    elseif(${BACKEND} STREQUAL "ireellvmsandbox")
+      list(GET SANDBOX_TILE_SIZES ${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER} FIRST_TILE_SIZE)
+      MATH(EXPR SANDBOX_TILE_SIZES_FILE_LINE_COUNTER "${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER}+1")
+      list(GET SANDBOX_TILE_SIZES ${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER} SECOND_TILE_SIZE)
+      MATH(EXPR SANDBOX_TILE_SIZES_FILE_LINE_COUNTER "${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER}+1")
+      list(GET SANDBOX_TILE_SIZES ${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER} THIRD_TILE_SIZE)
+      MATH(EXPR SANDBOX_TILE_SIZES_FILE_LINE_COUNTER "${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER}+1")
+    
+      compile_llvm_sandbox_mlir(${MATMUL} ${M} ${N} ${K})
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     endif()
     add_executable(${MATMUL} ${SRC})
@@ -327,6 +382,10 @@ foreach(BACKEND ${BACKENDS})
         target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_cuda_runtime.so)
         target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_runner_utils.so)
       endif()
+    elseif(${BACKEND} STREQUAL "ireellvmsandbox")
+      target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_cuda_runtime.so)
+      target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_runner_utils.so)
+      target_compile_definitions(${MATMUL} PRIVATE IREE_LLVM_SANDBOX)
     elseif(${BACKEND} STREQUAL "nodai")
       target_compile_definitions(${MATMUL} PRIVATE MLIR)
     elseif(${BACKEND} STREQUAL "naive")
