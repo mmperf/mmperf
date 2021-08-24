@@ -69,6 +69,14 @@ memref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
 #endif
 
 #if defined(MLIR_CUDA)
+extern "C" {
+struct memref_t {
+  float *aligned;
+  float *allocated;
+  int64_t offset;
+  int64_t sizes[2];
+  int64_t strides[2];
+};
 void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
             int64_t size_a0, int64_t size_a1, int64_t strides_a0, int64_t strides_a1,
             float *aligned_b, float *allocated_b, int64_t offset_b,
