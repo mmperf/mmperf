@@ -179,7 +179,8 @@ function(run_llvm_sandbox mlir_prefix M N K)
     ${MLIR_OPT} -pass-pipeline=\"gpu.module\(strip-debuginfo,convert-gpu-to-nvvm,canonicalize,gpu-to-cubin\)\" -gpu-to-llvm |
     ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
     COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
-    -O3 -e main -entry-point-result=void -o ${OBJ}
+    # -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
+    -c -o ${OBJ}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
   
 endfunction()
@@ -246,7 +247,7 @@ if(USE_NODAI OR SEARCH_MODE)
   list(APPEND BACKENDS nodai)
 endif()
 if(USE_IREE_LLVM_SANDBOX)
-  list(APPEND BACKENDS iree-llvm-sandbox)
+  list(APPEND BACKENDS ireellvmsandbox)
 endif()
 
 # Create executables for each size and one for all
@@ -288,7 +289,7 @@ foreach(BACKEND ${BACKENDS})
     elseif(${BACKEND} STREQUAL "mlircuda")
       compile_mlir(${MATMUL} ${M} ${N} ${K} OFF ON) # nodai == OFF, mlircuda == ON
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
-    elseif(${BACKEND} STREQUAL "iree-llvm-sandbox")
+    elseif(${BACKEND} STREQUAL "ireellvmsandbox")
       list(GET SANDBOX_TILE_SIZES ${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER} FIRST_TILE_SIZE)
       MATH(EXPR SANDBOX_TILE_SIZES_FILE_LINE_COUNTER "${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER}+1")
       list(GET SANDBOX_TILE_SIZES ${SANDBOX_TILE_SIZES_FILE_LINE_COUNTER} SECOND_TILE_SIZE)
@@ -382,9 +383,10 @@ foreach(BACKEND ${BACKENDS})
         target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_cuda_runtime.so)
         target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_runner_utils.so)
       endif()
-    elseif(${BACKEND} STREQUAL "iree-llvm-sandbox")
+    elseif(${BACKEND} STREQUAL "ireellvmsandbox")
       target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_cuda_runtime.so)
       target_link_libraries(${MATMUL} PRIVATE ${MLIR_BUILD}/lib/libmlir_runner_utils.so)
+      target_compile_definitions(${MATMUL} PRIVATE IREE_LLVM_SANDBOX)
     elseif(${BACKEND} STREQUAL "nodai")
       target_compile_definitions(${MATMUL} PRIVATE MLIR)
     elseif(${BACKEND} STREQUAL "naive")
