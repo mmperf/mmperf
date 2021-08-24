@@ -22,6 +22,9 @@
 #include "cuda_runtime.h"
 #include "cublas_v2.h"
 #include <sstream>
+#elif defined(MLIR_CUDA)
+#include "cuda_runtime.h"
+#include <sstream>
 #endif
 #include <cstdio>
 #include <cstdlib>
@@ -112,7 +115,9 @@ memref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
     exit(1);							\
   }								\
 } while(0)
+#endif
 
+#if defined(CUBLAS) || defined(MLIR_CUDA)
 #define CHECK_CUDA(status) do {				        \
   std::stringstream error;					\
   if (status != cudaSuccess) {					\
@@ -247,9 +252,17 @@ int main(int argc, char **argv) {
 #endif
   double t_start, t_end;
   t_start = rtclock();
-  float *A = (float *) malloc(MDIM * KDIM * sizeof(float));
-  float *B = (float *) malloc(KDIM * NDIM * sizeof(float));
-  float *C = (float *) malloc(MDIM * NDIM * sizeof(float));
+  float *A, *B, *C;
+#ifdef MLIR_CUDA
+  CHECK_CUDA(cudaMallocHost((void **) &A, MDIM * KDIM * sizeof(float)));
+  CHECK_CUDA(cudaMallocHost((void **) &B, KDIM * NDIM * sizeof(float)));
+  CHECK_CUDA(cudaMallocHost((void **) &C, MDIM * NDIM * sizeof(float)));
+#else
+  A = (float *) malloc(MDIM * KDIM * sizeof(float));
+  B = (float *) malloc(KDIM * NDIM * sizeof(float));
+  C = (float *) malloc(MDIM * NDIM * sizeof(float));
+#endif
+
   init_matrix(A, MDIM, KDIM);
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
@@ -269,6 +282,16 @@ int main(int argc, char **argv) {
   CHECK_CUBLAS(cublasSetVector(MDIM * KDIM, sizeof(float), A, 1, AA, 1));
   CHECK_CUBLAS(cublasSetVector(KDIM * NDIM, sizeof(float), B, 1, BB, 1));
   CHECK_CUBLAS(cublasSetVector(MDIM * NDIM, sizeof(float), C, 1, CC, 1));
+#endif
+
+#if defined(MLIR_CUDA)
+  float *devA, *devB, *devC;
+  CHECK_CUDA(cudaMalloc((void **)(&devA), MDIM * KDIM * sizeof(float)));
+  CHECK_CUDA(cudaMalloc((void **)(&devB), KDIM * NDIM * sizeof(float)));
+  CHECK_CUDA(cudaMalloc((void **)(&devC), MDIM * NDIM * sizeof(float)));
+  CHECK_CUDA(cudaMemcpy(devA, A, MDIM * KDIM * sizeof(float), cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(devB, B, KDIM * NDIM * sizeof(float), cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(devC, C, MDIM * NDIM * sizeof(float), cudaMemcpyHostToDevice));
 #endif
 
 #if defined(TVM)
@@ -446,6 +469,10 @@ int main(int argc, char **argv) {
   CHECK_CUDA(cudaFree(BB));
   CHECK_CUDA(cudaFree(CC));
   CHECK_CUBLAS(cublasDestroy(handle));
+#elif defined(MLIR_CUDA)
+  CHECK_CUDA(cudaFree(devA));
+  CHECK_CUDA(cudaFree(devB));
+  CHECK_CUDA(cudaFree(devC));
 #endif
   return return_code;
 }
