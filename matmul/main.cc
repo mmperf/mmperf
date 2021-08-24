@@ -253,6 +253,7 @@ int main(int argc, char **argv) {
   init_matrix(A, MDIM, KDIM);
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
+  memref_t ret;
 
 #if defined(MLIR) || defined(IREE_LLVM_SANDBOX)
   memref_t ret;
@@ -376,7 +377,7 @@ int main(int argc, char **argv) {
 #endif
 #elif defined(IREE_LLVM_SANDBOX)
     // row-major
-  ret = matmul(A, A, 0, MDIM, KDIM, LDA, 1,
+    ret = matmul(A, A, 0, MDIM, KDIM, LDA, 1,
            B, B, 0, KDIM, NDIM, LDB, 1,
            C, C, 0, MDIM, NDIM, LDC, 1);
 #elif defined(NAIVE)
@@ -411,8 +412,10 @@ int main(int argc, char **argv) {
   for (size_t i = 0; i < MDIM; i++) {
     for (size_t j = 0; j < NDIM; j++) {
       size_t ci = i + j*MDIM;
-      if (std::abs(C[ci] - C2[ci]) > 0.01f) {
+      // if (std::abs(C[ci] - C2[ci]) > 0.01f) {
+      if (std::abs(ret.aligned[ci] - C2[ci]) > 0.01f) {
         //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
+        printf("Cx=%0.2f C=%0.2f\n", ret.aligned[ci], C2[ci]);
         errors++;
       }
     }
