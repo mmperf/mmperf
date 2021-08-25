@@ -30,6 +30,16 @@ Clone the repo along with submodules.
 git clone --recurse-submodules https://github.com/mmperf/mmperf.git
 ```
 
+Create a virtual environment and install requirements.
+```
+cd mmperf
+python3 -m venv ./mmperf_env
+source mmperf_env/bin/activate
+pip install -r requirements.txt
+pip install -r ./external/llvm-project/mlir/python/requirements.txt
+
+```
+
 Build the project specifying the backend(s) to run matmul. Below is a command to build mmperf with MLIR backend.
 
 ```
