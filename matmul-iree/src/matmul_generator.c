@@ -65,7 +65,6 @@ extern iree_status_t create_sample_device(iree_hal_device_t** device);
 iree_status_t Run() {
 
   double t_start, t_end;
-  t_start = rtclock();
   // TODO(benvanik): move to instance-based registration.
   IREE_RETURN_IF_ERROR(iree_hal_module_register_types());
 
@@ -124,14 +123,14 @@ iree_status_t Run() {
 
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_wrap_or_clone_heap_buffer(
       iree_hal_device_allocator(device), arg0_shape, IREE_ARRAYSIZE(arg0_shape),
-      IREE_HAL_ELEMENT_TYPE_FLOAT_32,
+      IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       IREE_HAL_MEMORY_TYPE_HOST_LOCAL | IREE_HAL_MEMORY_TYPE_DEVICE_VISIBLE,
       IREE_HAL_MEMORY_ACCESS_ALL, IREE_HAL_BUFFER_USAGE_ALL,
       iree_make_byte_span((void*)arg0, MDIM * KDIM * sizeof(float)),
       iree_allocator_null(), &arg0_buffer_view));
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_wrap_or_clone_heap_buffer(
       iree_hal_device_allocator(device), arg1_shape, IREE_ARRAYSIZE(arg1_shape),
-      IREE_HAL_ELEMENT_TYPE_FLOAT_32,
+      IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       IREE_HAL_MEMORY_TYPE_HOST_LOCAL | IREE_HAL_MEMORY_TYPE_DEVICE_VISIBLE,
       IREE_HAL_MEMORY_ACCESS_ALL, IREE_HAL_BUFFER_USAGE_ALL,
       iree_make_byte_span((void*)arg1, KDIM * NDIM * sizeof(float)),
@@ -160,7 +159,7 @@ iree_status_t Run() {
                            /*element_type=*/NULL,
                            /*capacity=*/1, iree_allocator_system(), &outputs),
                        "can't allocate output vm list");
-  
+  t_start = rtclock();
   for (int t = 0; t < NUM_REPS; ++t) {
     // Synchronously invoke the function.
     IREE_RETURN_IF_ERROR(iree_vm_invoke(context, main_function,
@@ -226,13 +225,10 @@ iree_status_t Run() {
 
 int main() {
   const iree_status_t result = Run();
+  int ret = (int)iree_status_code(result);
   if (!iree_status_is_ok(result)) {
-    char* message;
-    size_t message_length;
-    iree_status_to_string(result, &message, &message_length);
-    fprintf(stderr, "matmul execution failed: %s\n", message);
-    iree_allocator_free(iree_allocator_system(), message);
-    return -1;
+    iree_status_fprint(stderr, result);
+    iree_status_free(result);
   }
   printf("matmul execution succeeded\n");
   return 0;
