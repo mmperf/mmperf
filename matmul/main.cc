@@ -179,6 +179,35 @@ tvm::runtime::Module create_module() {
 }
 #endif
 
+// Method to measure GPU time
+#if defined(CUBLAS)
+struct GpuTimer {
+  cudaEvent_t start;
+  cudaEvent_t stop;
+
+  GpuTimer() {
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+  }
+
+  ~GpuTimer() {
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
+  }
+
+  void Start() { cudaEventRecord(start, 0); }
+
+  void Stop() { cudaEventRecord(stop, 0); }
+
+  float ElapsedMillis() {
+    float elapsed;
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsed, start, stop);
+    return elapsed;
+  }
+};
+#endif
+
 double rtclock() {
   struct timezone Tzp;
   struct timeval Tp;
@@ -250,9 +279,15 @@ int main(int argc, char **argv) {
 #elif defined(TVM)
   printf("Benchmarking TVM %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
 #endif
+
+#if defined(CUBLAS)
+  GpuTimer gpu_timer;
+  float elapsed_millis;
+#else
   double t_start, t_end;
-  t_start = rtclock();
+#endif
   float *A, *B, *C;
+  
 #ifdef MLIR_CUDA
   CHECK_CUDA(cudaMallocHost((void **) &A, MDIM * KDIM * sizeof(float)));
   CHECK_CUDA(cudaMallocHost((void **) &B, KDIM * NDIM * sizeof(float)));
@@ -348,7 +383,12 @@ int main(int argc, char **argv) {
   ruy::MulParams<float, float> mul_params;
   lhs.set_cache_policy(ruy::CachePolicy::kCacheIfSignificantSpeedup);
 #endif
-
+  double elapsed_time_sec;
+#if defined(CUBLAS)
+  gpu_timer.Start();
+#else
+  t_start = rtclock();
+#endif
   for (int t = 0; t < NUM_REPS; ++t) {
 #if defined(MKL) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
     cblas_sgemm(MATRIX_FORMAT, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
@@ -414,7 +454,13 @@ int main(int argc, char **argv) {
 #endif
 #endif
   }
+#if defined(CUBLAS)
+  gpu_timer.Stop();
+  elapsed_time_sec = gpu_timer.ElapsedMillis() / 1E3;
+#else
   t_end = rtclock();
+  elapsed_time_sec = t_end - t_start;
+#endif
 
   int return_code = 0;
 
@@ -448,7 +494,7 @@ int main(int argc, char **argv) {
 
   const char *filename = TO_STRING(FILE_NAME);
   FILE *file = fopen(filename, "w");
-  fprintf(file, "%0.5lf GFLOPS\n", 2.0 * NUM_REPS * MDIM * NDIM * KDIM / (t_end - t_start) / 1E9);
+  fprintf(file, "%0.5lf GFLOPS\n", 2.0 * NUM_REPS * MDIM * NDIM * KDIM / elapsed_time_sec / 1E9);
   fclose(file);
 #if 0
   // TODO: For the largest 3 matrix sizes in MLIR, this throws a munmap_chunk(): invalid_pointer
