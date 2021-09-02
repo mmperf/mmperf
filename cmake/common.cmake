@@ -22,7 +22,7 @@ option(USE_MATMUL_COMPILE "Use matmul-compile instead of mlir-opt for small and 
 # General options
 option(USE_COLUMN_MAJOR "Matrix format" OFF)
 option(ENABLE_CHECK "Enable verification by naive implementation" ON)
-set(SIZE_FILE ../../benchmark_sizes/benchmark_all_sizes.txt CACHE FILEPATH "File containing matrix sizes to be benchmarked")
+set(SIZE_FILE ${CMAKE_SOURCE_DIR}/benchmark_sizes/benchmark_all_sizes.txt CACHE FILEPATH "File containing matrix sizes to be benchmarked")
 set(TILE_FILE "" CACHE FILEPATH "File containing association between matrix size and tile size")
 set(TARGET_CPU "haswell" CACHE STRING "Target CPU for MLIR")
 set(VECTOR_WIDTH "256" CACHE STRING "Vector width for MLIR")
