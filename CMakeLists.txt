@@ -7,13 +7,13 @@ include(common)
 include(ExternalProject)
 
 if(NOT DEFINED MLIR_SOURCE)
-  set(MLIR_SOURCE ${CMAKE_SOURCE_DIR}/external/llvm-project/llvm)
+  set(MLIR_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/external/llvm-project/llvm)
 endif()
 if(NOT DEFINED MLIR_BUILD)
   set(MLIR_BUILD ${CMAKE_BINARY_DIR}/mlir)
 endif()
-set(RUY_SOURCE ${CMAKE_SOURCE_DIR}/external/ruy)
-set(CPUINFO_SOURCE ${CMAKE_SOURCE_DIR}/external/cpuinfo)
+set(RUY_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/external/ruy)
+set(CPUINFO_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/external/cpuinfo)
 
 set(CPUINFO_BUILD_BENCHMARKS OFF)
 set(CPUINFO_BUILD_MOCK_TESTS OFF)
@@ -44,7 +44,7 @@ set(MLIR_LIB ${MLIR_INSTALL}/cmake/lib/mlir)
 set(MLIR_ENABLE_CUDA_RUNNER OFF)
 set(MLIR_ENABLE_BINDINGS_PYTHON OFF)
 set(LLVM_EXTERNAL_PROJECTS "")
-set(LLVM_SANDBOX_DIR ${CMAKE_SOURCE_DIR}/external/iree-llvm-sandbox)
+set(LLVM_SANDBOX_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/iree-llvm-sandbox)
 if(${USE_MLIR_CUDA} STREQUAL "ON" OR ${USE_IREE_LLVM_SANDBOX} STREQUAL "ON")
   set(MLIR_ENABLE_CUDA_RUNNER ON)
 endif()
@@ -83,7 +83,7 @@ endif()
 
 if(${USE_HALIDE} STREQUAL "ON")
 find_package(LLVM REQUIRED)
-set(HALIDE_SOURCE ${CMAKE_SOURCE_DIR}/external/Halide)
+set(HALIDE_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/external/Halide)
 set(HALIDE_BUILD ${CMAKE_BINARY_DIR}/halide)
 set(HALIDE_INSTALL ${CMAKE_BINARY_DIR}/halide-install)
 ExternalProject_Add(halide
@@ -103,7 +103,7 @@ list(APPEND MATMUL_DEPS halide)
 endif()
 
 if(${USE_TVM} STREQUAL "ON")
-set(TVM_SOURCE ${CMAKE_SOURCE_DIR}/external/tvm)
+set(TVM_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/external/tvm)
 set(TVM_BUILD ${CMAKE_BINARY_DIR}/tvm)
 set(TVM_INSTALL ${CMAKE_BINARY_DIR}/tvm-install)
 option(TVM_ENABLE_CUDA "Enable CUDA in TVM" OFF)
@@ -135,10 +135,10 @@ foreach(var IN LISTS VARS_TO_COPY)
 endforeach()
 
 if(${USE_IREE} STREQUAL "ON")
-set(IREE_SOURCE ${CMAKE_SOURCE_DIR}/external/iree)
+set(IREE_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/external/iree)
 ExternalProject_Add(matmul-iree
   PREFIX ${CMAKE_BINARY_DIR}/matmul-iree
-  SOURCE_DIR ${CMAKE_SOURCE_DIR}/matmul-iree
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/matmul-iree
   BINARY_DIR ${CMAKE_BINARY_DIR}/matmul-iree
   INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step."
   CMAKE_ARGS
@@ -153,7 +153,7 @@ endif()
 ExternalProject_Add(matmul
   DEPENDS ${MATMUL_DEPS}
   PREFIX ${CMAKE_BINARY_DIR}/matmul
-  SOURCE_DIR ${CMAKE_SOURCE_DIR}/matmul
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/matmul
   BINARY_DIR ${CMAKE_BINARY_DIR}/matmul
   INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step."
   CMAKE_ARGS
