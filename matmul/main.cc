@@ -389,6 +389,8 @@ int main(int argc, char **argv) {
 #else
   t_start = rtclock();
 #endif
+  // TODO: add option for running for fixed duration instead of number of repetitions
+  //       this helps reduce variability across all matmul sizes
   for (int t = 0; t < NUM_REPS; ++t) {
 #if defined(MKL) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
     cblas_sgemm(MATRIX_FORMAT, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,

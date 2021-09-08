@@ -1,0 +1,35 @@
+namespace Nod;
+  
+enum LinalgTilingLoopType : byte {loops, affine_loops, parallel_loops}
+table TileOptions {
+  tile_sizes:[int64];
+  interchange_vector:[uint32];
+  promote_operands:[int64];
+  promote_full_tile:bool;
+  loop_type:LinalgTilingLoopType;
+}
+enum VectorContractLowering : byte {dot, matmul, outer_product}
+enum VectorTransferSplit: byte {none, linalg_copy, vector_transfer}
+table VectorizeOptions {
+  vectorize_to:VectorContractLowering = dot;
+  vector_transfer_split:VectorTransferSplit = none;
+  unroll_vector_transfers:bool;
+}
+enum LinalgOperator: byte {unknown, matmul, copy, fill}
+table Options {
+  op:LinalgOperator;
+  tile_options:TileOptions;
+  vectorize_options:VectorizeOptions;
+}
+table CompileOptions {
+  options:[Options];
+  // The following operations are ignored by matmul-compile but could be used  in the future and encode the necessary
+  // information for recreating the compilation step exactly
+  identifier:string; // Identifier for what mlir file should be compiled
+  m:int;
+  n:int;
+  k:int;
+  num_reps:int (deprecated);
+  duration:float;
+}
+root_type CompileOptions;
