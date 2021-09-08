@@ -17,6 +17,7 @@ from pathlib import Path
 from functools import reduce
 import matplotlib.pyplot as plt
 import numpy as np
+import GPUtil
 
 plt.style.use('ggplot')
 
@@ -108,6 +109,15 @@ def write_system_info(output_dir, cpuinfo_dir):
         proc = subprocess.run([cpuinfo_dir / "bin" / "cache-info"],
                               capture_output=True, text=True, check=True)
         fh.write(proc.stdout)
+    
+    # Obtain GPU information if available
+    try:
+        GPUs = GPUtil.getGPUs()
+        with open(output_dir / 'gpu-info', 'w') as fg:
+            gpu_name = GPUs[0].name
+            fg.write(gpu_name)
+    except:
+        pass
 
 def autolabel(rects):
     """
@@ -116,7 +126,7 @@ def autolabel(rects):
     for rect in rects:
         height = rect.get_height()
         # If the floor value of GFLOPS is 0 print its float value
-        if(int(height) is 0):
+        if(int(height) == 0):
             plt.text(rect.get_x() + rect.get_width()/2., 1.02*height,
                     '%.3f' % float(height), fontsize=5, ha='center', va='bottom')
         else:
@@ -225,9 +235,19 @@ def main(argv):
     plt.ylabel("GFLOPS")
     plt.title("Single Precision Matrix Multiplication")
 
+    system_info = ""
     f=open(result_dir / 'arch-info')
     lines=f.readlines()
-    plt.suptitle("CPU:%s: %s (cores x Microarch)" % (lines[1].strip(), lines[3].strip()), fontsize=8)
+    system_info = system_info + "CPU:{}: {} (cores x Microarch)".format(lines[1].strip(), lines[3].strip())
+    f.close()
+
+    gpu_info_file = Path(result_dir / 'gpu-info')
+    if gpu_info_file.exists():
+        f=open(gpu_info_file)
+        lines=f.readlines()
+        system_info = system_info + ", GPU Model:{}".format(lines[0].strip())
+        f.close()
+    plt.suptitle(system_info, fontsize=7)
 
     x_pos = [i + 0.5*(len(binaries) - 1)*BAR_WIDTH for i in range(len(bar_ordering))]
     plt.xticks(x_pos, ['x'.join(str(d) for d in s) for s in bar_ordering], rotation=90, fontsize=5)
