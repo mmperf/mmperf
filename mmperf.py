@@ -109,6 +109,15 @@ def write_system_info(output_dir, cpuinfo_dir):
         proc = subprocess.run([cpuinfo_dir / "bin" / "cache-info"],
                               capture_output=True, text=True, check=True)
         fh.write(proc.stdout)
+    
+    # Obtain GPU information if available
+    try:
+        GPUs = GPUtil.getGPUs()
+        with open(output_dir / 'gpu-info', 'w') as fg:
+            gpu_name = GPUs[0].name
+            fg.write(gpu_name)
+    except:
+        pass
 
     # Obtain GPU information if available
     try:
