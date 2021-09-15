@@ -26,24 +26,17 @@ set(SIZE_FILE ${MMPERF_SOURCE}/benchmark_sizes/benchmark_all_sizes.txt CACHE FIL
 set(TILE_FILE "" CACHE FILEPATH "File containing association between matrix size and tile size")
 set(TARGET_CPU "haswell" CACHE STRING "Target CPU for MLIR")
 set(VECTOR_WIDTH "256" CACHE STRING "Vector width for MLIR")
-set(TILE_SIZES "" CACHE STRING "Tile sizes for MLIR")
 set(COL_MAJOR_TILE_SIZES "" CACHE INTERNAL "Column Major MatMul Tile sizes for MLIR")
 set(REGISTER_TILE_SIZES "" CACHE STRING "Register Tile sizes for MLIR")
 set(COPY_FILL_TILE_SIZES "" CACHE STRING "Copy and Fill Tile sizes for MLIR")
 set(NUM_REPS "100" CACHE STRING "Number of times to repeat the test")
 
-if ("${TILE_FILE}" STREQUAL "")
-  set(USE_NODAI OFF CACHE INTERNAL "Enable Nod.AI")
-else()
-  set(USE_NODAI ON CACHE INTERNAL "Enable Nod.AI")
-endif()
-option(SEARCH_MODE "Read tile size file as permutations instead of associations" OFF)
-if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MLIR_CUDA OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_BLASFEO OR USE_RUY OR USE_NAIVE OR USE_NODAI OR USE_ACCELERATE OR USE_BLIS OR USE_TVM OR USE_TVM_CUDA OR USE_CUBLAS OR USE_IREE OR USE_IREE_LLVM_SANDBOX))
+if (NOT (USE_ACCELERATE OR USE_MLIR OR USE_MLIR_CUDA OR USE_MKL OR USE_OPENBLAS OR USE_HALIDE OR USE_BLASFEO OR USE_RUY OR USE_NAIVE OR USE_ACCELERATE OR USE_BLIS OR USE_TVM OR USE_TVM_CUDA OR USE_CUBLAS OR USE_IREE OR USE_IREE_LLVM_SANDBOX))
   message(FATAL_ERROR "No backend was enabled!")
 endif()
 
 # Set IREE backends to use
-if(${USE_IREE} STREQUAL "ON")
+if(${USE_IREE})
   option(IREE_VMVX "Enable IREE vmvx (CPU) backend" OFF)
   option(IREE_DYLIB "Enable IREE dylib (CPU) backend" ON)
   option(IREE_CUDA "Enable IREE cuda (GPU) backend" ON)
@@ -73,9 +66,7 @@ set(VARS_TO_COPY
     TILE_FILE
     TARGET_CPU
     VECTOR_WIDTH
-    TILE_SIZES
     COL_MAJOR_TILE_SIZES
     REGISTER_TILE_SIZES
     COPY_FILL_TILE_SIZES
-    SEARCH_MODE
     NUM_REPS)

@@ -19,3 +19,6 @@
 [submodule "external/iree-llvm-sandbox"]
 	path = external/iree-llvm-sandbox
 	url = https://github.com/google/iree-llvm-sandbox.git
+[submodule "external/flatbuffers"]
+	path = external/flatbuffers
+	url = https://github.com/google/flatbuffers.git

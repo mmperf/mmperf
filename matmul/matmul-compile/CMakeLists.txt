@@ -2,8 +2,21 @@ cmake_minimum_required(VERSION 3.18)
 project(matmul_compile CXX)
 
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to conform to")
-find_package(MLIR REQUIRED CONFIG)
 
+# Build flatbuffer tools
+include_directories(${CMAKE_BINARY_DIR}/../flatbuffers-install/include)
+include_directories(${CMAKE_BINARY_DIR}/../fbs/)
+add_custom_command(OUTPUT compile_options_generated.h
+  COMMAND ${CMAKE_BINARY_DIR}/../flatbuffers-install/bin/flatc
+  --cpp --gen-object-api --raw-binary -o ${CMAKE_BINARY_DIR}/../fbs/
+  ${CMAKE_CURRENT_SOURCE_DIR}/compile_options.fbs
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/compile_options.fbs
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+add_custom_target(run ALL DEPENDS compile_options_generated.h)
+
+# Build tool to compile mlir
+find_package(MLIR REQUIRED CONFIG)
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 
@@ -14,35 +27,18 @@ include(AddMLIR)
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
 
-# Build tool to compile mlir
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
-message(STATUS "${dialect_libs}")
-if (DEFINED MLIR_BUILD)
-  link_directories(${MLIR_BUILD})
-  set(LLVM_X86ASM_PARSER ${MLIR_BUILD}/lib/libLLVMX86AsmParser.a)
-endif()
-
-if (DEFINED PREBUILT_LLVM_PATH AND (NOT PREBUILT_LLVM_PATH STREQUAL ""))
-  if(EXISTS ${PREBUILT_LLVM_PATH}/lib/libLLVMX86AsmParser.so)
-    set(LLVM_X86ASM_PARSER ${PREBUILT_LLVM_PATH}/lib/libLLVMX86AsmParser.so)
-  else()
-    if(EXISTS ${PREBUILT_LLVM_PATH}/lib/libLLVMX86AsmParser.a)
-      set(LLVM_X86ASM_PARSER ${PREBUILT_LLVM_PATH}/lib/libLLVMX86AsmParser.a)
-    else()
-      message(FATAL_ERROR "Neither libLLVMX86AsmParser.a nor \
-                            libLLVMX86AsmParser.so was found, aborting." )
-    endif()
-  endif()
-endif()
 
 set(LIBS
   ${dialect_libs}
   ${conversion_libs}
   MLIRExecutionEngine
-  ${LLVM_X86ASM_PARSER}
+  LLVMX86AsmParser
 )
+
 add_llvm_executable(matmul-compile matmul-compile.cpp)
+add_dependencies(matmul-compile run)
 llvm_update_compile_flags(matmul-compile)
 target_link_libraries(matmul-compile PRIVATE ${LIBS})
 mlir_check_all_link_libraries(matmul-compile)

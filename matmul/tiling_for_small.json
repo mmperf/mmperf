@@ -1,0 +1,30 @@
+{"options": [
+  {"op": "matmul",
+    "tile_options":
+      {"tile_sizes": [12, 32, 16],
+       "interchange_vector": [0, 1, 2],
+       "promote_full_tile": true
+      },
+    "vectorize_options":
+      {"vectorize_to": "outer_product",
+       "vector_transfer_split": "vector_transfer",
+       "unroll_vector_transfers": true
+      }
+  },
+  {"op": "fill",
+   "tile_options":
+     {"tile_sizes": [4, 16]
+     },
+   "vectorize_options":
+     {"unroll_vector_transfers": true
+     }
+  },
+  {"op": "copy",
+   "tile_options":
+     {"tile_sizes": [4, 16]
+     },
+   "vectorize_options":
+     {"unroll_vector_transfers": true
+     }
+  }]
+}

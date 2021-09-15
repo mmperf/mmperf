@@ -119,6 +119,17 @@ def write_system_info(output_dir, cpuinfo_dir):
     except:
         pass
 
+    # Obtain GPU information if available
+    try:
+        GPUs = GPUtil.getGPUs()
+        # TODO: investigate why GPUs gets set to empty list in some cases
+        if (len(GPUs) > 0):
+            with open(output_dir / 'gpu-info', 'w') as fg:
+                gpu_name = GPUs[0].name
+                fg.write(gpu_name)
+    except:
+        pass
+
 def autolabel(rects):
     """
     Attach a text label above each bar displaying its height
@@ -256,7 +267,8 @@ def main(argv):
 
     if any_error:
         print("Some benchmarks had problems, see above.")
-    return result_dir
+        return 1
+    return 0
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))

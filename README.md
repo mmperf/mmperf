@@ -72,12 +72,13 @@ cmake --build build
 
 #### Building mmperf for MLIR-CUDA Backend
 
-If you want to build `mmperf` with MLIR-CUDA backend, you need to have NVIDIA CUDA-11.0 installed on your system. Make sure it is installed and environment variables `$PATH` and `$LD_LIBRARY_PATH` are correctly configured. Also make sure if you can invoke `nvcc` compiler from the command line. How to install NIVIDIA CUDA-11.0 toolkit, please refer to this [link](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). In order to compile the MLIR-CUDA backend, you need to specify `-DUSE_MLIR_CUDA` switch. For example, if you want to compile both MLIR-CUDA and CUBLAS backend, the compilation command would look like this:
+If you want to build `mmperf` with MLIR-CUDA backend, you need to have NVIDIA CUDA-11.0 installed on your system. Make sure it is installed and environment variables `$PATH` and `$LD_LIBRARY_PATH` are correctly configured. Also make sure if you can invoke `nvcc` compiler from the command line. How to install NIVIDIA CUDA-11.0 toolkit, please refer to this [link](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). In order to compile the MLIR-CUDA backend, you need to specify `-DUSE_MLIR_CUDA` switch and specify the compiler with `-DCMAKE_CUDA_COMPILER`. For example, if you want to compile both MLIR-CUDA and CUBLAS backend, the compilation command would look like this:
 
 ```bash
 cmake -GNinja \
     -DCMAKE_CXX_COMPILER=clang++-11 \
     -DCMAKE_C_COMPILER=clang-11 \
+    -DCMAKE_CUDA_COMPILER=nvcc
     -DUSE_MLIR_CUDA=ON \
     -DUSE_CUBLAS=ON \
     -DSIZE_FILE=benchmark_sizes/benchmark_small_sizes.txt \
