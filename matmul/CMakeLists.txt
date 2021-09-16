@@ -184,6 +184,7 @@ if(USE_MKL)
   list(APPEND BACKENDS mkl)
 endif()
 if(USE_MLIR)
+  add_subdirectory(matmul-compile)
   list(APPEND BACKENDS mlir)
 endif()
 if(USE_NAIVE)
@@ -335,8 +336,6 @@ foreach(BACKEND ${BACKENDS})
     list(APPEND ALL_TARGETS ${MATMUL})
   endforeach()
 endforeach()
-
-add_subdirectory(matmul-compile)
 
 add_custom_target(run_all_tests
     ${CMAKE_SOURCE_DIR}/../mmperf.py

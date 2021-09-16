@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.13.4)
+cmake_minimum_required(VERSION 3.18)
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to conform to")
 
 #-------------------------------------------------------------------------------
 # Project configuration
@@ -17,7 +18,6 @@ include(common)
 
 # Extend module path to allow submodules to find AddMLIR
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_BINARY_DIR}/lib/cmake/mlir")
-
 add_subdirectory(${IREE_SOURCE} iree EXCLUDE_FROM_ALL)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
