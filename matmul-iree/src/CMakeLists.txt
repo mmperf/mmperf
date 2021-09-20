@@ -40,3 +40,5 @@ foreach(MATRIX_SIZE ${MATRIX_SIZES})
   endif()
   
 endforeach()
+
+add_subdirectory(tiling)

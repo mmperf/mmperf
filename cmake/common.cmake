@@ -39,7 +39,7 @@ endif()
 if(${USE_IREE})
   option(IREE_VMVX "Enable IREE vmvx (CPU) backend" OFF)
   option(IREE_DYLIB "Enable IREE dylib (CPU) backend" ON)
-  option(IREE_CUDA "Enable IREE cuda (GPU) backend" ON)
+  option(IREE_CUDA "Enable IREE cuda (GPU) backend" OFF)
 endif()
 
 set(VARS_TO_COPY
