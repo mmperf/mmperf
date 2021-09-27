@@ -18,6 +18,7 @@ from functools import reduce
 import matplotlib.pyplot as plt
 import numpy as np
 import GPUtil
+import csv
 
 plt.style.use('ggplot')
 
@@ -32,7 +33,8 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'cublas': 'chocolate',
               'halide': 'gold',
               'ruy': 'violet',
-              'tvm' : 'indigo',
+              'tvm': 'indigo',
+              'tvmcuda': 'rosybrown',
               'naive': 'black',
               'nodai': 'red',
               'nodai-1': 'dodgerblue',
@@ -157,6 +159,54 @@ def _do_single_permutation(i, path, duration=None):
     else:
         return i, speed, runtime
 
+def _gpu_ncu_permutation(i, path, msize):
+    try:
+        cmd = f'sudo /usr/local/cuda/bin/ncu {path} > result_{path.name}.csv'
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, check=True, cwd=_result_dir)
+        ncu_output = "result_" + path.name + ".csv"
+        
+        # parse the ncu results, the elapse time is shown as 'Duration'
+        with open(os.path.join(_result_dir, ncu_output), 'r') as csv_file:
+            csv_reader = csv.reader(csv_file)
+            duration = 0
+            cnt = 0
+            for line in csv_reader:
+                if len(line) == 0: continue
+                if 'Duration' in line[0]:
+                    l = [x.strip() for x in line[0].split(" ") if x.strip()]  # ['Duration', 'msecond', 'value']
+                    duration += float(l[-1])
+                    if l[1] == 'msecond':
+                        factor = 1e3
+                    elif l[1] == 'usecond':
+                        factor = 1e6
+                    elif l[1] == 'second':
+                        factor = 1
+                    else:
+                        raise ValueError("Error: invalid duration")
+                    cnt += 1
+
+            runtime = duration / cnt / factor
+            mat_size = [float(m) for m in msize.split('x')]
+            if len(mat_size) == 4:   # [batch, M, N, K]
+                mat_size.pop(0)
+            mnk_prod = np.prod(mat_size)
+            speed = 2.0 * mnk_prod / runtime / 1e9
+
+        gflops_path = _result_dir / (path.name + '_ncu_perf.out')
+        with open(gflops_path, 'w') as f:
+            f.write(str(speed) + " GFLOPS")
+            f.close()
+
+        if result.returncode != 0:
+            print("Benchmark failed with error code:",
+                  signal.Signals(-result.returncode) if result.returncode < 0
+                  else result.returncode)
+            return i, False, runtime
+        else:
+            return i, speed, runtime
+    except:
+        return i, False, 0.0
+
 def _worker_init(result_dir, env):
     global _result_dir, _env, _num_tasks, _done_tasks
     print('worker init')
@@ -182,7 +232,12 @@ def do_permutations(jobs, perms, bin_path, result_dir, env, duration=None):
 
     with Pool(jobs, _worker_init, (result_dir, env)) as pool:
         for i, perm in enumerate(perms):
-            async_results[i] = pool.apply_async(_do_single_permutation, (i, bin_path / perm, duration), callback=callback)
+            perm_name = perm.split('_')[1]
+            matrix_size = perm.split('_')[2]
+            if perm_name in ['tvmcuda', 'ireecuda', 'mlircuda']:
+                async_results[i] = pool.apply_async(_gpu_ncu_permutation, (i, bin_path / perm, matrix_size), callback=callback)
+            else:
+                async_results[i] = pool.apply_async(_do_single_permutation, (i, bin_path / perm, duration), callback=callback)
         print("Submitted all jobs to pool")
         for ar in async_results:
             ar.get()
