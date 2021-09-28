@@ -124,7 +124,7 @@ if(${USE_HALIDE})
 endif()
 
 # Build TVM
-if(${USE_TVM})
+if(${USE_TVM} OR ${USE_TVM_CUDA})
   set(TVM_SOURCE ${MMPERF_SOURCE}/external/tvm)
   set(TVM_BUILD ${CMAKE_BINARY_DIR}/tvm)
   set(TVM_INSTALL ${CMAKE_BINARY_DIR}/tvm-install)
