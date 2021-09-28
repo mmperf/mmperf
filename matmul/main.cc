@@ -52,7 +52,7 @@
 #endif
 #endif
 
-#if defined(MLIR)
+#if defined(MLIR) || defined(IREE_LLVM_SANDBOX)
 extern "C" {
 struct memref_t {
   float *aligned;
@@ -89,24 +89,6 @@ void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
 }
 #endif
 
-#if defined(IREE_LLVM_SANDBOX)
-extern "C" {
-struct memref_t {
-  float *aligned;
-  float *allocated;
-  int64_t offset;
-  int64_t sizes[2];
-  int64_t strides[2];
-};
-memref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
-            int64_t size_a0, int64_t size_a1, int64_t strides_a0, int64_t strides_a1,
-            float *aligned_b, float *allocated_b, int64_t offset_b,
-            int64_t size_b0, int64_t size_b1, int64_t strides_b0, int64_t strides_b1,
-            float *aligned_c, float *allocated_c, int64_t offset_c,
-            int64_t size_c0, int64_t size_c1, int64_t strides_c0, int64_t strides_c1);
-}
-#endif
-
 #ifdef CUBLAS
 #define CHECK_CUBLAS(status) do {				\
   std::stringstream error;					\
@@ -127,7 +109,7 @@ memref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
 } while(0)
 #endif
 
-#ifdef TVM
+#if defined(TVM)|| defined(TVM_CUDA)
 tvm::runtime::Module create_module() {
   // Define algorithm
   tvm::te::Tensor A = tvm::te::placeholder({MDIM, KDIM}, tvm::DataType::Float(32), "A");
@@ -172,7 +154,13 @@ tvm::runtime::Module create_module() {
 
   auto args = tvm::Array<tvm::te::Tensor>({A, B, C});
   std::unordered_map<tvm::te::Tensor, tvm::te::Buffer> binds;
+
+#ifdef TVM_ENABLE_CUDA
+  auto target = tvm::Target("cuda");
+#else
   auto target = tvm::Target("llvm");
+#endif
+
   auto lowered = tvm::lower(s, args, "matmul", binds);
   auto module = tvm::build(lowered, target, tvm::Target());
   return module;
