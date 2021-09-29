@@ -186,7 +186,6 @@ iree_status_t Run() {
       0, IREE_WHOLE_BUFFER, &mapped_memory));
   for (int i = 0; i < mapped_memory.contents.data_length / sizeof(float); ++i) {
     // Accessing the output elements
-    float matmul_output_element = ((const float*)mapped_memory.contents.data)[i];
     C[i] = ((const float*)mapped_memory.contents.data)[i];
   }
 
@@ -225,7 +224,6 @@ iree_status_t Run() {
 
 int main() {
   const iree_status_t result = Run();
-  int ret = (int)iree_status_code(result);
   if (!iree_status_is_ok(result)) {
     iree_status_fprint(stderr, result);
     iree_status_free(result);

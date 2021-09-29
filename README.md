@@ -30,7 +30,7 @@ Clone the repo along with submodules.
 git clone --recurse-submodules https://github.com/mmperf/mmperf.git
 ```
 
-Create a virtual environment and install requirements.
+Create a virtual environment and install requirements. Python 3.8 is required.
 ```
 cd mmperf
 python3 -m venv ./mmperf_env
@@ -65,15 +65,10 @@ HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -
     -DUSE_HALIDE=ON \
     -DUSE_OPENBLAS=ON \
     -DUSE_IREE=ON \
+    -DIREE_DYLIB=ON \
     -B build .
 
 cmake --build build
-```
-
-Install `matplotlib` to generate performance plot.
-
-```
-pip install matplotlib
 ```
 
 ### Running the code
@@ -97,7 +92,7 @@ Each generated binary can also be executed individually. To run a specific matri
 
 #### Building mmperf with CUDA
 
-With any CUDA backend, NVIDIA CUDA-11.0 has to be installed on your system. How to install NIVIDIA CUDA-11.0 toolkit, please refer to this [link](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). Make sure environment variables `$PATH` and `$LD_LIBRARY_PATH` are correctly configured. CUDA Compiler should be set as `$nvcc` in the command line. For example, to compile the MLIR-CUDA backend run:
+With any CUDA backend, NVIDIA CUDA-11.4 has to be installed on your system. How to install NIVIDIA CUDA-11.4 toolkit, please refer to this [link](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). Make sure environment variables `$PATH` and `$LD_LIBRARY_PATH` are correctly configured. CUDA Compiler should be set as `nvcc` in the command line. For example, to compile the MLIR-CUDA backend run:
 
 ```bash
 cmake -GNinja \
@@ -120,6 +115,7 @@ cmake -GNinja \
     -DCMAKE_C_COMPILER=clang-11 \
     -DCMAKE_CUDA_COMPILER=nvcc \
     -DUSE_IREE=ON \
+    -DIREE_CUDA=ON \
     -DUSE_CUBLAS=ON \
     -DUSE_TVM_CUDA=ON \
     -DTVM_ENABLE_CUDA=ON \
