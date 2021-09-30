@@ -161,7 +161,7 @@ tvm::runtime::Module create_module() {
   auto target = tvm::Target("llvm");
 #endif
 
-  auto lowered = tvm::lower(s, args, "matmul", binds);
+  auto lowered = tvm::LowerSchedule(s, args, "matmul", binds);
   auto module = tvm::build(lowered, target, tvm::Target());
   return module;
 }
@@ -329,7 +329,11 @@ int main(int argc, char **argv) {
   tvm::runtime::PackedFunc matmul = module->GetFunction("matmul");
 #endif
 #if defined(TVM_ENABLE_CUDA) || defined(TVM_ENABLE_METAL) || defined(TVM_ENABLE_ROCM)
-  int deviceType = kDLGPU;
+  int deviceType = kDLCUDA;
+#elif defined(TVM_ENABLE_METAL)
+  int deviceType = kDLMetal;
+#elif defined(TVM_ENABLE_ROCM)
+  int deviceType = kDLROCM;
 #else
   int deviceType = kDLCPU;
 #endif

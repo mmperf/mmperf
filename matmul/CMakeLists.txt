@@ -305,7 +305,7 @@ foreach(BACKEND ${BACKENDS})
       set(TVM_INSTALL_DIR  ${CMAKE_BINARY_DIR}/../tvm-install)
       set(TVM_SOURCE_DIR ${CMAKE_SOURCE_DIR}/../external/tvm)
       target_link_directories(${MATMUL} PRIVATE ${TVM_INSTALL_DIR}/lib)
-      target_link_libraries(${MATMUL} PRIVATE tvm)
+      target_link_libraries(${MATMUL} PRIVATE tvm pthread)
       target_include_directories(${MATMUL} PRIVATE
         ${TVM_SOURCE_DIR}/include
         ${TVM_SOURCE_DIR}/3rdparty/dmlc-core/include
