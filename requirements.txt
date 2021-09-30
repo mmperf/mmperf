@@ -1,2 +1,11 @@
 matplotlib
 gputil
+# packages for tvm-tuner
+decorator
+xgboost
+tornado
+psutil
+cloudpickle
+attrs
+numpy
+synr

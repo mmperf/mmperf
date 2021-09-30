@@ -23,7 +23,7 @@ This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries a
 Note: 8GB Mac Mini runs roughly 25% slower than the 16GB version on other tests.
 ![Results](https://github.com/mmperf/mmperf/raw/main/official_results/apple-a13/2021-01-26_15-39-08/matmul.png)
 
-### Installation
+## Installation
 Clone the repo along with submodules.
 
 ```
@@ -71,7 +71,7 @@ HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -
 cmake --build build
 ```
 
-### Running the code
+## Running the code
 
 We use AOT compilation to generate binaries for matrix multiplication for specified backends
 and run them to generate the benchmarking numbers. To run all tests and generate performance numbers run:
@@ -120,10 +120,13 @@ cmake -GNinja \
     -DUSE_TVM_CUDA=ON \
     -DTVM_ENABLE_CUDA=ON \
     -DUSE_TVM_TUNED=ON \
-    -DTVM_LIB_DIR=/path/to/tvm-ansor-lib 
+    -DTVM_LIB_DIR=/path/to/tvm-tuner
     -DSIZE_FILE=benchmark_sizes/bert_large_matmul.txt 
     -B build .
 ```
+
+Note: `-DTVM_LIB_DIR` should be set as the absolute path of where TVM binaries located. For how to run TVM auto-scheduler, please refer to this [README](tvm_tuner/README.md).
+
 
 To generate performance plot run:
 ```bash
