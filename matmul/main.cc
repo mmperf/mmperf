@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <sys/time.h>
 #include <unistd.h>
+#include <benchmark/benchmark.h>
 
 #define STRING(s) #s
 #define TO_STRING(x) STRING(x)
@@ -234,48 +235,42 @@ void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, 
   }
 }
 
-int main(int argc, char **argv) {
+static void BM_Matmul(benchmark::State& state) {
 #ifdef COLUMN_MAJOR
   printf("Matrix-format: Column-Major\n");
 #else
   printf("Matrix-format: Row-Major\n");
 #endif
 #if defined(ACCELERATE)
-  printf("Benchmarking Accelerate %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking Accelerate %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(BLASFEO)
-  printf("Benchmarking BLASFEO %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking BLASFEO %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(BLIS)
-  printf("Benchmarking BLIS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking BLIS %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(CUBLAS)
-  printf("Benchmarking CUBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking CUBLAS %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(HALIDE)
-  printf("Benchmarking Halide %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking Halide %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(MKL)
-  printf("Benchmarking MKL %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking MKL %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(MLIR)
-  printf("Benchmarking MLIR %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking MLIR %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(MLIR_CUDA)
-  printf("Benchmarking MLIR CUDA %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking MLIR CUDA %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(IREE_LLVM_SANDBOX)
-  printf("Benchmarking IREE LLVM Sandbox %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking IREE LLVM Sandbox %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(NAIVE)
-  printf("Benchmarking Naive C %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking Naive C %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(OPENBLAS)
-  printf("Benchmarking OpenBLAS %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking OpenBLAS %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(RUY)
-  printf("Benchmarking Ruy %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking Ruy %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(TVM)
-  printf("Benchmarking TVM %d x %d x %d [%d times] \n", MDIM, NDIM, KDIM, NUM_REPS);
+  printf("Benchmarking TVM %d x %d x %d \n", MDIM, NDIM, KDIM);
 #endif
 
-#if defined(CUBLAS)
-  GpuTimer gpu_timer;
-  float elapsed_millis;
-#else
-  double t_start, t_end;
-#endif
   float *A, *B, *C;
-  
+
 #ifdef MLIR_CUDA
   CHECK_CUDA(cudaMallocHost((void **) &A, MDIM * KDIM * sizeof(float)));
   CHECK_CUDA(cudaMallocHost((void **) &B, KDIM * NDIM * sizeof(float)));
@@ -376,15 +371,8 @@ int main(int argc, char **argv) {
   ruy::MulParams<float, float> mul_params;
   lhs.set_cache_policy(ruy::CachePolicy::kCacheIfSignificantSpeedup);
 #endif
-  double elapsed_time_sec;
-#if defined(CUBLAS)
-  gpu_timer.Start();
-#else
-  t_start = rtclock();
-#endif
-  // TODO: add option for running for fixed duration instead of number of repetitions
-  //       this helps reduce variability across all matmul sizes
-  for (int t = 0; t < NUM_REPS; ++t) {
+
+  for (auto _ : state){
 #if defined(MKL) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
     cblas_sgemm(MATRIX_FORMAT, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);
@@ -412,7 +400,7 @@ int main(int argc, char **argv) {
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 #elif defined(TVM)
     matmul(x, y, z);
-#elif defined(MLIR)
+#elif defined(MLIR) || defined(IREE_LLVM_SANDBOX)
 #ifdef COLUMN_MAJOR
     ret = matmul(A, A, 0, MDIM, KDIM, 1, LDA,
                  B, B, 0, KDIM, NDIM, 1, LDB,
@@ -432,11 +420,6 @@ int main(int argc, char **argv) {
            B, B, 0, KDIM, NDIM, LDB, 1,
            C, C, 0, MDIM, NDIM, LDC, 1);
 #endif
-#elif defined(IREE_LLVM_SANDBOX)
-    // row-major
-    ret = matmul(A, A, 0, MDIM, KDIM, LDA, 1,
-           B, B, 0, KDIM, NDIM, LDB, 1,
-           C, C, 0, MDIM, NDIM, LDC, 1);
 #elif defined(NAIVE)
     naive_matmul(A,B,C,MDIM,KDIM,NDIM);
 #elif defined(CUBLAS)
@@ -449,15 +432,6 @@ int main(int argc, char **argv) {
 #endif
 #endif
   }
-#if defined(CUBLAS)
-  gpu_timer.Stop();
-  elapsed_time_sec = gpu_timer.ElapsedMillis() / 1E3;
-#else
-  t_end = rtclock();
-  elapsed_time_sec = t_end - t_start;
-#endif
-
-  int return_code = 0;
 
 #if defined(TVM)
   TVMArrayCopyToBytes(z, C, MDIM * NDIM * sizeof(float));
@@ -476,21 +450,13 @@ int main(int argc, char **argv) {
     for (size_t j = 0; j < NDIM; j++) {
       size_t ci = i + j*MDIM;
       if (std::abs(C[ci] - C2[ci]) > 0.01f) {
-        //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
         errors++;
       }
     }
   }
   printf("Detected %ld errors.\n", errors);
-  if (errors > 0) {
-    return_code = 1;
-  }
 #endif
 
-  const char *filename = TO_STRING(FILE_NAME);
-  FILE *file = fopen(filename, "w");
-  fprintf(file, "%0.5lf GFLOPS\n", 2.0 * NUM_REPS * MDIM * NDIM * KDIM / elapsed_time_sec / 1E9);
-  fclose(file);
 #if 0
   // TODO: For the largest 3 matrix sizes in MLIR, this throws a munmap_chunk(): invalid_pointer
   free(A);
@@ -512,5 +478,12 @@ int main(int argc, char **argv) {
   CHECK_CUDA(cudaFree(devB));
   CHECK_CUDA(cudaFree(devC));
 #endif
-  return return_code;
+}
+
+BENCHMARK(BM_Matmul);
+
+int main(int argc, char **argv) {
+    ::benchmark::Initialize(&argc, argv);
+    ::benchmark::RunSpecifiedBenchmarks();
+  return 0;
 }

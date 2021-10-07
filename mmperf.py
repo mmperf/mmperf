@@ -140,32 +140,50 @@ def autolabel(rects):
 _result_dir = None
 _env = None
 
-def _do_single_permutation(i, path, duration=None):
-    t0 = time.perf_counter()
-    if not duration:
-        duration = 1
-    reps = str(duration)
-    result = subprocess.run([str(path), f'{reps}'], stdout=subprocess.DEVNULL, cwd=_result_dir, env=_env, check=False)
-    t1 = time.perf_counter()
-    gflops_path = _result_dir / (path.name + '_perf.out')
-    if gflops_path.is_file():
-        speed = float(gflops_path.read_text().split()[0])
-    runtime = t1 - t0
-    if result.returncode != 0:
-        print("Benchmark failed with error code:",
-              signal.Signals(-result.returncode) if result.returncode < 0
-              else result.returncode)
-        return i, False, runtime
-    else:
-        return i, speed, runtime
+def _do_single_permutation(i, path, msize):
+    try:
+        cmd = f'{path} --benchmark_format=csv > result_{path.name}.csv'
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, check=True, cwd=_result_dir)
+        output = "result_" + path.name + ".csv"
+    
+        # parse the CPU benchmark results, the elapse time is shown as 'Duration(nsec)'
+        with open(os.path.join(_result_dir, output), 'r') as csv_file:
+            csv_reader = csv.reader(csv_file)
+            runtime = 0
+            for line in csv_reader:
+                if (line[0].startswith('BM_Matmul')):
+                    duration = float(line[3])
+                    time_unit = {'ns': 0, 'us': 1, 'ms': 2, 's': 3}
+                    factor = [1e9, 1e6, 1e3, 1]
+                    runtime = duration / factor[time_unit[line[4]]]
 
-def _gpu_nsys_permutation(i, path, msize, warm_up_runs=5):
+            mat_size = [float(m) for m in msize.split('x')]
+            if len(mat_size) == 4:  # [batch, M, N, K]
+                mat_size.pop(0)
+            mnk_prod = np.prod(mat_size)
+            speed = 2.0 * mnk_prod / runtime / 1e9
+    
+        gflops_path = _result_dir / (path.name + '_perf.out')
+        with open(gflops_path, 'w') as f:
+            f.write(str(speed) + " GFLOPS")
+            f.close()
+
+        return i, speed, runtime
+    except:
+        return i, False, 0.0
+
+def _gpu_nsys_permutation(i, path, msize, perm_name, warm_up_runs=5):
     try:
         cmd = f'sudo /usr/local/cuda/bin/nsys profile -t nvtx,cuda -o /tmp/report_{path.name}.qdrep {path}'
-        subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, check=True)
+        subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, check=True, cwd=_result_dir)
         cmd = f'sudo /usr/local/cuda/bin/nsys stats -f csv --report gputrace /tmp/report_{path.name}.qdrep > result_{path.name}.csv'
         result = subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, check=True, cwd=_result_dir)
         nsys_output = "result_" + path.name + ".csv"
+
+        if perm_name == 'cublas':
+            name_start = ['volta_sgemm', 'void gemm', 'void gemv']
+        else:
+            name_start = ['matmul']
         
         # parse the nsys results, the elapse time is shown as 'Duration(nsec)'
         with open(os.path.join(_result_dir, nsys_output), 'r') as csv_file:
@@ -174,7 +192,7 @@ def _gpu_nsys_permutation(i, path, msize, warm_up_runs=5):
             cnt = 0
             for line in csv_reader:
                 if len(line) == 0: continue
-                if (line[-1].startswith('matmul')):
+                if line[-1].startswith(tuple(name_start)):
                     cnt += 1
                     if cnt > warm_up_runs:  # warp up runs are excluded
                         duration += float(line[1])
@@ -186,18 +204,12 @@ def _gpu_nsys_permutation(i, path, msize, warm_up_runs=5):
             mnk_prod = np.prod(mat_size)
             speed = 2.0 * mnk_prod / runtime / 1e9
 
-        gflops_path = _result_dir / (path.name + '_nsys_perf.out')
+        gflops_path = _result_dir / (path.name + '_perf.out')
         with open(gflops_path, 'w') as f:
             f.write(str(speed) + " GFLOPS")
             f.close()
 
-        if result.returncode != 0:
-            print("Benchmark failed with error code:",
-                  signal.Signals(-result.returncode) if result.returncode < 0
-                  else result.returncode)
-            return i, False, runtime
-        else:
-            return i, speed, runtime
+        return i, speed, runtime
     except:
         return i, False, 0.0
 
@@ -228,10 +240,10 @@ def do_permutations(jobs, perms, bin_path, result_dir, env, duration=None):
         for i, perm in enumerate(perms):
             perm_name = perm.split('_')[1]
             matrix_size = perm.split('_')[2]
-            if perm_name in ['tvmcuda', 'ireecuda', 'mlircuda']:
-                async_results[i] = pool.apply_async(_gpu_nsys_permutation, (i, bin_path / perm, matrix_size), callback=callback)
+            if perm_name in ['tvmcuda', 'ireecuda', 'mlircuda', 'cublas']:
+                async_results[i] = pool.apply_async(_gpu_nsys_permutation, (i, bin_path / perm, matrix_size, perm_name), callback=callback)
             else:
-                async_results[i] = pool.apply_async(_do_single_permutation, (i, bin_path / perm, duration), callback=callback)
+                async_results[i] = pool.apply_async(_do_single_permutation, (i, bin_path / perm, matrix_size), callback=callback)
         print("Submitted all jobs to pool")
         for ar in async_results:
             ar.get()
