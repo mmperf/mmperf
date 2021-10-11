@@ -177,6 +177,7 @@ endforeach()
 if(${USE_IREE} STREQUAL "ON")
   set(IREE_SOURCE ${MMPERF_SOURCE}/external/iree)
   ExternalProject_Add(matmul-iree
+    DEPENDS benchmark
     PREFIX ${CMAKE_BINARY_DIR}/matmul-iree
     SOURCE_DIR ${MMPERF_SOURCE}/matmul-iree
     BINARY_DIR ${CMAKE_BINARY_DIR}/matmul-iree
