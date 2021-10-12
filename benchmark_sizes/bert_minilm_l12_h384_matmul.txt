@@ -1,0 +1,11 @@
+#awk '/matmul/ {print $10 substr($11,0,length($11)-1)}'  ~/github/iree-samples/ModelCompiler/nlp_models/model.mlir | sort | uniq | sort -r | awk -F"[<>]" '{print $2}' | sed -e 's/f32/384/'
+# once
+1x384x384
+#12 times
+12x128x32x384
+#12 times
+12x128x128x384
+#60 times
+128x384x384
+#12 times
+128x1536x384

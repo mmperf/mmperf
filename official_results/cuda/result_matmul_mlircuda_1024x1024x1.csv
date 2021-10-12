@@ -1,0 +1,134 @@
+Using /tmp/report_matmul_mlircuda_1024x1024x1.sqlite for SQL queries.
+Running [/usr/local/cuda-11.4/nsight-systems-2021.2.4/target-linux-x64/reports/gputrace.py /tmp/report_matmul_mlircuda_1024x1024x1.sqlite]... 
+
+Start(sec),Duration(nsec),CorrId,GrdX,GrdY,GrdZ,BlkX,BlkY,BlkZ,Reg/Trd,StcSMem,DymSMem,Bytes,Thru(MB/s),SrcMemKd,DstMemKd,Device,Ctx,Strm,Name
+0.274478,2240,0,,,,,,,,,,4096,1828.571,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.274621,3424,0,,,,,,,,,,4096,1196.262,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy HtoD]
+0.274650,1984,0,,,,,,,,,,4096,2064.516,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.275049,252383,18,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.275265,3903,0,,,,,,,,,,4096,1049.449,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy HtoD]
+0.275269,8704,0,,,,,,,,,,61440,7058.824,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy HtoD]
+0.275425,8672,28,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.275599,16320,39,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.275791,16352,50,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.275950,15712,61,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.276094,15904,72,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.276238,16864,83,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.276377,16448,94,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.276533,16799,105,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.276674,16064,116,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.276838,16448,127,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.276997,16863,138,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.277150,16192,149,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.277302,16768,160,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.277464,16448,171,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.277616,16576,182,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.277761,16512,193,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.277915,16352,204,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.278069,17344,215,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.278245,17088,226,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.278395,15296,237,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.278545,16448,248,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.278700,15904,259,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.278848,16608,270,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.278990,16096,281,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.279136,16832,292,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.279275,16607,303,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.279440,16416,314,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.279572,16320,325,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.279727,16800,336,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.279864,16064,347,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.280140,15104,358,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.280273,14976,369,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.280452,16448,380,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.280606,16128,391,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.280749,16416,402,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.280887,16319,413,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.281030,16928,424,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.281187,17504,435,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.281339,16703,446,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.281488,16864,457,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.281656,17408,468,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.281791,15743,479,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.281933,16672,490,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.282069,16256,501,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.282214,16672,512,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.282355,16256,523,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.282500,16480,534,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.282638,16800,545,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.282773,16800,556,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.282920,16448,567,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.283060,16544,578,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.283194,16288,589,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.283338,16800,600,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.283486,16320,611,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.283646,16512,622,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.283787,16160,633,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.283934,16736,644,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.284070,16512,655,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.284220,17024,666,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.284359,16448,677,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.284519,16672,688,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.284658,16768,699,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.284933,15520,710,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.285070,15072,721,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.285218,17216,732,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.285358,16160,743,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.285523,17248,754,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.285665,16672,765,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.285802,17024,776,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.285941,16832,787,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.286084,16416,798,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.286230,16096,809,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.286369,16927,820,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.286523,16224,831,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.286667,16672,842,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.286803,16672,853,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.286945,16768,864,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.287087,16448,875,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.287250,16416,886,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.287396,15584,897,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.287538,16960,908,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.287680,17184,919,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.287836,16736,930,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.287972,16575,941,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.288130,16384,952,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.288290,17536,963,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.288439,16703,974,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.288581,16736,985,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.288741,16384,996,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.288886,17279,1007,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.289034,16864,1018,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.289173,16768,1029,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.289327,20192,1040,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.289469,16544,1051,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.289743,14912,1062,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.289882,14720,1073,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.290031,16991,1084,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.290168,16320,1095,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.290314,16896,1106,8,32,1,32,8,1,48,640,0,,,,,Tesla V100-SXM2-16GB (0),1,14,matmul_dispatch_0
+0.290436,3327,0,,,,,,,,,,4096,1231.139,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.290440,6624,0,,,,,,,,,,61440,9275.362,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.290602,2463,0,,,,,,,,,,4096,1663.013,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.290605,6144,0,,,,,,,,,,61440,10000.000,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.290728,2111,0,,,,,,,,,,4096,1940.313,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.290730,11295,0,,,,,,,,,,126976,11241.788,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.290895,2143,0,,,,,,,,,,4096,1911.339,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.290897,20960,0,,,,,,,,,,258048,12311.450,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.291163,2143,0,,,,,,,,,,4096,1911.339,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.291165,40767,0,,,,,,,,,,520192,12760.125,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.291487,2175,0,,,,,,,,,,4096,1883.218,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.291489,80544,0,,,,,,,,,,1044480,12967.819,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.292252,2143,0,,,,,,,,,,4096,1911.339,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.292254,6752,0,,,,,,,,,,61440,9099.526,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.292377,2175,0,,,,,,,,,,4096,1883.218,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.292379,5952,0,,,,,,,,,,61440,10322.581,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.292480,2143,0,,,,,,,,,,4096,1911.339,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.292482,10880,0,,,,,,,,,,126976,11670.588,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.292660,2271,0,,,,,,,,,,4096,1803.611,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.292662,21152,0,,,,,,,,,,258048,12199.697,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.292960,2143,0,,,,,,,,,,4096,1911.339,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.292962,40800,0,,,,,,,,,,520192,12749.804,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.293518,2175,0,,,,,,,,,,4096,1883.218,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+0.293520,81536,0,,,,,,,,,,1044480,12810.047,,,Tesla V100-SXM2-16GB (0),0,0,[CUDA Unified Memory memcpy DtoH]
+
