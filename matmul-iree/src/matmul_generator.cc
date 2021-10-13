@@ -225,6 +225,5 @@ int main(int argc, char **argv) {
     iree_status_free(result);
   }
   printf("matmul execution succeeded\n");
-  //::benchmark::Shutdown();
   return 0;
 }
