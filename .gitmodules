@@ -22,3 +22,6 @@
 [submodule "external/flatbuffers"]
 	path = external/flatbuffers
 	url = https://github.com/google/flatbuffers.git
+[submodule "external/benchmark"]
+	path = external/benchmark
+	url = https://github.com/google/benchmark.git
