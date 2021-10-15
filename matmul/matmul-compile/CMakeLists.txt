@@ -40,5 +40,5 @@ set(LIBS
 add_llvm_executable(matmul-compile matmul-compile.cpp)
 add_dependencies(matmul-compile run)
 llvm_update_compile_flags(matmul-compile)
-target_link_libraries(matmul-compile PRIVATE ${LIBS})
+target_link_libraries(matmul-compile PRIVATE stdc++fs ${LIBS})
 mlir_check_all_link_libraries(matmul-compile)

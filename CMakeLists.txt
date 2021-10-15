@@ -54,6 +54,23 @@ ExternalProject_Add(flatbuffers
 )
 set(MATMUL_DEPS flatbuffers)
 
+# Build benchmarks
+set(BENCHMARK_SOURCE ${MMPERF_SOURCE}/external/benchmark)
+set(BENCHMARK_INSTALL ${CMAKE_BINARY_DIR}/benchmark-install)
+ExternalProject_Add(benchmark
+  PREFIX ${CMAKE_BINARY_DIR}/benchmark
+  SOURCE_DIR ${BENCHMARK_SOURCE}
+  BINARY_DIR ${BENCHMARK_BUILD}
+  INSTALL_DIR ${BENCHMARK_INSTALL}
+  CMAKE_ARGS
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+    -DCMAKE_BUILD_TYPE:STRING=Release
+    -DBENCHMARK_DOWNLOAD_DEPENDENCIES=ON
+)
+list(APPEND MATMUL_DEPS benchmark)
+
 # Build MLIR
 if(${USE_MLIR} OR ${USE_MLIR_CUDA} OR ${USE_IREE_LLVM_SANDBOX})
   find_package(Git REQUIRED)
@@ -160,6 +177,7 @@ endforeach()
 if(${USE_IREE} STREQUAL "ON")
   set(IREE_SOURCE ${MMPERF_SOURCE}/external/iree)
   ExternalProject_Add(matmul-iree
+    DEPENDS benchmark
     PREFIX ${CMAKE_BINARY_DIR}/matmul-iree
     SOURCE_DIR ${MMPERF_SOURCE}/matmul-iree
     BINARY_DIR ${CMAKE_BINARY_DIR}/matmul-iree

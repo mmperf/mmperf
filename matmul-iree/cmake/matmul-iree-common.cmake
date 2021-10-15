@@ -80,7 +80,7 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
     add_executable(${iree_executable_name} "")
     target_sources(${iree_executable_name}
         PRIVATE
-        matmul_generator.c
+        matmul_generator.cc
         device_${backend}.c
     )
 
@@ -88,10 +88,14 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
     set_target_properties(${iree_executable_name} PROPERTIES OUTPUT_NAME ${iree_executable_name})
     set_target_properties(${iree_executable_name} PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/../matmul")
+    set(BENCHMARK_INSTALL_DIR  ${CMAKE_BINARY_DIR}/../../benchmark-install)
+    set(BENCHMARK_SOURCE_DIR ${CMAKE_SOURCE_DIR}/../../external/benchmark)
+    target_link_directories(${iree_executable_name} PRIVATE ${BENCHMARK_INSTALL_DIR}/lib)
 
     target_include_directories(${iree_executable_name}
     PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR}
+        ${BENCHMARK_SOURCE_DIR}/include
     )
 
     target_link_libraries(${iree_executable_name}
@@ -107,6 +111,7 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
         iree_task_api
         iree_vm_vm
         iree_vm_bytecode_module
+        benchmark
     )
 
     target_compile_definitions(${iree_executable_name}
