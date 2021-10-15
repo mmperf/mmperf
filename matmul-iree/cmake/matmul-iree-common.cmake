@@ -19,18 +19,25 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
     list(APPEND _ARGS "-iree-mlir-to-vm-bytecode-module")
     if(${backend} STREQUAL "dylib")
         list(APPEND _ARGS "-iree-hal-target-backends=dylib-llvm-aot")
+        list(APPEND _ARGS "-iree-llvm-target-triple=x86_64-pc-linux-elf")
+        list(APPEND _ARGS "-iree-llvm-link-embedded=true")
+        list(APPEND _ARGS "-iree-llvm-debug-symbols=false")
+        list(APPEND _ARGS "-iree-vm-bytecode-module-strip-source-map=true")
+        list(APPEND _ARGS "-iree-vm-emit-polyglot-zip=false")
     else()
         list(APPEND _ARGS "-iree-hal-target-backends=${backend}")
     endif()
     list(APPEND _ARGS "${mlir_file}")
     list(APPEND _ARGS "-o")
     list(APPEND _ARGS "${mlir_lib}.vmfb")
+    list(APPEND _ARGS "-iree-llvm-embedded-linker-path=${_EMBEDDED_LINKER_TOOL_EXECUTABLE}")
 
     # Translate MLIR file to VM bytecode module
     add_custom_command(
         OUTPUT "${mlir_lib}.vmfb"
         COMMAND ${_TRANSLATE_TOOL_EXECUTABLE} ${_ARGS}
-        DEPENDS iree_tools_iree-translate
+        DEPENDS ${_TRANSLATE_TOOL_EXECUTABLE}
+                ${_EMBEDDED_LINKER_TOOL_EXECUTABLE}
     )
 
     #-------------------------------------------------------------------------------
@@ -91,8 +98,13 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
         ${MLIR_LIB}
         iree_base_base
         iree_hal_hal
+        iree_hal_local_local
+        iree_hal_local_sync_driver
+        iree_hal_local_loaders_vmvx_module_loader
+        iree_hal_local_loaders_embedded_library_loader
         iree_hal_${backend}_registration_registration
         iree_modules_hal_hal
+        iree_task_api
         iree_vm_vm
         iree_vm_bytecode_module
     )
