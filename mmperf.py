@@ -158,8 +158,6 @@ def _do_single_permutation(i, path, msize):
                     runtime = duration / factor[time_unit[line[4]]]
 
             mat_size = [float(m) for m in msize.split('x')]
-            if len(mat_size) == 4:  # [batch, M, N, K]
-                mat_size.pop(0)
             mnk_prod = np.prod(mat_size)
             speed = 2.0 * mnk_prod / runtime / 1e9
     
@@ -199,8 +197,6 @@ def _gpu_nsys_permutation(i, path, msize, perm_name, warm_up_runs=5):
 
             runtime = duration / (cnt - warm_up_runs) / 1e9
             mat_size = [float(m) for m in msize.split('x')]
-            if len(mat_size) == 4:   # [batch, M, N, K]
-                mat_size.pop(0)
             mnk_prod = np.prod(mat_size)
             speed = 2.0 * mnk_prod / runtime / 1e9
 
