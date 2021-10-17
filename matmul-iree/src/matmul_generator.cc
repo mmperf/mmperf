@@ -71,6 +71,7 @@ static void BenchmarkFunction(iree_vm_context_t* context,
 
     // Synchronously invoke the function.
     IREE_CHECK_OK(iree_vm_invoke(context, function,
+                                 IREE_VM_INVOCATION_FLAG_NONE,
                                  /*policy=*/NULL, inputs, outputs,
                                  iree_allocator_system()));
   }
@@ -140,7 +141,7 @@ iree_status_t Run() {
   iree_vm_context_t* context = NULL;
   iree_vm_module_t* modules[] = {hal_module, bytecode_module};
   IREE_RETURN_IF_ERROR(iree_vm_context_create_with_modules(
-      instance, &modules[0], IREE_ARRAYSIZE(modules), iree_allocator_system(),
+      instance, IREE_VM_CONTEXT_FLAG_TRACE_EXECUTION, &modules[0], IREE_ARRAYSIZE(modules), iree_allocator_system(),
       &context));
   iree_vm_module_release(hal_module);
   iree_vm_module_release(bytecode_module);
