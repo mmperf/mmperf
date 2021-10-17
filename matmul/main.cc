@@ -441,8 +441,8 @@ int main(int argc, char **argv) {
   ::benchmark::RegisterBenchmark("BM_Matmul",
                                [A, B, C](benchmark::State& state)
                                -> void {BenchmarkFunction(A, B, C, state);})
-                               ->MeasureProcessCPUTime()->UseRealTime();
-                               //->Iterations(NUM_REPS); //For MLIR, iterations number has to be set
+                               ->MeasureProcessCPUTime()->UseRealTime()
+                               ->Iterations(NUM_REPS); //For MLIR, iterations number has to be set
   ::benchmark::RunSpecifiedBenchmarks();
 
 #if 0
