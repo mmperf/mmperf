@@ -156,10 +156,12 @@ def _do_single_permutation(i, path, msize):
                     time_unit = {'ns': 0, 'us': 1, 'ms': 2, 's': 3}
                     factor = [1e9, 1e6, 1e3, 1]
                     runtime = duration / factor[time_unit[line[4]]]
-
-            mat_size = [float(m) for m in msize.split('x')]
-            mnk_prod = np.prod(mat_size)
-            speed = 2.0 * mnk_prod / runtime / 1e9
+            if runtime == 0.0:
+                speed = 0.0
+            else:
+                mat_size = [float(m) for m in msize.split('x')]
+                mnk_prod = np.prod(mat_size)
+                speed = 2.0 * mnk_prod / runtime / 1e9
     
         gflops_path = _result_dir / (path.name + '_perf.out')
         with open(gflops_path, 'w') as f:
@@ -172,9 +174,9 @@ def _do_single_permutation(i, path, msize):
 
 def _gpu_nsys_permutation(i, path, msize, perm_name, warm_up_runs=5):
     try:
-        cmd = f'sudo /usr/local/cuda/bin/nsys profile -t nvtx,cuda -o /tmp/report_{path.name}.qdrep {path}'
+        cmd = f'sudo /usr/local/cuda/bin/nsys profile -t nvtx,cuda -o {_result_dir}/qdrep/report_{path.name}.qdrep -f true {path}'
         subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, check=True, cwd=_result_dir)
-        cmd = f'sudo /usr/local/cuda/bin/nsys stats -f csv --report gputrace /tmp/report_{path.name}.qdrep > result_{path.name}.csv'
+        cmd = f'sudo /usr/local/cuda/bin/nsys stats -f csv --report gputrace {_result_dir}/qdrep/report_{path.name}.qdrep > result_{path.name}.csv'
         result = subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, check=True, cwd=_result_dir)
         nsys_output = "result_" + path.name + ".csv"
 
@@ -196,9 +198,12 @@ def _gpu_nsys_permutation(i, path, msize, perm_name, warm_up_runs=5):
                         duration += float(line[1])
 
             runtime = duration / (cnt - warm_up_runs) / 1e9
-            mat_size = [float(m) for m in msize.split('x')]
-            mnk_prod = np.prod(mat_size)
-            speed = 2.0 * mnk_prod / runtime / 1e9
+            if runtime == 0.0:
+                speed = 0.0
+            else:
+                mat_size = [float(m) for m in msize.split('x')]
+                mnk_prod = np.prod(mat_size)
+                speed = 2.0 * mnk_prod / runtime / 1e9
 
         gflops_path = _result_dir / (path.name + '_perf.out')
         with open(gflops_path, 'w') as f:
@@ -214,6 +219,8 @@ def _worker_init(result_dir, env):
     print('worker init')
     _result_dir = result_dir
     _env = env
+    cmd = f'mkdir qdrep'
+    subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, check=True, cwd=_result_dir)
 
 def do_permutations(jobs, perms, bin_path, result_dir, env, duration=None):
     num_tasks = len(perms)
