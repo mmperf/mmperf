@@ -243,10 +243,11 @@ def do_permutations(jobs, perms, bin_path, result_dir, env, duration=None):
         for i, perm in enumerate(perms):
             perm_name = perm.split('_')[1]
             matrix_size = perm.split('_')[2]
-            if perm_name in ['tvmcuda', 'ireecuda', 'mlircuda', 'cublas']:
-                async_results[i] = pool.apply_async(_gpu_nsys_permutation, (i, bin_path / perm, matrix_size, perm_name), callback=callback)
-            else:
-                async_results[i] = pool.apply_async(_do_single_permutation, (i, bin_path / perm, matrix_size), callback=callback)
+            #enable if you want nsys outpu
+            #if perm_name in ['tvmcuda', 'ireecuda', 'mlircuda', 'cublas']:
+            #    async_results[i] = pool.apply_async(_gpu_nsys_permutation, (i, bin_path / perm, matrix_size, perm_name), callback=callback)
+            #else:
+            async_results[i] = pool.apply_async(_do_single_permutation, (i, bin_path / perm, matrix_size), callback=callback)
         print("Submitted all jobs to pool")
         for ar in async_results:
             ar.get()
