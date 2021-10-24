@@ -66,6 +66,13 @@ def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
     result_dir = (base_dir / timestamp).resolve()
     os.makedirs(result_dir)
+    latest_symlink = os.path.join(base_dir, 'latest')
+    print("Latest symlink path is: ", latest_symlink)
+    print("Latest results path is: ", result_dir)
+    #Remove old latest link
+    if(os.path.isdir(latest_symlink)):
+        os.unlink(latest_symlink)
+    os.symlink(result_dir, base_dir / 'latest')
     return result_dir
 
 def write_system_info(output_dir, cpuinfo_dir):
@@ -262,6 +269,8 @@ def main(argv):
     args = parser.parse_args(argv[1:])
 
     result_dir = make_result_dir(args.results)
+
+    return 0
 
     write_system_info(result_dir, args.bins.parent / 'cpuinfo-install')
 
