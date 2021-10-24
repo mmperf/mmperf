@@ -270,8 +270,6 @@ def main(argv):
 
     result_dir = make_result_dir(args.results)
 
-    return 0
-
     write_system_info(result_dir, args.bins.parent / 'cpuinfo-install')
 
     # get only the executables
