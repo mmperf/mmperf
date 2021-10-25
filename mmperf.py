@@ -72,7 +72,10 @@ def make_result_dir(base_dir):
     #Remove old latest link
     if(os.path.isdir(latest_symlink)):
         os.unlink(latest_symlink)
-    os.symlink(result_dir, base_dir / 'latest')
+    cwd = os.getcwd()
+    os.chdir(base_dir)
+    os.symlink(timestamp, 'latest')
+    os.chdir(cwd)
     return result_dir
 
 def write_system_info(output_dir, cpuinfo_dir):
