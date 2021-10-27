@@ -4,18 +4,26 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
-#include "mlir/Conversion/ShapeToStandard/ShapeToStandard.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVM.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
+#include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
+#include "mlir/Conversion/LinalgToLLVM/LinalgToLLVM.h"
+#include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
+#include "mlir/Conversion/Passes.h"
+#include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
+#include "mlir/Conversion/VectorToSCF/VectorToSCF.h"
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Linalg/IR/LinalgOps.h"
 #include "mlir/Dialect/Linalg/Transforms/CodegenStrategy.h"
-#include "mlir/Dialect/Linalg/Transforms/Transforms.h"
 #include "mlir/Dialect/Linalg/Utils/Utils.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
+#include "mlir/Dialect/Vector/VectorOps.h"
 #include "mlir/Dialect/StandardOps/Transforms/Passes.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Parser.h"
@@ -71,9 +79,6 @@ struct Options {
 
 namespace {
 struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
-  void getDependentDialects(DialectRegistry &registry) const override {
-    registry.insert<linalg::LinalgDialect, AffineDialect, scf::SCFDialect>();
-  }
   LinalgCodegenPass() = default;
   LinalgCodegenPass(Options &options) {
     params.targetCPU = options.targetCPU;
@@ -83,26 +88,49 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
   LinalgCodegenPass(const LinalgCodegenPass &pass) {
     params = pass.params;
   }
+
+  void getDependentDialects(DialectRegistry &registry) const override {
+    // clang-format off
+    registry.insert<AffineDialect,
+                    linalg::LinalgDialect,
+                    memref::MemRefDialect,
+                    scf::SCFDialect,
+                    StandardOpsDialect,
+                    vector::VectorDialect>();
+    // clang-format on
+  }
+
+  template <typename LinalgNamedOp>
+  void applyStrategyToNamedLinalgOp();
+
   void runOnFunction() override;
 
   struct Parameters {
     std::string vectorWidth, targetCPU;
     std::string compileOptions;
+    bool fuse, fusePadding, licm, hoistRedundantVectorTransfers, vectorizePadding;
+    bool vectorTransferPartialRewrite, vectorContractLowering, vectorToSCFConversion;
+    int hoistPadding;
   };
   Parameters params;
+
+  void runStrategy(Nod::OptionsT& options,
+                   Parameters& params,
+                   StringRef anchorOpName);
+
   Nod::CompileOptionsT config;
 };
 }  // namespace
 
-template<typename LinalgOp>
-void performCompileOptions(Nod::OptionsT& options, mlir::FuncOp func) {
-  CodegenStrategy strategy;
-
+void performTileOptions(Nod::OptionsT& options,
+                        LinalgTilingOptions& tilingOptions,
+                        LinalgPromotionOptions& promoteOptions)
+{
   const auto& tileOptions = options.tile_options;
-  // Tile Codegen
+  // Tile Codegen Options
   if (tileOptions != NULL) {
     linalg::LinalgTilingLoopType loop_type = linalg::LinalgTilingLoopType::Loops;
-    switch(options.tile_options->loop_type) {
+    switch(tileOptions->loop_type) {
       case Nod::LinalgTilingLoopType_loops:
         loop_type = linalg::LinalgTilingLoopType::Loops;
         break;
@@ -128,20 +156,29 @@ void performCompileOptions(Nod::OptionsT& options, mlir::FuncOp func) {
       promoteOperands.push_back(tileOptions->promote_operands[i]);
     }
 
-    strategy.tileIf<LinalgOp>(!tileSizes.empty(), LinalgTilingOptions()
-                      .setTileSizes(tileSizes)
-                      .setInterchange(interchangeVector)
-                      .setLoopType(loop_type));
-    strategy.promoteIf<LinalgOp>(!promoteOperands.empty(), LinalgPromotionOptions()
-                      .setOperandsToPromote(tileOptions->promote_operands)
-                      .setUseFullTileBuffersByDefault(tileOptions->promote_full_tile)
-                      .setAlignment(getpagesize()));
+    if (!tileSizes.empty()){
+      tilingOptions = tilingOptions.setLoopType(loop_type);
+      tilingOptions = tilingOptions.setTileSizes(tileSizes);
+    }
+    if (!interchangeVector.empty()){
+      tilingOptions = tilingOptions.setInterchange(interchangeVector);
+    }
+    if (!promoteOperands.empty()){
+      promoteOptions = promoteOptions.setOperandsToPromote(tileOptions->promote_operands)
+                                     .setUseFullTileBuffersByDefault(tileOptions->promote_full_tile)
+                                     .setAlignment(getpagesize());
+    }
   }
+}
 
+void performVectorizeOptions(Nod::OptionsT& options,
+                             vector::VectorContractLowering& vectorContractLowering,
+                             vector::VectorTransferSplit& vectorTransferSplit,
+                             bool& unrollVectorTransfers)
+{
   const auto& vectorizeOptions = options.vectorize_options;
-  // Vectorize Codegen
+  // Vectorize Codegen Options
   if (vectorizeOptions != NULL) {
-    vector::VectorContractLowering vectorContractLowering = vector::VectorContractLowering::Dot;
     switch(vectorizeOptions->vectorize_to) {
       case Nod::VectorContractLowering_dot:
         vectorContractLowering = vector::VectorContractLowering::Dot;
@@ -152,9 +189,11 @@ void performCompileOptions(Nod::OptionsT& options, mlir::FuncOp func) {
       case Nod::VectorContractLowering_outer_product:
         vectorContractLowering = vector::VectorContractLowering::OuterProduct;
         break;
+      default:
+        vectorContractLowering = vector::VectorContractLowering::Dot;
+        break;
     }
 
-    vector::VectorTransferSplit vectorTransferSplit = vector::VectorTransferSplit::None;
     switch(vectorizeOptions->vector_transfer_split) {
       case Nod::VectorTransferSplit_none:
         vectorTransferSplit = vector::VectorTransferSplit::None;
@@ -165,19 +204,46 @@ void performCompileOptions(Nod::OptionsT& options, mlir::FuncOp func) {
       case Nod::VectorTransferSplit_vector_transfer:
         vectorTransferSplit = vector::VectorTransferSplit::VectorTransfer;
         break;
+      default:
+        vectorTransferSplit = vector::VectorTransferSplit::None;
+        break;
     }
-
-    strategy.vectorizeIf<LinalgOp>(vectorizeOptions != NULL)
-                      .setVectorTransformsOptions(
-                          vector::VectorTransformsOptions()
-                              .setVectorTransformsOptions(vectorContractLowering)
-                              .setVectorTransferSplit(vectorTransferSplit))
-                      .setVectorTransferToSCFOptions(
-                          VectorTransferToSCFOptions()
-                            .setUnroll(vectorizeOptions->unroll_vector_transfers));
+    unrollVectorTransfers = vectorizeOptions->unroll_vector_transfers;
   }
+}
 
-  strategy.transform(func);
+void LinalgCodegenPass::runStrategy(Nod::OptionsT& options,
+                                    Parameters& params,
+                                    StringRef anchorOpName) {
+  CodegenStrategy strategy;
+  LinalgTilingOptions tilingOptions;
+  LinalgPromotionOptions promoteOptions;
+  vector::VectorContractLowering vectorContractLowering;
+  vector::VectorTransferSplit vectorTransferSplit;
+  bool unrollVectorTransfers;
+
+  performTileOptions(options, tilingOptions, promoteOptions);
+  performVectorizeOptions(options, vectorContractLowering, vectorTransferSplit, unrollVectorTransfers);
+
+  strategy.tileIf(options.tile_options != NULL, anchorOpName, tilingOptions)
+          .promoteIf(!options.tile_options->promote_operands.empty(), anchorOpName, promoteOptions)
+          .vectorizeIf(options.vectorize_options != NULL, anchorOpName)
+          .setEnableVectorTransferPartialRewrite(true)
+          .setEnableVectorContractLowering(true)
+          .setEnableVectorToSCFConversion(true)
+          .setVectorTransformsOptions(
+              vector::VectorTransformsOptions()
+                  .setVectorTransformsOptions(vectorContractLowering)
+                  .setVectorTransferSplit(vectorTransferSplit))
+          .setVectorTransferToSCFOptions(
+              VectorTransferToSCFOptions().setUnroll(unrollVectorTransfers));
+
+  // Created a nested OpPassManager and run.
+  FuncOp funcOp = getFunction();
+  OpPassManager dynamicPM("builtin.func");
+  strategy.configurePassPipeline(dynamicPM, funcOp.getContext());
+  if (failed(runPipeline(dynamicPM, funcOp)))
+    return signalPassFailure();
 }
 
 void LinalgCodegenPass::runOnFunction() {
@@ -213,16 +279,21 @@ void LinalgCodegenPass::runOnFunction() {
   const auto& options = config.options;
   for (unsigned int option_index = 0; option_index < options.size(); option_index++) {
     const auto& option = options[option_index];
+    StringRef anchorOpName;
+
     // TODO: add matmul column major op
     switch (option->op) {
       case Nod::LinalgOperator_matmul:
-        performCompileOptions<MatmulOp>(*option, getFunction());
+        anchorOpName = "linalg.matmul";
+        runStrategy(*option, params, anchorOpName);
         break;
       case Nod::LinalgOperator_fill:
-        performCompileOptions<FillOp>(*option, getFunction());
+        anchorOpName = "linalg.fill";
+        runStrategy(*option, params, anchorOpName);
         break;
       case Nod::LinalgOperator_copy:
-        performCompileOptions<CopyOp>(*option, getFunction());
+        anchorOpName = "linalg.copy";
+        runStrategy(*option, params, anchorOpName);
         break;
       case Nod::LinalgOperator_unknown:
         std::cout << "Must define operator in compile options" << std::endl;
@@ -260,12 +331,16 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
 
   // Lower to LLVM
   pm.addPass(createConvertVectorToSCFPass());
-  pm.addPass(createLowerAffinePass());
   pm.addPass(createConvertLinalgToLoopsPass());
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createLowerAffinePass());
   pm.addPass(createLowerToCFGPass());
+  pm.addPass(createConvertLinalgToLLVMPass());
   pm.addPass(createConvertVectorToLLVMPass());
   pm.addPass(createMemRefToLLVMPass());
   pm.addPass(createLowerToLLVMPass());
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
 
   if (failed(pm.run(module))) {
     return make_string_error(Twine("error compiling to llvm backend"));
@@ -295,6 +370,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
+  mlir::registerLLVMDialectTranslation(registry);
   mlir::registerAllPasses();
 
   llvm::InitLLVM y(argc, argv);

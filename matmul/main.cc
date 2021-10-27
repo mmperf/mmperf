@@ -25,6 +25,8 @@
 #elif defined(MLIR_CUDA)
 #include "cuda_runtime.h"
 #include <sstream>
+#elif defined(MLIR)
+#include "mlir/ExecutionEngine/RunnerUtils.h"
 #endif
 #include <cstdio>
 #include <cstdlib>
@@ -53,7 +55,13 @@
 #endif
 #endif
 
-#if defined(MLIR) || defined(IREE_LLVM_SANDBOX)
+#if defined(MLIR)
+extern "C" void _mlir_ciface_print_memref_f32(UnrankedMemRefType<float> *M) {
+  //impl::printMemRef(*M);  // Uncomment to validate the MLIR results
+}
+#endif
+
+#if defined(IREE_LLVM_SANDBOX)
 extern "C" {
 struct memref_t {
   float *aligned;
@@ -62,17 +70,16 @@ struct memref_t {
   int64_t sizes[2];
   int64_t strides[2];
 };
-
-memref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
-                int64_t size_a0, int64_t size_a1, int64_t strides_a0, int64_t strides_a1,
-                float *aligned_b, float *allocated_b, int64_t offset_b,
-                int64_t size_b0, int64_t size_b1, int64_t strides_b0, int64_t strides_b1,
-                float *aligned_c, float *allocated_c, int64_t offset_c,
-                int64_t size_c0, int64_t size_c1, int64_t strides_c0, int64_t strides_c1);
+memeref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
+                 int64_t size_a0, int64_t size_a1, int64_t strides_a0, int64_t strides_a1,
+                 float *aligned_b, float *allocated_b, int64_t offset_b,
+                 int64_t size_b0, int64_t size_b1, int64_t strides_b0, int64_t strides_b1,
+                 float *aligned_c, float *allocated_c, int64_t offset_c,
+                 int64_t size_c0, int64_t size_c1, int64_t strides_c0, int64_t strides_c1);
 }
 #endif
 
-#if defined(MLIR_CUDA)
+#if defined(MLIR) || defined(MLIR_CUDA)
 extern "C" {
 struct memref_t {
   float *aligned;
@@ -197,9 +204,24 @@ void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, 
   }
 }
 
-static void BenchmarkFunction(float* A, float* B, float* C,
-                              benchmark::State& state) {
-#if defined(MLIR) || defined(IREE_LLVM_SANDBOX)
+static void BenchmarkFunction(benchmark::State& state) {
+float *A, *B, *C;
+
+#ifdef MLIR_CUDA
+  CHECK_CUDA(cudaMallocHost((void **) &A, MDIM * KDIM * sizeof(float)));
+  CHECK_CUDA(cudaMallocHost((void **) &B, KDIM * NDIM * sizeof(float)));
+  CHECK_CUDA(cudaMallocHost((void **) &C, MDIM * NDIM * sizeof(float)));
+#else
+  A = (float *) malloc(MDIM * KDIM * sizeof(float));
+  B = (float *) malloc(KDIM * NDIM * sizeof(float));
+  C = (float *) malloc(MDIM * NDIM * sizeof(float));
+#endif
+
+  init_matrix(A, MDIM, KDIM);
+  init_matrix(B, KDIM, NDIM);
+  init_matrix(C, MDIM, NDIM);
+
+#if defined(IREE_LLVM_SANDBOX)
   memref_t ret;
 #endif
 
@@ -314,7 +336,7 @@ static void BenchmarkFunction(float* A, float* B, float* C,
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 #elif defined(TVM)
     matmul(x, y, z);
-#elif defined(MLIR) || defined(IREE_LLVM_SANDBOX)
+#elif defined(IREE_LLVM_SANDBOX)
 #ifdef COLUMN_MAJOR
     ret = matmul(A, A, 0, MDIM, KDIM, 1, LDA,
                  B, B, 0, KDIM, NDIM, 1, LDB,
@@ -324,7 +346,7 @@ static void BenchmarkFunction(float* A, float* B, float* C,
                  B, B, 0, KDIM, NDIM, LDB, 1,
                  C, C, 0, MDIM, NDIM, LDC, 1);
 #endif
-#elif defined(MLIR_CUDA)
+#elif defined(MLIR) || defined(MLIR_CUDA)
 #ifdef COLUMN_MAJOR
     matmul(A, A, 0, MDIM, KDIM, 1, LDA,
            B, B, 0, KDIM, NDIM, 1, LDB,
@@ -353,8 +375,10 @@ static void BenchmarkFunction(float* A, float* B, float* C,
   CHECK_CUBLAS(cublasGetVector(MDIM * NDIM, sizeof(float), CC, 1, C, 1));
 #endif
 
+// TODO: matmul results are no longer saved to C in mlir, find another way for validation
 #ifdef ENABLE_CHECK
-  #if defined(MLIR) || defined(IREE_LLVM_SANDBOX)
+#if !defined(MLIR)
+  #if defined(IREE_LLVM_SANDBOX)
   C = ret.aligned;
   #endif
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
@@ -371,6 +395,7 @@ static void BenchmarkFunction(float* A, float* B, float* C,
   }
   printf("Detected %ld errors.\n", errors);
 #endif
+#endif
 
 #if defined(TVM)
   TVMArrayFree(x);
@@ -385,6 +410,12 @@ static void BenchmarkFunction(float* A, float* B, float* C,
   CHECK_CUDA(cudaFree(devA));
   CHECK_CUDA(cudaFree(devB));
   CHECK_CUDA(cudaFree(devC));
+#endif
+#if 0
+  // TODO: For the largest 3 matrix sizes in MLIR, this throws a munmap_chunk(): invalid_pointer
+  free(A);
+  free(B);
+  free(C);
 #endif
 }
 
@@ -423,33 +454,10 @@ int main(int argc, char **argv) {
 #endif
 
   ::benchmark::Initialize(&argc, argv);
-  float *A, *B, *C;
-
-#ifdef MLIR_CUDA
-  CHECK_CUDA(cudaMallocHost((void **) &A, MDIM * KDIM * sizeof(float)));
-  CHECK_CUDA(cudaMallocHost((void **) &B, KDIM * NDIM * sizeof(float)));
-  CHECK_CUDA(cudaMallocHost((void **) &C, MDIM * NDIM * sizeof(float)));
-#else
-  A = (float *) malloc(MDIM * KDIM * sizeof(float));
-  B = (float *) malloc(KDIM * NDIM * sizeof(float));
-  C = (float *) malloc(MDIM * NDIM * sizeof(float));
-#endif
-
-  init_matrix(A, MDIM, KDIM);
-  init_matrix(B, KDIM, NDIM);
-  init_matrix(C, MDIM, NDIM);
-  ::benchmark::RegisterBenchmark("BM_Matmul",
-                               [A, B, C](benchmark::State& state)
-                               -> void {BenchmarkFunction(A, B, C, state);})
-                               ->MeasureProcessCPUTime()->UseRealTime()
-                               ->Iterations(NUM_REPS); //For MLIR, iterations number has to be set
+  ::benchmark::RegisterBenchmark("BM_Matmul", [](benchmark::State& state)
+                               -> void {BenchmarkFunction(state);})
+                               ->MeasureProcessCPUTime()->UseRealTime();
+                               //->Iterations(NUM_REPS); //A fixed number of iterations can be set by uncomment this
   ::benchmark::RunSpecifiedBenchmarks();
-
-#if 0
-  // TODO: For the largest 3 matrix sizes in MLIR, this throws a munmap_chunk(): invalid_pointer
-  free(A);
-  free(B);
-  free(C);
-#endif
   return 0;
 }

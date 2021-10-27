@@ -112,12 +112,16 @@ function(compile_mlir_use_cuda mlir_prefix M N K)
   set(MLIR_TRANSLATE ${CMAKE_BINARY_DIR}/../mlir-install/bin/mlir-translate)
   add_custom_command(OUTPUT ${OBJ}
     COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
-    ${MLIR_OPT} --linalg-tile-to-parallel-loops=\"linalg-tile-sizes=${TILE_SIZES_LOCAL}\" |
-    ${MLIR_OPT} --convert-linalg-to-parallel-loops --test-gpu-greedy-parallel-loop-mapping |
-    ${MLIR_OPT} --convert-parallel-loops-to-gpu --gpu-kernel-outlining --lower-affine |
-    ${MLIR_OPT} --convert-scf-to-std --canonicalize |
-    ${MLIR_OPT} --pass-pipeline=\"gpu.module\(strip-debuginfo, convert-gpu-to-nvvm, gpu-to-cubin\)\" --gpu-to-llvm |
-    ${MLIR_TRANSLATE} --mlir-to-llvmir | opt -O3 -S | llc -O3 | as - -o ${OBJ}
+    ${MLIR_OPT} --linalg-tile=\"loop-type=parallel tile-sizes=${TILE_SIZES_LOCAL}\" |
+    ${MLIR_OPT} -fold-memref-subview-ops -canonicalize |
+    ${MLIR_OPT} -convert-vector-to-scf=full-unroll=true -convert-linalg-to-loops |
+    ${MLIR_OPT} -gpu-kernel-outlining |
+    ${MLIR_OPT} -lower-affine -convert-scf-to-std |
+    ${MLIR_OPT} -convert-vector-to-llvm -convert-memref-to-llvm -canonicalize -cse |
+    ${MLIR_OPT} -pass-pipeline=\"gpu.module\(strip-debuginfo,convert-gpu-to-nvvm,canonicalize,gpu-to-cubin\)\" -gpu-to-llvm -reconcile-unrealized-casts|
+    ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+    COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+    -c -o ${OBJ}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
 endfunction()
 
@@ -314,6 +318,7 @@ foreach(BACKEND ${BACKENDS})
       )
     elseif(${BACKEND} STREQUAL "mlir")
       target_compile_definitions(${MATMUL} PRIVATE MLIR)
+      target_include_directories(${MATMUL} PRIVATE ${CMAKE_BINARY_DIR}/../mlir-install/include)
     elseif(${BACKEND} STREQUAL "mlircuda")
       target_compile_definitions(${MATMUL} PRIVATE MLIR_CUDA)
       target_include_directories(${MATMUL} PRIVATE ${CUDA_INCLUDE_DIRS})
