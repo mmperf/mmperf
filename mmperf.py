@@ -66,6 +66,16 @@ def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
     result_dir = (base_dir / timestamp).resolve()
     os.makedirs(result_dir)
+    latest_symlink = os.path.join(base_dir, 'latest')
+    print("Latest symlink path is: ", latest_symlink)
+    print("Latest results path is: ", result_dir)
+    #Remove old latest link
+    if(os.path.isdir(latest_symlink)):
+        os.unlink(latest_symlink)
+    cwd = os.getcwd()
+    os.chdir(base_dir)
+    os.symlink(timestamp, 'latest')
+    os.chdir(cwd)
     return result_dir
 
 def write_system_info(output_dir, cpuinfo_dir):
