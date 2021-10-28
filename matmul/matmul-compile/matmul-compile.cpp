@@ -36,7 +36,6 @@
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/Passes.h"
 
-#include <filesystem>
 #include <fstream>
 #include <string>
 #include <unistd.h>
@@ -358,9 +357,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   llvm::raw_string_ostream ss(moduleStr);
   ss << *llvmModule;
 
-  std::string name = std::filesystem::path(std::string(options.inputFile)).stem();
-  name += ".ll";
-  std::ofstream output(name);
+  std::ofstream output(std::string(options.inputFile) + ".ll");
   output << moduleStr;
   output.close();
 
