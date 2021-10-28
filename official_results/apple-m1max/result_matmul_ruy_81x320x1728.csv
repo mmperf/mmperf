@@ -1,0 +1,8 @@
+Matrix-format: Row-Major
+Benchmarking Ruy 81 x 320 x 1728 
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+name,iterations,real_time,cpu_time,time_unit,bytes_per_second,items_per_second,label,error_occurred,error_message
+"BM_Matmul/process_time/real_time",651,1.03876e+06,1.03857e+06,ns,,,,,

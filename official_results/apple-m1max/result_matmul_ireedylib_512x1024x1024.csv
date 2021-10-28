@@ -1,0 +1,6 @@
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+name,iterations,real_time,cpu_time,time_unit,bytes_per_second,items_per_second,label,error_occurred,error_message
+"BM_Matmul/process_time/real_time",34,2.1026e+07,2.10153e+07,ns,,,,,
+matmul execution succeeded

@@ -1,0 +1,11 @@
+Matrix-format: Row-Major
+Benchmarking Accelerate 24 x 64 x 256 
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+name,iterations,real_time,cpu_time,time_unit,bytes_per_second,items_per_second,label,error_occurred,error_message
+"BM_Matmul/process_time/real_time",592282,1214.1,1213.82,ns,,,,,
