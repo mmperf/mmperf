@@ -53,13 +53,18 @@ def main():
 
     tile_sizes_file = open(args.output_file_name, "w")
     for matrix_size in matrix_sizes:
+        if matrix_size[0] == '#': continue
+        print(matrix_size)
         M, N, K = matrix_size.split('x')
         M = int(M)
         N = int(N)
         K = int(K)
-        first_tile_size = get_first_tile(M, N)
-        second_tile_size = get_second_tile(M/first_tile_size[0], N/first_tile_size[1])
-        third_tile_size = get_third_tile(K, max(first_tile_size[0],first_tile_size[1]))
+        try:
+            first_tile_size = get_first_tile(M, N)
+            second_tile_size = get_second_tile(M/first_tile_size[0], N/first_tile_size[1])
+            third_tile_size = get_third_tile(K, max(first_tile_size[0],first_tile_size[1]))
+        except:
+            print("Failed to generate tile sizes for", matrix_size)
 
         tile_sizes_file.write(str(first_tile_size[0])+','+str(first_tile_size[1])+'\n')
         tile_sizes_file.write(str(second_tile_size[0])+','+str(second_tile_size[1])+'\n')
