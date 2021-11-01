@@ -14,6 +14,7 @@ option(USE_TVM "Enable TVM" OFF)
 option(USE_TVM_CUDA "Enable cuda for TVM" OFF)
 option(USE_IREE "Enable IREE" OFF)
 option(USE_IREE_LLVM_SANDBOX "Enable IREE LLVM Sandbox" OFF)
+option(USE_IREE_LLVM_SANDBOX_CUDA "Enable CUDA for IREE LLVM Sandbox" OFF)
 
 # Backend specific options
 option(USE_TVM_TUNED "Use TVM Autotuned ops" OFF)
@@ -60,6 +61,7 @@ set(VARS_TO_COPY
     USE_MATMUL_COMPILE
     USE_IREE
     USE_IREE_LLVM_SANDBOX
+    USE_IREE_LLVM_SANDBOX_CUDA
     USE_COLUMN_MAJOR
     ENABLE_CHECK
     SIZE_FILE

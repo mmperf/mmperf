@@ -15,7 +15,7 @@ string(REGEX REPLACE ";" "\\\\;" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE "\n" ";" MATRIX_SIZES "${MATRIX_SIZES}")
 
 # Read tile sizes from file for iree-llvm-sandbox
-if(USE_IREE_LLVM_SANDBOX)
+if(USE_IREE_LLVM_SANDBOX_CUDA)
   file(READ ${SANDBOX_TILE_FILE} SANDBOX_TILE_SIZES)
   string(REGEX REPLACE "#[^\n]*\n" "" SANDBOX_TILE_SIZES "${SANDBOX_TILE_SIZES}")
   string(REGEX REPLACE ";" "\\\\;" SANDBOX_TILE_SIZES "${SANDBOX_TILE_SIZES}")
@@ -142,19 +142,18 @@ function(compile_llvm_sandbox_mlir mlir_prefix M N K)
   add_custom_command(
     OUTPUT ${OBJ}
     COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
-    ${MLIR_PROTO_OPT} -canonicalize -mlir-disable-threading
-    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=${FIRST_TILE_SIZE}\" |
-    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul distribute distribute-tile-sizes=${SECOND_TILE_SIZE}\" | 
-    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.matmul tile-sizes=${THIRD_TILE_SIZE} vectorize\" | 
-    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-strategy=\"anchor-func=matmul anchor-op=linalg.fill vectorize\" | 
+    ${MLIR_PROTO_OPT} -canonicalize -mlir-disable-threading |
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-driver=\"anchor-func=matmul anchor-op=linalg.matmul tile-sizes=${FIRST_TILE_SIZE}\" |
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-driver=\"anchor-func=matmul anchor-op=linalg.matmul tile-sizes=${SECOND_TILE_SIZE}\" |
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-driver=\"anchor-func=matmul anchor-op=linalg.matmul tile-sizes=${THIRD_TILE_SIZE}\" |
+    ${MLIR_PROTO_OPT} -linalg-tensor-codegen-driver=\"anchor-func=fill anchor-op=linalg.matmul\" |
     ${MLIR_OPT} --linalg-comprehensive-module-bufferize |
     ${MLIR_OPT} -fold-memref-subview-ops -canonicalize |
-    ${MLIR_PROTO_OPT} -canonicalize -linalg-tensor-codegen-strategy=\"convert-to-gpu num-gpu-workgrpoups=2,2 distribute-to-gpu-ids tiled-loop-to-scf\" | 
     ${MLIR_OPT} -convert-vector-to-scf=full-unroll=true -convert-linalg-to-loops | 
     ${MLIR_OPT} -gpu-kernel-outlining | 
     ${MLIR_OPT} -lower-affine -convert-scf-to-std |
     ${MLIR_OPT} -convert-vector-to-llvm -convert-memref-to-llvm -canonicalize -cse |
-    ${MLIR_OPT} -pass-pipeline=\"gpu.module\(strip-debuginfo,convert-gpu-to-nvvm,canonicalize,gpu-to-cubin\)\" -gpu-to-llvm |
+    ${MLIR_OPT} -pass-pipeline=\"gpu.module\(strip-debuginfo,convert-gpu-to-nvvm,canonicalize,gpu-to-cubin\)\" -gpu-to-llvm -reconcile-unrealized-casts|
     ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
     COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
     -c -o ${OBJ}
@@ -210,7 +209,7 @@ endif()
 if(USE_TVM_CUDA)
   list(APPEND BACKENDS tvmcuda)
 endif()
-if(USE_IREE_LLVM_SANDBOX)
+if(USE_IREE_LLVM_SANDBOX_CUDA)
   list(APPEND BACKENDS ireellvmsandbox)
 endif()
 

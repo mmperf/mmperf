@@ -61,25 +61,7 @@ extern "C" void _mlir_ciface_print_memref_f32(UnrankedMemRefType<float> *M) {
 }
 #endif
 
-#if defined(IREE_LLVM_SANDBOX)
-extern "C" {
-struct memref_t {
-  float *aligned;
-  float *allocated;
-  int64_t offset;
-  int64_t sizes[2];
-  int64_t strides[2];
-};
-memeref_t matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
-                 int64_t size_a0, int64_t size_a1, int64_t strides_a0, int64_t strides_a1,
-                 float *aligned_b, float *allocated_b, int64_t offset_b,
-                 int64_t size_b0, int64_t size_b1, int64_t strides_b0, int64_t strides_b1,
-                 float *aligned_c, float *allocated_c, int64_t offset_c,
-                 int64_t size_c0, int64_t size_c1, int64_t strides_c0, int64_t strides_c1);
-}
-#endif
-
-#if defined(MLIR) || defined(MLIR_CUDA)
+#if defined(MLIR) || defined(MLIR_CUDA) || defined(IREE_LLVM_SANDBOX) || defined(IREE_LLVM_SANDBOX_CUDA)
 extern "C" {
 struct memref_t {
   float *aligned;
@@ -221,9 +203,6 @@ float *A, *B, *C;
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
 
-#if defined(IREE_LLVM_SANDBOX)
-  memref_t ret;
-#endif
 
 #if defined(CUBLAS)
   cublasHandle_t handle;
@@ -336,17 +315,7 @@ float *A, *B, *C;
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 #elif defined(TVM)
     matmul(x, y, z);
-#elif defined(IREE_LLVM_SANDBOX)
-#ifdef COLUMN_MAJOR
-    ret = matmul(A, A, 0, MDIM, KDIM, 1, LDA,
-                 B, B, 0, KDIM, NDIM, 1, LDB,
-                 C, C, 0, MDIM, NDIM, 1, LDC);
-#else
-    ret = matmul(A, A, 0, MDIM, KDIM, LDA, 1,
-                 B, B, 0, KDIM, NDIM, LDB, 1,
-                 C, C, 0, MDIM, NDIM, LDC, 1);
-#endif
-#elif defined(MLIR) || defined(MLIR_CUDA)
+#elif defined(MLIR) || defined(MLIR_CUDA) || defined(IREE_LLVM_SANDBOX) || defined(IREE_LLVM_SANDBOX_CUDA)
 #ifdef COLUMN_MAJOR
     matmul(A, A, 0, MDIM, KDIM, 1, LDA,
            B, B, 0, KDIM, NDIM, 1, LDB,
@@ -377,10 +346,7 @@ float *A, *B, *C;
 
 // TODO: matmul results are no longer saved to C in mlir, find another way for validation
 #ifdef ENABLE_CHECK
-#if !defined(MLIR)
-  #if defined(IREE_LLVM_SANDBOX)
-  C = ret.aligned;
-  #endif
+#if !defined(MLIR) && !defined(IREE_LLVM_SANDBOX) && !defined(IREE_LLVM_SANDBOX_CUDA)
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
   naive_matmul(A,B,C2,MDIM,KDIM,NDIM);
@@ -443,6 +409,8 @@ int main(int argc, char **argv) {
   printf("Benchmarking MLIR CUDA %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(IREE_LLVM_SANDBOX)
   printf("Benchmarking IREE LLVM Sandbox %d x %d x %d \n", MDIM, NDIM, KDIM);
+  #elif defined(IREE_LLVM_SANDBOX_CUDA)
+  printf("Benchmarking IREE LLVM Sandbox CUDA %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(NAIVE)
   printf("Benchmarking Naive C %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(OPENBLAS)
