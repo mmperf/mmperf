@@ -123,7 +123,8 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
 
 void performTileOptions(Nod::OptionsT& options,
                         LinalgTilingOptions& tilingOptions,
-                        LinalgPromotionOptions& promoteOptions)
+                        bool& promote,
+                        bool& promote_full_tile)
 {
   const auto& tileOptions = options.tile_options;
   // Tile Codegen Options
@@ -142,31 +143,58 @@ void performTileOptions(Nod::OptionsT& options,
     }
 
     llvm::SmallVector<int64_t, 4> tileSizes;
-    llvm::SmallVector<unsigned int, 4> interchangeVector;
-    llvm::SmallVector<int64_t, 4> promoteOperands;
+    llvm::SmallVector<unsigned int, 4> tileInterchange;
 
     for (int i = 0; i < tileOptions->tile_sizes.size(); i++) {
       tileSizes.push_back(tileOptions->tile_sizes[i]);
     }
-    for (int i = 0; i < tileOptions->interchange_vector.size(); i++) {
-      interchangeVector.push_back(tileOptions->interchange_vector[i]);
-    }
-    for (int i = 0; i < tileOptions->promote_operands.size(); i++) {
-      promoteOperands.push_back(tileOptions->promote_operands[i]);
+    for (int i = 0; i < tileOptions->tile_interchange.size(); i++) {
+      tileInterchange.push_back(tileOptions->tile_interchange[i]);
     }
 
     if (!tileSizes.empty()){
       tilingOptions = tilingOptions.setLoopType(loop_type);
       tilingOptions = tilingOptions.setTileSizes(tileSizes);
     }
-    if (!interchangeVector.empty()){
-      tilingOptions = tilingOptions.setInterchange(interchangeVector);
+    if (!tileInterchange.empty()){
+      tilingOptions = tilingOptions.setInterchange(tileInterchange);
     }
-    if (!promoteOperands.empty()){
-      promoteOptions = promoteOptions.setOperandsToPromote(tileOptions->promote_operands)
-                                     .setUseFullTileBuffersByDefault(tileOptions->promote_full_tile)
-                                     .setAlignment(getpagesize());
+    promote = tileOptions->promote;
+    promote_full_tile = tileOptions->promote_full_tile;
+  }
+}
+
+void performPaddingOptions(Nod::OptionsT& options,
+                           LinalgPaddingOptions& paddingOptions,
+                           bool& pad)
+{
+  const auto& padOptions = options.pad_options;
+  // Padding Codegen Options
+  if (padOptions != NULL) {
+    pad = padOptions->pad;
+    llvm::SmallVector<int64_t, 4> pack_paddings;
+    llvm::SmallVector<int64_t, 4> hoist_paddings;
+
+    for (int i = 0; i < padOptions->pack_paddings.size(); i++) {
+      pack_paddings.push_back(padOptions->pack_paddings[i]);
     }
+    for (int i = 0; i < padOptions->hoist_paddings.size(); i++) {
+      hoist_paddings.push_back(padOptions->hoist_paddings[i]);
+    }
+
+
+    auto packFunc = [&](OpOperand &opOperand) {
+      return opOperand.getOperandNumber() < pack_paddings.size()
+             ? pack_paddings[opOperand.getOperandNumber()]
+             : false;
+    };
+    paddingOptions = paddingOptions.setPaddingNoFoldComputationFunction(packFunc);
+    auto hoistingFunc = [&](OpOperand &opOperand) {
+      return opOperand.getOperandNumber() < hoist_paddings.size()
+             ? hoist_paddings[opOperand.getOperandNumber()]
+             : 0;
+    };
+    paddingOptions = paddingOptions.setPaddingHoistComputationFunction(hoistingFunc);
   }
 }
 
@@ -216,26 +244,34 @@ void LinalgCodegenPass::runStrategy(Nod::OptionsT& options,
                                     StringRef anchorOpName) {
   CodegenStrategy strategy;
   LinalgTilingOptions tilingOptions;
-  LinalgPromotionOptions promoteOptions;
+  LinalgPaddingOptions paddingOptions;
   vector::VectorContractLowering vectorContractLowering;
   vector::VectorTransferSplit vectorTransferSplit;
-  bool unrollVectorTransfers;
+  bool unrollVectorTransfers, promote, promote_full_tile, pad;
 
-  performTileOptions(options, tilingOptions, promoteOptions);
+  performTileOptions(options, tilingOptions, promote, promote_full_tile);
+  performPaddingOptions(options, paddingOptions, pad);
   performVectorizeOptions(options, vectorContractLowering, vectorTransferSplit, unrollVectorTransfers);
 
   strategy.tileIf(options.tile_options != NULL, anchorOpName, tilingOptions)
-          .promoteIf(!options.tile_options->promote_operands.empty(), anchorOpName, promoteOptions)
+          .promoteIf(promote, anchorOpName,
+                     LinalgPromotionOptions()
+                        .setAlignment(16)
+                        .setUseFullTileBuffersByDefault(promote_full_tile))
+          .padIf(pad, anchorOpName, paddingOptions)
           .vectorizeIf(options.vectorize_options != NULL, anchorOpName)
-          .setEnableVectorTransferPartialRewrite(true)
-          .setEnableVectorContractLowering(true)
-          .setEnableVectorToSCFConversion(true)
-          .setVectorTransformsOptions(
-              vector::VectorTransformsOptions()
-                  .setVectorTransformsOptions(vectorContractLowering)
-                  .setVectorTransferSplit(vectorTransferSplit))
-          .setVectorTransferToSCFOptions(
-              VectorTransferToSCFOptions().setUnroll(unrollVectorTransfers));
+          .vectorLowering(
+            LinalgVectorLoweringOptions()
+              .setVectorTransformsOptions(
+                  vector::VectorTransformsOptions()
+                      .setVectorTransformsOptions(vectorContractLowering)
+                      .setVectorTransferSplit(vectorTransferSplit))
+              .setVectorTransferToSCFOptions(
+                  VectorTransferToSCFOptions().enableFullUnroll(
+                      unrollVectorTransfers))
+              .enableTransferPartialRewrite()
+              .enableContractionLowering()
+              .enableTransferToSCFConversion());
 
   // Created a nested OpPassManager and run.
   FuncOp funcOp = getFunction();

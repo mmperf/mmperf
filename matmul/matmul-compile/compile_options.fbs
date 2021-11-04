@@ -3,22 +3,28 @@ namespace Nod;
 enum LinalgTilingLoopType : byte {loops, affine_loops, parallel_loops}
 table TileOptions {
   tile_sizes:[int64];
-  interchange_vector:[uint32];
-  promote_operands:[int64];
-  promote_full_tile:bool;
+  tile_interchange:[uint32];
+  promote:bool = false;
+  promote_full_tile:bool = false;
   loop_type:LinalgTilingLoopType;
+}
+table PaddingOptions {
+  pad:bool = false;
+  pack_paddings:[int64];
+  hoist_paddings:[int64];
 }
 enum VectorContractLowering : byte {dot, matmul, outer_product}
 enum VectorTransferSplit: byte {none, linalg_copy, vector_transfer}
 table VectorizeOptions {
   vectorize_to:VectorContractLowering = dot;
   vector_transfer_split:VectorTransferSplit = none;
-  unroll_vector_transfers:bool;
+  unroll_vector_transfers:bool = false;
 }
 enum LinalgOperator: byte {unknown, matmul, copy, fill}
 table Options {
   op:LinalgOperator;
   tile_options:TileOptions;
+  pad_options: PaddingOptions;
   vectorize_options:VectorizeOptions;
 }
 table CompileOptions {

@@ -73,7 +73,7 @@ function(compile_mlir_use_mlir mlir_prefix M N K)
     COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile
     --compile-options ${TILE_BIN} --target-cpu=${TARGET_CPU} --vector-width=${VECTOR_WIDTH}
     ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir
-    COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+    COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir.ll
     -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
     -c -o ${OBJ} -g
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
@@ -122,8 +122,8 @@ function(compile_mlir_use_cuda mlir_prefix M N K)
     ${MLIR_OPT} -lower-affine -convert-scf-to-std |
     ${MLIR_OPT} -convert-vector-to-llvm -convert-memref-to-llvm -canonicalize -cse |
     ${MLIR_OPT} -pass-pipeline=\"gpu.module\(strip-debuginfo,convert-gpu-to-nvvm,canonicalize,gpu-to-cubin\)\" -gpu-to-llvm -reconcile-unrealized-casts|
-    ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
-    COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
+    ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir.ll
+    COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir.ll
     -c -o ${OBJ}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
 endfunction()

@@ -2,8 +2,7 @@
   {"op": "matmul",
     "tile_options":
       {"tile_sizes": [12, 32, 16],
-       "interchange_vector": [0, 1, 2],
-       "promote_full_tile": true
+       "tile_interchange": [0, 1, 2]
       },
     "vectorize_options":
       {"vectorize_to": "outer_product",
