@@ -19,26 +19,28 @@ include(AddMLIR)
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 
-include_directories(${iree_SOURCE_DIR})
-include_directories(${iree_SOURCE_DIR}/third_party/llvm-project/llvm/include)
-include_directories(${iree_SOURCE_DIR}/third_party/llvm-project/mlir/include)
-include_directories(${iree_SOURCE_DIR}/third_party/mlir-hlo/include)
-include_directories(${iree_BINARY_DIR}/third_party/llvm-project/llvm/include)
-include_directories(${iree_BINARY_DIR}/third_party/llvm-project/llvm/tools/mlir/include)
-include_directories(${iree_BINARY_DIR})
+include_directories(${IREE_SOURCE_DIR})
+include_directories(${IREE_SOURCE_DIR}/third_party/llvm-project/llvm/include)
+include_directories(${IREE_SOURCE_DIR}/third_party/llvm-project/mlir/include)
+include_directories(${IREE_SOURCE_DIR}/third_party/mlir-hlo/include)
+include_directories(${IREE_BINARY_DIR}/third_party/llvm-project/llvm/include)
+include_directories(${IREE_BINARY_DIR}/third_party/llvm-project/llvm/tools/mlir/include)
+include_directories(${IREE_BINARY_DIR})
 
 set(LIBS
   ${dialect_libs}
   ${conversion_libs}
   MLIRExecutionEngine
   LLVMX86AsmParser
+  iree::compiler::Codegen::Dialect::IREECodegenDialect
   iree::compiler::Codegen::Utils
   iree::compiler::Dialect::HAL::IR
   iree::compiler::Dialect::HAL::IR::HALDialect
+  iree::compiler::Dialect::Util::IR
 )
 
 add_llvm_executable(add-tiling-attribute-pass add-tiling-attribute-pass.cpp)
 add_dependencies(add-tiling-attribute-pass run)
 llvm_update_compile_flags(add-tiling-attribute-pass)
-target_link_libraries(add-tiling-attribute-pass PRIVATE ${LIBS})
+target_link_libraries(add-tiling-attribute-pass PRIVATE stdc++fs ${LIBS})
 mlir_check_all_link_libraries(add-tiling-attribute-pass)
