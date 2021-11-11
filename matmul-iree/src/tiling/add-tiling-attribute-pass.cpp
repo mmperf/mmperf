@@ -16,6 +16,7 @@
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "iree/compiler/Codegen/Dialect/IREECodegenDialect.h"
 #include "iree/compiler/Codegen/Dialect/LoweringConfig.h"
 #include "mlir-hlo/Dialect/mhlo/IR/hlo_ops.h"
 
@@ -199,6 +200,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
+  registry.insert<IREE::Codegen::IREECodegenDialect>();
 
   llvm::InitLLVM y(argc, argv);
   llvm::InitializeNativeTarget();
