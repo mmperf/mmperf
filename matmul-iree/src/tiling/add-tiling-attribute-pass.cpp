@@ -16,7 +16,7 @@
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "iree/compiler/Dialect/HAL/IR/LoweringConfig.h"
+#include "iree/compiler/Codegen/Dialect/LoweringConfig.h"
 #include "mlir-hlo/Dialect/mhlo/IR/hlo_ops.h"
 
 #include <filesystem>
@@ -53,7 +53,7 @@ struct Options {
 
 namespace {
 template<typename T>
-void populateSmallVector(std::vector<T> vec, SmallVector<T, 4> &smallvec) {
+void populateSmallVector(std::vector<T> vec, SmallVector<T> &smallvec) {
   for (auto el : vec) {
     smallvec.push_back(el);
   }
@@ -63,36 +63,42 @@ void populateSmallVector(std::vector<T> vec, SmallVector<T, 4> &smallvec) {
 struct AddTiling : public OpRewritePattern<mhlo::DotOp> {
   using OpRewritePattern<mhlo::DotOp>::OpRewritePattern;
 
-  AddTiling(MLIRContext *ctx, iree_compiler::TileSizesListType _tileSizes, SmallVector<int64_t, 4> _nativeVectorSizes) : OpRewritePattern<mhlo::DotOp>(ctx), tileSizes(_tileSizes), nativeVectorSizes(_nativeVectorSizes) {}
+  AddTiling(MLIRContext *ctx,
+            iree_compiler::TileSizesListType _tileSizes,
+            SmallVector<int64_t> _nativeVectorSizes) : OpRewritePattern<mhlo::DotOp>(ctx),
+            tileSizes(_tileSizes),
+            nativeVectorSizes(_nativeVectorSizes) {}
   LogicalResult matchAndRewrite(mhlo::DotOp op, PatternRewriter &rewriter) const override {
     // exit if op already has lowering.config attribute
-    if (op->hasAttr("lowering.config")) {
+    if (op->hasAttr("compilation.info")) {
       return failure();
     }
     // Set lowering config
-    OpBuilder builder(op->getContext());
-    ArrayAttr tileSizesAttr = nullptr;
-    if (!tileSizes.empty()) {
-      auto attrList = llvm::to_vector<4>(
-          llvm::map_range(tileSizes, [&](ArrayRef<int64_t> sizes) -> Attribute {
-            return builder.getI64ArrayAttr(sizes);
-          }));
-      tileSizesAttr = builder.getArrayAttr(attrList);
-    }
-    ArrayAttr nativeVectorSizesAttr = nullptr;
-    if (!nativeVectorSizes.empty()) {
-      nativeVectorSizesAttr = builder.getI64ArrayAttr(nativeVectorSizes);
-    }
-    iree_compiler::IREE::HAL::DispatchLoweringPassPipeline passPipeline =
-      iree_compiler::IREE::HAL::DispatchLoweringPassPipeline::CPUTensorToVectors;
-    auto passPipelineAttr = builder.getStringAttr("CPUTensorToVectors");
-    auto config = iree_compiler::IREE::HAL::LoweringConfig::get(tileSizesAttr, nativeVectorSizesAttr,
-                    /*passPipeline=*/passPipelineAttr, /*workgroupSize=*/nullptr, op->getContext());
-    iree_compiler::setLoweringConfig(op, config);
+//    OpBuilder builder(op->getContext());
+//    ArrayAttr tileSizesAttr = nullptr;
+//    if (!tileSizes.empty()) {
+//      auto attrList = llvm::to_vector<4>(
+//          llvm::map_range(tileSizes, [&](ArrayRef<int64_t> sizes) -> Attribute {
+//            return builder.getI64ArrayAttr(sizes);
+//          }));
+//      tileSizesAttr = builder.getArrayAttr(attrList);
+//    }
+//    ArrayAttr nativeVectorSizesAttr = nullptr;
+//    if (!nativeVectorSizes.empty()) {
+//      nativeVectorSizesAttr = builder.getI64ArrayAttr(nativeVectorSizes);
+//    }
+
+//    iree_compiler::IREE::Codegen::CompilationInfoAttr::get(op->getContext(), tileSizes, nativeVectorSizes,
+//                                  /*workgroupSize =*/ArrayRef<int64_t>{});
+    iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
+                          op->getContext(), tileSizes, nativeVectorSizes,
+                          iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUTensorToVectors,
+                          /*workloadPerWorkgroup =*/ArrayRef<int64_t>{},
+                          /*workgroupSize =*/ArrayRef<int64_t>{});
     return success();
   }
   iree_compiler::TileSizesListType tileSizes;
-  SmallVector<int64_t, 4> nativeVectorSizes;
+  SmallVector<int64_t> nativeVectorSizes;
 };
 
 struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleOp>> {
@@ -122,7 +128,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
     Nod::GetTileOptions(data)->UnPackTo(&config);
 
     // Set tiling vectors
-    SmallVector<int64_t, 4> workGroupSizes, cacheTileSizes, nativeVectorSizes;
+    SmallVector<int64_t> workGroupSizes, cacheTileSizes, nativeVectorSizes;
     populateSmallVector<int64_t>(config.work_group_sizes, workGroupSizes);
     populateSmallVector<int64_t>(config.cache_tile_sizes, cacheTileSizes);
     populateSmallVector<int64_t>(config.register_tile_sizes, nativeVectorSizes);
