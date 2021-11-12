@@ -5,8 +5,8 @@ namespace Nod;
 // 2) cache tile sizes: used for cache tiling (3 sizes for matmul)
 // 3) register tile sizes: used for register tiling and vectorization (3 sizes for matmul)
 table TileOptions {
-  work_group_sizes:[int64];
-  cache_tile_sizes:[int64];
-  register_tile_sizes:[int64];
+  work_group_tile_sizes:[int64];
+  l1_tile_sizes:[int64];
+  vector_tile_sizes:[int64];
 }
 root_type TileOptions;
