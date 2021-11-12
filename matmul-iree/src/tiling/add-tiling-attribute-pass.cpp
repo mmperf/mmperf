@@ -178,6 +178,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   ModuleOp module = *moduleRef;
   PassManager pm(&context);
   pm.addPass(createIREETilingPass(options));
+  pm.addPass(createCanonicalizerPass());
 
   if (failed(pm.run(module))) {
     return make_string_error(Twine("error compiling to llvm backend"));
