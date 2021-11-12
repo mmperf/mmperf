@@ -20,7 +20,6 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "iree/compiler/Codegen/Dialect/LoweringConfig.h"
 #include "iree/compiler/Codegen/Dialect/IREECodegenDialect.h"
-#include "iree/compiler/Dialect/HAL/IR/HALDialect.h"
 #include "mlir-hlo/Dialect/mhlo/IR/hlo_ops.h"
 
 #include <filesystem>
