@@ -7,6 +7,7 @@ add_custom_command(OUTPUT compile_options_generated.h
   ${CMAKE_CURRENT_SOURCE_DIR}/compile_options.fbs
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/compile_options.fbs
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/compile_options.fbs  compile_options_generated.h
 )
 add_custom_target(run ALL DEPENDS compile_options_generated.h)
 
