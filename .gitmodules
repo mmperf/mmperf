@@ -9,7 +9,7 @@
 	url = https://github.com/pytorch/cpuinfo
 [submodule "external/Halide"]
 	path = external/Halide
-	url = https://github.com/powderluv/Halide.git
+	url = https://github.com/halide/Halide.git
 [submodule "external/tvm"]
 	path = external/tvm
 	url = https://github.com/apache/tvm.git
