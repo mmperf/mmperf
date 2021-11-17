@@ -250,7 +250,7 @@ void LinalgCodegenPass::runStrategy(Nod::OptionsT& options,
   bool unrollVectorTransfers, promote, promote_full_tile, pad;
 
   performTileOptions(options, tilingOptions, promote, promote_full_tile);
-  performPaddingOptions(options, paddingOptions, pad);
+  //performPaddingOptions(options, paddingOptions, pad);
   performVectorizeOptions(options, vectorContractLowering, vectorTransferSplit, unrollVectorTransfers);
 
   strategy.tileIf(options.tile_options != NULL, anchorOpName, tilingOptions)
@@ -258,7 +258,7 @@ void LinalgCodegenPass::runStrategy(Nod::OptionsT& options,
                      LinalgPromotionOptions()
                         .setAlignment(16)
                         .setUseFullTileBuffersByDefault(promote_full_tile))
-          .padIf(pad, anchorOpName, paddingOptions)
+          //.padIf(pad, anchorOpName, paddingOptions)
           .vectorizeIf(options.vectorize_options != NULL, anchorOpName)
           .vectorLowering(
             LinalgVectorLoweringOptions()
