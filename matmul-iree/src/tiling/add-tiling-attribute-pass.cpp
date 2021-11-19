@@ -18,6 +18,7 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "iree/compiler/Codegen/Passes.h"
 #include "iree/compiler/Codegen/Dialect/LoweringConfig.h"
 #include "iree/compiler/Codegen/Dialect/IREECodegenDialect.h"
 #include "mlir-hlo/Dialect/mhlo/IR/hlo_ops.h"
@@ -82,13 +83,20 @@ struct AddTiling : public OpRewritePattern<mhlo::DotOp> {
 
     auto compilationAttr = iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
                           op->getContext(), tileSizes, nativeVectorSizes,
-                          iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUTensorToVectors,
+                          iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUTileFuseAndVectorize,
                           workloadPerWorkgroup,
                           /*workgroupSize =*/ArrayRef<int64_t>{});
+
+    // Currently, verification only works for pass pipeline 'CPUTensorToVectors'
+    LogicalResult status = iree_compiler::verifyLoweringConfiguration(
+            op, compilationAttr.getLoweringConfig(), compilationAttr.getTranslationInfo(),
+            /*workgroupSize =*/ArrayRef<int64_t>{});
+    if (failed(status)) return failure();
 
     rewriter.updateRootInPlace(op, [&]() {
         op->setAttr("compilation.info", compilationAttr);
     });
+
     return success();
   }
   iree_compiler::TileSizesListType tileSizes;
