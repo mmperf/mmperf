@@ -33,6 +33,7 @@ set(LIBS
   ${conversion_libs}
   MLIRExecutionEngine
   LLVMX86AsmParser
+  iree::compiler::Codegen
   iree::compiler::Codegen::Dialect::IREECodegenDialect
   iree::compiler::Codegen::Utils
   iree::compiler::Dialect::HAL::IR
