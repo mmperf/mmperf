@@ -123,6 +123,8 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
 
 void performTileOptions(Nod::OptionsT& options,
                         LinalgTilingOptions& tilingOptions,
+                        LinalgTilingAndFusionOptions tilingAndFusionOptions,
+                        bool& fuse,
                         bool& promote,
                         bool& promote_full_tile)
 {
@@ -143,7 +145,7 @@ void performTileOptions(Nod::OptionsT& options,
     }
 
     llvm::SmallVector<int64_t, 4> tileSizes;
-    llvm::SmallVector<unsigned int, 4> tileInterchange;
+    llvm::SmallVector<int64_t, 4> tileInterchange;
 
     for (int i = 0; i < tileOptions->tile_sizes.size(); i++) {
       tileSizes.push_back(tileOptions->tile_sizes[i]);
@@ -152,12 +154,24 @@ void performTileOptions(Nod::OptionsT& options,
       tileInterchange.push_back(tileOptions->tile_interchange[i]);
     }
 
-    if (!tileSizes.empty()){
-      tilingOptions = tilingOptions.setLoopType(loop_type);
-      tilingOptions = tilingOptions.setTileSizes(tileSizes);
+    fuse = tileOptions->fuse;
+    if (fuse){
+      if (!tileSizes.empty()){
+        tilingAndFusionOptions.tileSizes = {tileSizes.begin(), tileSizes.end()};
+      }
+      if (!tileInterchange.empty()){
+        tilingAndFusionOptions.tileInterchange = {tileInterchange.begin(), tileInterchange.end()};
+      }
     }
-    if (!tileInterchange.empty()){
-      tilingOptions = tilingOptions.setInterchange(tileInterchange);
+    else{
+      if (!tileSizes.empty()){
+        tilingOptions = tilingOptions.setLoopType(loop_type);
+        tilingOptions = tilingOptions.setTileSizes(tileSizes);
+      }
+      if (!tileInterchange.empty()){
+        tilingOptions = tilingOptions.setInterchange(
+                            SmallVector<unsigned>(tileInterchange.begin(), tileInterchange.end()));
+      }
     }
     promote = tileOptions->promote;
     promote_full_tile = tileOptions->promote_full_tile;
@@ -244,16 +258,18 @@ void LinalgCodegenPass::runStrategy(Nod::OptionsT& options,
                                     StringRef anchorOpName) {
   CodegenStrategy strategy;
   LinalgTilingOptions tilingOptions;
+  LinalgTilingAndFusionOptions tilingAndFusionOptions;
   LinalgPaddingOptions paddingOptions;
   vector::VectorContractLowering vectorContractLowering;
   vector::VectorTransferSplit vectorTransferSplit;
-  bool unrollVectorTransfers, promote, promote_full_tile, pad;
+  bool unrollVectorTransfers, promote, promote_full_tile, pad, fuse;
 
-  performTileOptions(options, tilingOptions, promote, promote_full_tile);
+  performTileOptions(options, tilingOptions, tilingAndFusionOptions, fuse, promote, promote_full_tile);
   //performPaddingOptions(options, paddingOptions, pad);
   performVectorizeOptions(options, vectorContractLowering, vectorTransferSplit, unrollVectorTransfers);
 
-  strategy.tileIf(options.tile_options != NULL, anchorOpName, tilingOptions)
+  strategy.tileIf(!fuse && options.tile_options != NULL, anchorOpName, tilingOptions)
+          .tileAndFuseIf(fuse && options.tile_options != NULL, anchorOpName, tilingAndFusionOptions)
           .promoteIf(promote, anchorOpName,
                      LinalgPromotionOptions()
                         .setAlignment(16)

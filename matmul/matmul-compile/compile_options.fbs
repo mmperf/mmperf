@@ -3,7 +3,8 @@ namespace Nod;
 enum LinalgTilingLoopType : byte {loops, affine_loops, parallel_loops}
 table TileOptions {
   tile_sizes:[int64];
-  tile_interchange:[uint32];
+  tile_interchange:[int64];
+  fuse:bool = false;
   promote:bool = false;
   promote_full_tile:bool = false;
   loop_type:LinalgTilingLoopType;
