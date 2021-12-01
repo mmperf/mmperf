@@ -1,3 +1,9 @@
-../../../../build/flatbuffers-install/bin/flatc -b ../compile_options.fbs iree-tiling.json && \
-cat ../../matmul_MxNxK.mlir | sed 's@${M}@'"256"'@g' | sed 's@${N}@'"256"'@g' | sed 's@${K}@'"256"'@g' > matmul.mlir && \
-../../../../build/matmul-iree/src/tiling/add-tiling-attribute-pass matmul.mlir --compile-options "./iree-tiling.bin"
+# Test mhlo.dot
+../../../../build/flatbuffers-install/bin/flatc -b ../compile_options.fbs matmul_mhlo.json && \
+cat ../../matmul_MxNxK.mlir | sed 's@${M}@'"256"'@g' | sed 's@${N}@'"256"'@g' | sed 's@${K}@'"256"'@g' > matmul_mhlo.mlir && \
+../../../../build/matmul-iree/src/tiling/add-tiling-attribute-pass matmul_mhlo.mlir --compile-options "./matmul_mhlo.bin"
+
+# Test linalg.matmul
+../../../../build/flatbuffers-install/bin/flatc -b ../compile_options.fbs matmul_linalg.json && \
+cat ../../matmul_linalg_MxNxK.mlir | sed 's@${M}@'"256"'@g' | sed 's@${N}@'"256"'@g' | sed 's@${K}@'"256"'@g' > matmul_linalg.mlir && \
+../../../../build/matmul-iree/src/tiling/add-tiling-attribute-pass matmul_linalg.mlir --compile-options "./matmul_linalg.bin"

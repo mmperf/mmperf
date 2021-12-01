@@ -21,6 +21,8 @@
 #include "iree/compiler/Codegen/Passes.h"
 #include "iree/compiler/Codegen/Dialect/LoweringConfig.h"
 #include "iree/compiler/Codegen/Dialect/IREECodegenDialect.h"
+#include "iree/compiler/Dialect/HAL/IR/HALDialect.h"
+#include "iree/compiler/Dialect/Util/IR/UtilDialect.h"
 #include "mlir-hlo/Dialect/mhlo/IR/hlo_ops.h"
 
 #include <filesystem>
@@ -63,19 +65,20 @@ void populateSmallVector(std::vector<T> vec, SmallVector<T> &smallvec) {
   }
 }
 
-// Adds lowering.config attribute to mhlo.dot op for tiling
-struct AddTiling : public OpRewritePattern<mhlo::DotOp> {
-  using OpRewritePattern<mhlo::DotOp>::OpRewritePattern;
+// Adds lowering.config attribute to mhlo.dot/linalg.matmul op for tiling
+template <typename OpT>
+struct AddTiling : public OpRewritePattern<OpT> {
+  using OpRewritePattern<OpT>::OpRewritePattern;
 
   AddTiling(MLIRContext *ctx,
             iree_compiler::TileSizesListType _tileSizes,
             SmallVector<int64_t> _nativeVectorSizes,
-            SmallVector<int64_t> _workloadPerWorkgroup) : OpRewritePattern<mhlo::DotOp>(ctx),
+            SmallVector<int64_t> _workloadPerWorkgroup) : OpRewritePattern<OpT>(ctx),
             tileSizes(_tileSizes),
             nativeVectorSizes(_nativeVectorSizes),
             workloadPerWorkgroup(_workloadPerWorkgroup) {}
 
-  LogicalResult matchAndRewrite(mhlo::DotOp op, PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(OpT op, PatternRewriter &rewriter) const override {
     // exit if op already has lowering.config attribute
     if (op->hasAttr("compilation.info")) {
       return failure();
@@ -113,10 +116,6 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
     params = pass.params;
   }
 
-  void getDependentDialects(DialectRegistry &registry) const override {
-    registry.insert<iree_compiler::IREE::Codegen::IREECodegenDialect>();
-  }
-
   void runOnOperation() override {
     // Load CompileOptions from file
     std::ifstream infile;
@@ -132,20 +131,37 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
     char *data = new char[length];
     infile.read(data, length);
     infile.close();
-    Nod::GetTileOptions(data)->UnPackTo(&config);
+    Nod::GetCompileOptions(data)->UnPackTo(&config);
 
-    // Set tiling vectors
-    SmallVector<int64_t> workloadPerWorkgroup, L1TileSizes, nativeVectorSizes;
-    populateSmallVector<int64_t>(config.work_group_tile_sizes, workloadPerWorkgroup);
-    populateSmallVector<int64_t>(config.l1_tile_sizes, L1TileSizes);
-    populateSmallVector<int64_t>(config.vector_tile_sizes, nativeVectorSizes);
-    iree_compiler::TileSizesListType tileSizes = {{}, L1TileSizes, nativeVectorSizes};
-
-    // Appy pattern rewrite to add lowering.config attribute to mhlo.dot op
+    // Appy pattern rewrite to add lowering.config attribute to op
     auto moduleOp = getOperation();
     MLIRContext *context = &getContext();
     OwningRewritePatternList patterns(&getContext());
-    patterns.insert<AddTiling>(context, tileSizes, nativeVectorSizes, workloadPerWorkgroup);
+
+    const auto& options = config.options;
+      for (unsigned int option_index = 0; option_index < options.size(); option_index++) {
+        const auto& option = options[option_index];
+
+        // Set tiling vectors
+        SmallVector<int64_t> workloadPerWorkgroup, L1TileSizes, nativeVectorSizes;
+        populateSmallVector<int64_t>(option->work_group_tile_sizes, workloadPerWorkgroup);
+        populateSmallVector<int64_t>(option->l1_tile_sizes, L1TileSizes);
+        populateSmallVector<int64_t>(option->vector_tile_sizes, nativeVectorSizes);
+        iree_compiler::TileSizesListType tileSizes = {{}, L1TileSizes, nativeVectorSizes};
+
+        switch (option->op) {
+          case Nod::IREEOperator_mhlo_dot:
+            patterns.insert<AddTiling<mhlo::DotOp>>(context, tileSizes, nativeVectorSizes, workloadPerWorkgroup);
+            break;
+          case Nod::IREEOperator_linalg_matmul:
+            patterns.insert<AddTiling<linalg::MatmulOp>>(context, tileSizes, nativeVectorSizes, workloadPerWorkgroup);
+            break;
+          case Nod::IREEOperator_unknown:
+            std::cout << "Must define operator in compile options" << std::endl;
+            exit(1);
+        }
+      }
+
     if (failed(applyPatternsAndFoldGreedily(moduleOp, std::move(patterns)))) {
       signalPassFailure();
     }
@@ -155,7 +171,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
     std::string compileOptions;
   };
   Parameters params;
-  Nod::TileOptionsT config;
+  Nod::CompileOptionsT config;
 };
 }  // namespace
 
@@ -207,6 +223,9 @@ int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
   mlir::registerLLVMDialectTranslation(registry);
+  registry.insert<iree_compiler::IREE::Codegen::IREECodegenDialect,
+                  iree_compiler::IREE::Util::UtilDialect,
+                  iree_compiler::IREE::HAL::HALDialect>();
   mlir::registerAllPasses();
 
   llvm::InitLLVM y(argc, argv);
