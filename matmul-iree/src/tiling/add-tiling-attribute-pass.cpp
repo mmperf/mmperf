@@ -113,7 +113,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         iree_compiler::TileSizesListType tileSizes = {{}, L1TileSizes, nativeVectorSizes};
 
         auto compilationAttr = iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
-                               op->getContext(), L1TileSizes, nativeVectorSizes,
+                               op->getContext(), tileSizes, nativeVectorSizes,
                                iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUTileFuseAndVectorize,
                                workloadPerWorkgroup,
                                /*workgroupSize =*/ArrayRef<int64_t>{});
