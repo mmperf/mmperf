@@ -4,9 +4,7 @@ namespace Nod;
 // 1) work group sizes: used for parallelizing spatial loops (2 sizes for matmul)
 // 2) cache tile sizes: used for cache tiling (3 sizes for matmul)
 // 3) register tile sizes: used for register tiling and vectorization (3 sizes for matmul)
-enum IREEOperator: byte {unknown, mhlo_dot, linalg_matmul}
 table TileOptions {
-  op:IREEOperator;
   work_group_tile_sizes:[int64];
   l1_tile_sizes:[int64];
   vector_tile_sizes:[int64];

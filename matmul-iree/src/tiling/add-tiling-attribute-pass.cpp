@@ -65,48 +65,6 @@ void populateSmallVector(std::vector<T> vec, SmallVector<T> &smallvec) {
   }
 }
 
-// Adds lowering.config attribute to mhlo.dot/linalg.matmul op for tiling
-template <typename OpT>
-struct AddTiling : public OpRewritePattern<OpT> {
-  using OpRewritePattern<OpT>::OpRewritePattern;
-
-  AddTiling(MLIRContext *ctx,
-            iree_compiler::TileSizesListType _tileSizes,
-            SmallVector<int64_t> _nativeVectorSizes,
-            SmallVector<int64_t> _workloadPerWorkgroup) : OpRewritePattern<OpT>(ctx),
-            tileSizes(_tileSizes),
-            nativeVectorSizes(_nativeVectorSizes),
-            workloadPerWorkgroup(_workloadPerWorkgroup) {}
-
-  LogicalResult matchAndRewrite(OpT op, PatternRewriter &rewriter) const override {
-    // exit if op already has lowering.config attribute
-    if (op->hasAttr("compilation.info")) {
-      return failure();
-    }
-
-    auto compilationAttr = iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
-                          op->getContext(), tileSizes, nativeVectorSizes,
-                          iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUTileFuseAndVectorize,
-                          workloadPerWorkgroup,
-                          /*workgroupSize =*/ArrayRef<int64_t>{});
-
-    // Currently, verification only works for pass pipeline 'CPUTensorToVectors'
-    LogicalResult status = iree_compiler::verifyLoweringConfiguration(
-            op, compilationAttr.getLoweringConfig(), compilationAttr.getTranslationInfo(),
-            /*workgroupSize =*/ArrayRef<int64_t>{});
-    if (failed(status)) return failure();
-
-    rewriter.updateRootInPlace(op, [&]() {
-        op->setAttr("compilation.info", compilationAttr);
-    });
-
-    return success();
-  }
-  iree_compiler::TileSizesListType tileSizes;
-  SmallVector<int64_t> nativeVectorSizes;
-  SmallVector<int64_t> workloadPerWorkgroup;
-};
-
 struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleOp>> {
   IREETilingPass() = default;
   IREETilingPass(Options &options) {
@@ -135,12 +93,17 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
 
     // Appy pattern rewrite to add lowering.config attribute to op
     auto moduleOp = getOperation();
-    MLIRContext *context = &getContext();
     OwningRewritePatternList patterns(&getContext());
-
     const auto& options = config.options;
-      for (unsigned int option_index = 0; option_index < options.size(); option_index++) {
-        const auto& option = options[option_index];
+    int count = 0;
+
+    moduleOp->walk([&](Operation *nestedOp) {
+      auto linalg_matmul = llvm::dyn_cast<linalg::MatmulOp>(nestedOp);
+      auto mhlo_dot = llvm::dyn_cast<mhlo::DotOp>(nestedOp);
+
+      if(mhlo_dot || linalg_matmul) {
+        const auto& option = (count < options.size()) ? options[count++] : options.back();
+        auto op = mhlo_dot ? mhlo_dot : linalg_matmul;
 
         // Set tiling vectors
         SmallVector<int64_t> workloadPerWorkgroup, L1TileSizes, nativeVectorSizes;
@@ -149,22 +112,21 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         populateSmallVector<int64_t>(option->vector_tile_sizes, nativeVectorSizes);
         iree_compiler::TileSizesListType tileSizes = {{}, L1TileSizes, nativeVectorSizes};
 
-        switch (option->op) {
-          case Nod::IREEOperator_mhlo_dot:
-            patterns.insert<AddTiling<mhlo::DotOp>>(context, tileSizes, nativeVectorSizes, workloadPerWorkgroup);
-            break;
-          case Nod::IREEOperator_linalg_matmul:
-            patterns.insert<AddTiling<linalg::MatmulOp>>(context, tileSizes, nativeVectorSizes, workloadPerWorkgroup);
-            break;
-          case Nod::IREEOperator_unknown:
-            std::cout << "Must define operator in compile options" << std::endl;
-            exit(1);
-        }
-      }
+        auto compilationAttr = iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
+                               op->getContext(), L1TileSizes, nativeVectorSizes,
+                               iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUTileFuseAndVectorize,
+                               workloadPerWorkgroup,
+                               /*workgroupSize =*/ArrayRef<int64_t>{});
 
-    if (failed(applyPatternsAndFoldGreedily(moduleOp, std::move(patterns)))) {
-      signalPassFailure();
-    }
+        // Currently, verification only works for pass pipeline 'CPUTensorToVectors'
+        LogicalResult status = iree_compiler::verifyLoweringConfiguration(
+                op, compilationAttr.getLoweringConfig(), compilationAttr.getTranslationInfo(),
+                /*workgroupSize =*/ArrayRef<int64_t>{});
+        if (failed(status)) signalPassFailure();
+
+        op->setAttr("compilation.info", compilationAttr);
+      }
+    });
   }
 
   struct Parameters {
@@ -225,7 +187,8 @@ int main(int argc, char **argv) {
   mlir::registerLLVMDialectTranslation(registry);
   registry.insert<iree_compiler::IREE::Codegen::IREECodegenDialect,
                   iree_compiler::IREE::Util::UtilDialect,
-                  iree_compiler::IREE::HAL::HALDialect>();
+                  iree_compiler::IREE::HAL::HALDialect,
+                  mlir::mhlo::MhloDialect>();
   mlir::registerAllPasses();
 
   llvm::InitLLVM y(argc, argv);
