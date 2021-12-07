@@ -1,0 +1,10 @@
+{"options": [
+  {"work_group_tile_sizes" : [32, 32],
+   "l1_tile_sizes" : [32, 8, 16],
+   "vector_tile_sizes" : [4, 4, 4]
+   },
+  {"work_group_tile_sizes" : [16, 16],
+   "l1_tile_sizes" : [16, 8, 32],
+   "vector_tile_sizes" : [2, 2, 2]
+   }]
+}
