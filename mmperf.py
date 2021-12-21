@@ -228,23 +228,34 @@ def _gpu_nsys_permutation(i, path, msize, perm_name, warm_up_runs=5):
     except:
         return i, False, 0.0
 
-def sandbox_perf(matrix_path):
+def sandbox_perf(matrix_path, build_path):
     try:
         cmd = 'cp iree_sandbox_matmul.py ./external/iree-llvm-sandbox/python/examples/matmul'
         subprocess.run(cmd, shell=True, check=True)
+    except Exception:
+        print("Error copying iree_sandbox_matmul.py")
+        raise
 
+    try:
+        os.environ["PYTHONPATH"] = os.path.join(build_path, "mlir/tools/iree_llvm_sandbox/python_package")
+        os.environ["MLIR_RUNNER_UTILS_LIB"] = os.path.join(build_path, "mlir/lib/libmlir_runner_utils.so")
         cmd = f'python -m python.examples.matmul.iree_sandbox_matmul {matrix_path}'
         dst_f = './external/iree-llvm-sandbox'
-        subprocess.run(cmd, shell=True, check=True, cwd=dst_f)
+        result = subprocess.run(cmd, shell=True, check=True, timeout=20, cwd=dst_f)
+    except subprocess.TimeoutExpired:
+        print("\033[31m" + "FAILED" + "\033[m")
+        print("  -> Execution timed out")
+        return False
+    if result.returncode != 0:
+        print("\033[31m" + "FAILED" + "\033[m")
+        print(f"  -> Returned error code {result.returncode}")
+        return False
 
-        with open('sandbox_matmul_results.json', 'r') as f:
-            data = json.load(f)
-            speeds = data[1]
-            f.close()
-        return speeds
-    except Exception:
-        print("Error running iree-llvm-sandbox")
-        raise
+    with open('sandbox_matmul_results.json', 'r') as f:
+        data = json.load(f)
+        speeds = data[1]
+        f.close()
+    return speeds
 
 def _worker_init(result_dir, env):
     global _result_dir, _env, _num_tasks, _done_tasks
@@ -304,7 +315,8 @@ def main(argv):
     # run iree-llvm-sandbox using python api
     if args.sandbox:
         matrix_path = os.path.join(os.getcwd(), args.matrix_sizes)
-        sandbox_speeds = sandbox_perf(matrix_path)
+        build_path = args.bins.parent.absolute()
+        sandbox_speeds = sandbox_perf(matrix_path, build_path)
 
     # run them in parallel and collect the results
     speeds = do_permutations(args.jobs, list(x.name for x in bin_paths), args.bins, result_dir, BENCHMARK_ENV)
@@ -320,12 +332,14 @@ def main(argv):
     if args.sandbox:
         with open(args.matrix_sizes, 'r') as f:
             all_sizes = f.readlines()
-        for i, line in enumerate(all_sizes):
+        i = 0
+        for line in all_sizes:
             if line[0] == '#':
                 continue
             size = tuple(int(x) for x in line.split('x'))
             binaries.setdefault('ireellvmsandbox', []).append(
                 {'path': '', 'size': size, 'speed': sandbox_speeds[i]})
+            i += 1
 
     # used to impose a consistent sorting of the matrix sizes in the plot
     bar_ordering = list(collections.OrderedDict.fromkeys(y['size'] for x in binaries for y in binaries[x]))
