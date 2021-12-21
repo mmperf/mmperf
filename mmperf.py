@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import GPUtil
 import csv
+import json
 
 plt.style.use('ggplot')
 
@@ -61,6 +62,9 @@ def add_arguments(parser):
     parser.add_argument('bins', type=path_expand, help='Path where the test binaries are')
     parser.add_argument('results', type=path_expand, help='Result directory')
     parser.add_argument('-j', '--jobs', type=int, default=1, help='Number of parallel jobs for running the benchmarks')
+    parser.add_argument('-sandbox', action='store_true', help='Whether to run matmul in iree-llvm-sandbox')
+    parser.add_argument('-matrix_sizes', dest='matrix_sizes', default='benchmark_sizes/benchmark_small_sizes.txt',
+                        help='Path to file containing matrix sizes to be run')
 
 def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
@@ -224,6 +228,24 @@ def _gpu_nsys_permutation(i, path, msize, perm_name, warm_up_runs=5):
     except:
         return i, False, 0.0
 
+def sandbox_perf(matrix_path):
+    try:
+        cmd = 'cp iree_sandbox_matmul.py ./external/iree-llvm-sandbox/python/examples/matmul'
+        subprocess.run(cmd, shell=True, check=True)
+
+        cmd = f'python -m python.examples.matmul.iree_sandbox_matmul {matrix_path}'
+        dst_f = './external/iree-llvm-sandbox'
+        subprocess.run(cmd, shell=True, check=True, cwd=dst_f)
+
+        with open('sandbox_matmul_results.json', 'r') as f:
+            data = json.load(f)
+            speeds = data[1]
+            f.close()
+        return speeds
+    except Exception:
+        print("Error running iree-llvm-sandbox")
+        raise
+
 def _worker_init(result_dir, env):
     global _result_dir, _env, _num_tasks, _done_tasks
     print('worker init')
@@ -253,7 +275,7 @@ def do_permutations(jobs, perms, bin_path, result_dir, env, duration=None):
         for i, perm in enumerate(perms):
             perm_name = perm.split('_')[1]
             matrix_size = perm.split('_')[2]
-            #enable if you want nsys outpu
+            #enable if you want nsys output
             #if perm_name in ['tvmcuda', 'ireecuda', 'mlircuda', 'cublas']:
             #    async_results[i] = pool.apply_async(_gpu_nsys_permutation, (i, bin_path / perm, matrix_size, perm_name), callback=callback)
             #else:
@@ -279,6 +301,11 @@ def main(argv):
     bin_paths = [x for x in args.bins.iterdir() if
                 x.is_file() and x.stat().st_mode & 0o111 and x.name.startswith('matmul')]
 
+    # run iree-llvm-sandbox using python api
+    if args.sandbox:
+        matrix_path = os.path.join(os.getcwd(), args.matrix_sizes)
+        sandbox_speeds = sandbox_perf(matrix_path)
+
     # run them in parallel and collect the results
     speeds = do_permutations(args.jobs, list(x.name for x in bin_paths), args.bins, result_dir, BENCHMARK_ENV)
     # break up and interpret the file names
@@ -289,6 +316,16 @@ def main(argv):
         size = tuple(int(y) for y in parts[1].split('x'))
         binaries.setdefault(parts[0], []).append(
             {'path': path.resolve(), 'size': size, 'speed': speeds[i]})
+
+    if args.sandbox:
+        with open(args.matrix_sizes, 'r') as f:
+            all_sizes = f.readlines()
+        for i, line in enumerate(all_sizes):
+            if line[0] == '#':
+                continue
+            size = tuple(int(x) for x in line.split('x'))
+            binaries.setdefault('ireellvmsandbox', []).append(
+                {'path': '', 'size': size, 'speed': sandbox_speeds[i]})
 
     # used to impose a consistent sorting of the matrix sizes in the plot
     bar_ordering = list(collections.OrderedDict.fromkeys(y['size'] for x in binaries for y in binaries[x]))
