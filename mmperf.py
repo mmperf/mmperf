@@ -38,12 +38,11 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'tvmcuda': 'darkslateblue',
               'naive': 'black',
               'nodai': 'red',
-              'nodai-1': 'dodgerblue',
-              'nodai-2': 'purple',
               'ireevmvx': 'thistle',
               'ireedylib': 'aqua',
               'ireecuda': 'deeppink',
-              'ireellvmsandbox': 'wheat'}
+              'ireellvmsandbox': 'wheat',
+              'nodai-sandbox': 'dodgerblue'}
 BENCHMARK_ENV = os.environ.copy()
 BENCHMARK_ENV.update({
     "MKL_NUM_THREADS": "1",
@@ -59,12 +58,18 @@ def path_expand(s):
     return Path(s).expanduser().resolve()
 
 def add_arguments(parser):
-    parser.add_argument('bins', type=path_expand, help='Path where the test binaries are')
-    parser.add_argument('results', type=path_expand, help='Result directory')
-    parser.add_argument('-j', '--jobs', type=int, default=1, help='Number of parallel jobs for running the benchmarks')
-    parser.add_argument('-sandbox', action='store_true', help='Whether to run matmul in iree-llvm-sandbox')
-    parser.add_argument('-matrix_sizes', dest='matrix_sizes', default='benchmark_sizes/benchmark_small_sizes.txt',
+    parser.add_argument('bins', type=path_expand,
+                        help='Path where the test binaries are')
+    parser.add_argument('results', type=path_expand,
+                        help='Result directory')
+    parser.add_argument('-j', '--jobs', type=int, default=1,
+                        help='Number of parallel jobs for running the benchmarks')
+    parser.add_argument('-sandbox', action='store_true',
+                        help='Whether to run matmul in iree-llvm-sandbox')
+    parser.add_argument('-benchmark_path', dest='benchmark_path',
                         help='Path to file containing matrix sizes to be run')
+    parser.add_argument('-configs_path', dest='configs_path',
+                        help='Path to parameter configs')
 
 def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
@@ -228,18 +233,12 @@ def _gpu_nsys_permutation(i, path, msize, perm_name, warm_up_runs=5):
     except:
         return i, False, 0.0
 
-def sandbox_perf(matrix_path, build_path):
+def sandbox_perf(file_path, use_configs=False):
     try:
-        cmd = 'cp iree_sandbox_matmul.py ./external/iree-llvm-sandbox/python/examples/matmul'
-        subprocess.run(cmd, shell=True, check=True)
-    except Exception:
-        print("Error copying iree_sandbox_matmul.py")
-        raise
-
-    try:
-        os.environ["PYTHONPATH"] = os.path.join(build_path, "mlir/tools/iree_llvm_sandbox/python_package")
-        os.environ["MLIR_RUNNER_UTILS_LIB"] = os.path.join(build_path, "mlir/lib/libmlir_runner_utils.so")
-        cmd = f'python -m python.examples.matmul.iree_sandbox_matmul {matrix_path}'
+        if use_configs == True:
+            cmd = f'python -m python.examples.matmul.iree_sandbox_matmul -config_path {file_path}'
+        else:
+            cmd = f'python -m python.examples.matmul.iree_sandbox_matmul -matrix_path {file_path}'
         dst_f = './external/iree-llvm-sandbox'
         result = subprocess.run(cmd, shell=True, check=True, timeout=20, cwd=dst_f)
     except subprocess.TimeoutExpired:
@@ -253,9 +252,10 @@ def sandbox_perf(matrix_path, build_path):
 
     with open('sandbox_matmul_results.json', 'r') as f:
         data = json.load(f)
+        matrix_sizes = data[0]
         speeds = data[1]
         f.close()
-    return speeds
+    return matrix_sizes, speeds
 
 def _worker_init(result_dir, env):
     global _result_dir, _env, _num_tasks, _done_tasks
@@ -314,9 +314,22 @@ def main(argv):
 
     # run iree-llvm-sandbox using python api
     if args.sandbox:
-        matrix_path = os.path.join(os.getcwd(), args.matrix_sizes)
         build_path = args.bins.parent.absolute()
-        sandbox_speeds = sandbox_perf(matrix_path, build_path)
+        os.environ["PYTHONPATH"] = os.path.join(build_path, "mlir/tools/iree_llvm_sandbox/python_package")
+        os.environ["MLIR_RUNNER_UTILS_LIB"] = os.path.join(build_path, "mlir/lib/libmlir_runner_utils.so")
+        try:
+            cmd = 'cp iree_sandbox_matmul.py ./external/iree-llvm-sandbox/python/examples/matmul'
+            subprocess.run(cmd, shell=True, check=True)
+        except Exception:
+            print("Error copying iree_sandbox_matmul.py")
+            raise
+
+        if args.benchmark_path:
+            file_path = os.path.join(os.getcwd(), args.benchmark_path)
+            sandbox_sizes, sandbox_speeds = sandbox_perf(file_path)
+        if args.configs_path:
+            file_path = args.configs_path
+            nodai_sandbox_sizes, nodai_sandbox_speeds = sandbox_perf(file_path, use_configs=True)
 
     # run them in parallel and collect the results
     speeds = do_permutations(args.jobs, list(x.name for x in bin_paths), args.bins, result_dir, BENCHMARK_ENV)
@@ -330,16 +343,14 @@ def main(argv):
             {'path': path.resolve(), 'size': size, 'speed': speeds[i]})
 
     if args.sandbox:
-        with open(args.matrix_sizes, 'r') as f:
-            all_sizes = f.readlines()
-        i = 0
-        for line in all_sizes:
-            if line[0] == '#':
-                continue
-            size = tuple(int(x) for x in line.split('x'))
-            binaries.setdefault('ireellvmsandbox', []).append(
-                {'path': '', 'size': size, 'speed': sandbox_speeds[i]})
-            i += 1
+        if args.benchmark_path:
+            for i, size in enumerate(sandbox_sizes):
+                binaries.setdefault('ireellvmsandbox', []).append(
+                    {'path': '', 'size': tuple(size), 'speed': sandbox_speeds[i]})
+        if args.configs_path:
+            for i, size in enumerate(nodai_sandbox_sizes):
+                binaries.setdefault('nodai-sandbox', []).append(
+                    {'path': '', 'size': tuple(size), 'speed': nodai_sandbox_speeds[i]})
 
     # used to impose a consistent sorting of the matrix sizes in the plot
     bar_ordering = list(collections.OrderedDict.fromkeys(y['size'] for x in binaries for y in binaries[x]))
