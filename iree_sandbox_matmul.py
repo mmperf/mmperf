@@ -22,6 +22,12 @@ def singleExpert(configs, default=False):
     configs[0]['tile_sizes'] = [12, 32, 8]
     configs[0]['tile_interchange'] = [0, 1, 2]
 
+  if default == True or 'pack_padding' not in configs[0]:
+    configs[0]['pack_padding'] = [1, 1, 0]
+  if default == True or 'hoist_padding' not in configs[0]:
+    configs[0]['hoist_padding'] = [2, 3, 0]
+    print(configs[0]['hoist_padding'])
+
   all_experts = [
     e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
       SingleTilingExpert('matmul_on_tensors',
@@ -29,18 +35,23 @@ def singleExpert(configs, default=False):
                          tile_sizes=configs[0]['tile_sizes'],
                          tile_interchange=configs[0]['tile_interchange'],
                          pad=True,
-                         pack_paddings=[1, 1, 0],
-                         hoist_paddings=[2, 3, 0])]]
+                         pack_paddings=configs[0]['pack_padding'],
+                         hoist_paddings=configs[0]['hoist_padding'])]]
   return all_experts
 
 
 def doubleExpert(configs, default=False):
   if default == True:
     # Use default config values from iree-llvm-sandbox
-    configs[0]['tile_sizes'] = [288, 128, 512]
-    configs[0]['tile_interchange'] = [0, 2, 1]
-    configs[1]['tile_sizes'] = [9, 32, 16]
-    configs[1]['tile_interchange'] = [0, 1, 2]
+    configs[0]['tile_sizes'] = [128, 384, 512]
+    configs[0]['tile_interchange'] = [2, 1, 0]
+    configs[1]['tile_sizes'] = [12, 32, 1]
+    configs[1]['tile_interchange'] = [1, 0, 2]
+  
+  if default == True or 'pack_padding' not in configs[0]:
+    configs[0]['pack_padding'] = [1, 1, 0]
+  if default == True or 'hoist_padding' not in configs[0]:
+    configs[0]['hoist_padding'] = [3, 2, 0]
 
   all_experts = [
     e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
@@ -51,13 +62,12 @@ def doubleExpert(configs, default=False):
                              tile_sizes2=configs[1]['tile_sizes'],
                              tile_interchange2=configs[1]['tile_interchange'],
                              pad2=True,
-                             pack_paddings2=[1, 1, 0],
-                             hoist_paddings2=[5, 6, 0]).then( \
-        Vectorize('matmul_on_tensors',
-                  'linalg.generic')).then( \
-        LoweringOnlyExpert('matmul_on_tensors',
-                           'linalg.generic',
-                           transpose_lowering='eltwise'))
+                             pack_paddings2=configs[0]['pack_padding'],
+                             hoist_paddings2=configs[0]['hoist_padding'])
+        .then(Vectorize('matmul_on_tensors', 'linalg.generic'))
+        .then(LoweringOnlyExpert('matmul_on_tensors',
+                                 'linalg.generic',
+                                 transpose_lowering='eltwise'))
     ]]
   return all_experts
 
