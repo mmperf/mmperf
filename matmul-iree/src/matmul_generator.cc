@@ -85,12 +85,12 @@ static void BenchmarkFunction(iree_vm_context_t* context,
   // Read back the results and ensure we got the right values.
   iree_hal_buffer_mapping_t mapped_memory;
   float *C = (float *) malloc(MDIM * NDIM * sizeof(float));
-  IREE_CHECK_OK(iree_hal_buffer_map_range(
-      iree_hal_buffer_view_buffer(ret_buffer_view), IREE_HAL_MEMORY_ACCESS_READ,
-      0, IREE_WHOLE_BUFFER, &mapped_memory));
-  for (int i = 0; i < mapped_memory.contents.data_length / sizeof(float); ++i) {
+  float results[MDIM * NDIM];
+  IREE_CHECK_OK(iree_hal_buffer_read_data(iree_hal_buffer_view_buffer(ret_buffer_view), 0,
+                                results, sizeof(results)));
+  for (iree_host_size_t i = 0; i < IREE_ARRAYSIZE(results); ++i) {
     // Accessing the output elements
-    C[i] = ((const float*)mapped_memory.contents.data)[i];
+    C[i] = results[i];
   }
 
 #ifdef ENABLE_CHECK
