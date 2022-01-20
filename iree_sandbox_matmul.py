@@ -18,15 +18,14 @@ from pathlib import Path
 
 def singleExpert(configs, default=False):
   if default == True:
-    # Use default config values from iree-llvm-sandbox
-    configs[0]['tile_sizes'] = [12, 32, 8]
+    # Use default config values from iree-llvm-sandbox SingleTiling3D
+    configs[0]['tile_sizes'] = [12, 32, 16]
     configs[0]['tile_interchange'] = [0, 1, 2]
 
   if default == True or 'pack_padding' not in configs[0]:
     configs[0]['pack_padding'] = [1, 1, 0]
   if default == True or 'hoist_padding' not in configs[0]:
     configs[0]['hoist_padding'] = [2, 3, 0]
-    print(configs[0]['hoist_padding'])
 
   all_experts = [
     e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
@@ -39,12 +38,11 @@ def singleExpert(configs, default=False):
                          hoist_paddings=configs[0]['hoist_padding'])]]
   return all_experts
 
-
 def doubleExpert(configs, default=False):
   if default == True:
-    # Use default config values from iree-llvm-sandbox
+    # Use default config values from iree-llvm-sandbox DoubleTileAndDecompose2DLarge
     configs[0]['tile_sizes'] = [128, 384, 512]
-    configs[0]['tile_interchange'] = [2, 1, 0]
+    configs[0]['tile_interchange'] = [0, 1, 2]
     configs[1]['tile_sizes'] = [12, 32, 1]
     configs[1]['tile_interchange'] = [1, 0, 2]
   
@@ -71,15 +69,66 @@ def doubleExpert(configs, default=False):
     ]]
   return all_experts
 
+def singleExpert2D():
+  all_experts = [
+    e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
+      SingleTilingExpert('matmul_on_tensors',
+                         'linalg.generic',
+                         tile_sizes=[12, 32, 1],
+                         tile_interchange=[0, 1, 2],
+                         pad=True,
+                         pack_paddings=[1, 1, 0],
+                         hoist_paddings=[2, 3, 0])]]
+  return all_experts
+
+def doubleExpert2D():
+  all_experts = [
+    e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
+      DoubleTileAndDecompose('matmul_on_tensors',
+                             'linalg.generic',
+                             tile_sizes1=[288, 128, 512],
+                             tile_interchange1=[0, 2, 1],
+                             tile_sizes2=[12, 32, 1],
+                             tile_interchange2=[0, 1, 2],
+                             pad2=True,
+                             pack_paddings2=[1, 1, 0],
+                             hoist_paddings2=[5, 6, 0])
+        .then(Vectorize('matmul_on_tensors', 'linalg.generic'))
+        .then(UnrollOneParentLoop('matmul_on_tensors',
+                                  'vector.contract',
+                                  parent_loop_num=1,
+                                  unroll_factor=4))
+        .then(LoweringOnlyExpert('matmul_on_tensors',
+                                 'linalg.generic',
+                                 transpose_lowering='eltwise'))
+    ]]
+  return all_experts
+
+def doubleExpert3D():
+  all_experts = [
+    e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
+      DoubleTileAndDecompose('matmul_on_tensors',
+                             'linalg.generic',
+                             tile_sizes1=[288, 128, 512],
+                             tile_interchange1=[0, 2, 1],
+                             tile_sizes2=[12, 32, 16],
+                             tile_interchange2=[0, 1, 2],
+                             pad2=True,
+                             pack_paddings2=[1, 1, 0],
+                             hoist_paddings2=[5, 6, 0])
+        .then(Vectorize('matmul_on_tensors', 'linalg.generic'))
+        .then(LoweringOnlyExpert('matmul_on_tensors',
+                                 'linalg.generic',
+                                 transpose_lowering='eltwise'))
+    ]]
+  return all_experts
+
 
 ################################################################################
 ### Problem instantiations.
 ################################################################################
 
 keys = ['m', 'n', 'k']
-
-def make_size_list(sizes: Sequence):
-  return {k: v for k, v in zip(keys, sizes)}
 
 def path_expand(s):
   return Path(s).expanduser().resolve()
@@ -93,8 +142,11 @@ def main(argv):
   args = parser.parse_args(argv[1:])
 
   n_iters = 100
-  expert_lists = ["single_tiling_expert", "double_tile_and_decompose"]
-
+  expert_lists = ["SingleTiling2D",
+                  "SingleTiling3D",
+                  "DoubleTileAndDecompose2D",
+                  "DoubleTileAndDecompose3D",
+                  "DoubleTileAndDecompose2DLarge"]
   speeds = []
   experts = []
   matrix_sizes = []
@@ -104,22 +156,25 @@ def main(argv):
       all_sizes = f.readlines()
       f.close()
 
-    all_experts = singleExpert([{}, {}], True) + doubleExpert([{}, {}], True)
+    all_experts = singleExpert2D() + \
+                  singleExpert([{}, {}], True) + \
+                  doubleExpert2D() + \
+                  doubleExpert3D() + \
+                  doubleExpert([{}, {}], True)
+
     for line in all_sizes:
       if line[0] == '#':
         continue
       m_size = [int(x) for x in line.split('x')]
       matrix_sizes.append(m_size)
 
-      results = test_harness(lambda s, t: EinsumProblem('mk,kn'), [[np.float32] * 3],
-                             map(make_size_list, [m_size]),
+      results = test_harness(lambda s, t: EinsumProblem('km,kn', 2), [[np.float32] * 3],
+                             test_sizes(keys, [m_size]),
                              all_experts,
                              n_iters=n_iters,
                              function_name='matmul_on_tensors')
 
-      expert_gflops = []
-      for key, value in results.items():
-        expert_gflops.append(value['gflop_per_s_per_iter'][4])
+      expert_gflops = results.data['gflop_per_s_per_iter'][50].values.tolist()
       max_gflops = max(expert_gflops)
       speeds.append(max_gflops)
       experts.append(expert_lists[expert_gflops.index(max_gflops)])
@@ -138,15 +193,13 @@ def main(argv):
       else:
         all_experts = doubleExpert(configs)
 
-      results = test_harness(lambda s, t: EinsumProblem('mk,kn'), [[np.float32] * 3],
-                      map(make_size_list, [matrix_size]),
+      results = test_harness(lambda s, t: EinsumProblem('km,kn', 2), [[np.float32] * 3],
+                      test_sizes(make_size_list, [matrix_size]),
                       all_experts,
                       n_iters=n_iters,
                       function_name='matmul_on_tensors')
 
-      expert_gflops = []
-      for key, value in results.items():
-        expert_gflops.append(value['gflop_per_s_per_iter'][4])
+      expert_gflops = results.data['gflop_per_s_per_iter'][50].values.tolist()
       max_gflops = max(expert_gflops)
       speeds.append(max_gflops)
       experts.append(expert_lists[expert_gflops.index(max_gflops)])
