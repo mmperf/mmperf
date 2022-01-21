@@ -1,13 +1,17 @@
 namespace Nod;
 
 // Iree tiling interface has 3 levels of tiling
-// 1) work group sizes: used for parallelizing spatial loops (2 sizes for matmul)
+// 1) work group tile sizes: used for parallelizing spatial loops (2 sizes for matmul)
 // 2) cache tile sizes: used for cache tiling (3 sizes for matmul)
 // 3) register tile sizes: used for register tiling and vectorization (3 sizes for matmul)
+
+enum PipelineType : byte {CPU, GPU}
 table TileOptions {
   work_group_tile_sizes:[int64];
   l1_tile_sizes:[int64];
   vector_tile_sizes:[int64];
+  work_group_sizes:[int64];
+  pipeline: PipelineType;
 }
 table CompileOptions {
   options:[TileOptions];

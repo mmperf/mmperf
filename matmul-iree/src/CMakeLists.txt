@@ -42,6 +42,4 @@ foreach(MATRIX_SIZE ${MATRIX_SIZES})
   
 endforeach()
 
-if(${IREE_DYLIB} OR ${IREE_VMVX})
-  add_subdirectory(tiling)
-endif()
+add_subdirectory(tiling)
