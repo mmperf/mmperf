@@ -242,7 +242,7 @@ def sandbox_perf(file_path, num_iters, use_configs=False):
         else:
             cmd = f'python -m python.examples.matmul.iree_sandbox_matmul -matrix_path {file_path} -n_iters {num_iters}'
         dst_f = './external/iree-llvm-sandbox'
-        result = subprocess.run(cmd, shell=True, check=True, timeout=20, cwd=dst_f)
+        result = subprocess.run(cmd, shell=True, check=True, cwd=dst_f)
     except subprocess.TimeoutExpired:
         print("\033[31m" + "FAILED" + "\033[m")
         print("  -> Execution timed out")

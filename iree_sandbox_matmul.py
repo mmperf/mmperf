@@ -18,7 +18,7 @@ from pathlib import Path
 
 def singleExpert(configs, default=False):
   if default == True:
-    # Use default config values from iree-llvm-sandbox SingleTiling3D
+    # Use default config values from iree-llvm-sandbox SingleTiling3DPad
     configs[0]['tile_sizes'] = [12, 32, 16]
     configs[0]['tile_interchange'] = [0, 1, 2]
 
@@ -29,71 +29,44 @@ def singleExpert(configs, default=False):
 
   all_experts = [
     e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
-      SingleTilingExpert('matmul_on_tensors',
-                         'linalg.generic',
-                         tile_sizes=configs[0]['tile_sizes'],
-                         tile_interchange=configs[0]['tile_interchange'],
-                         pad=True,
-                         pack_paddings=configs[0]['pack_padding'],
-                         hoist_paddings=configs[0]['hoist_padding'])]]
+      Tile('matmul_on_tensors',
+           'linalg.generic',
+           tile_sizes=configs[0]['tile_sizes'],
+           tile_interchange=configs[0]['tile_interchange'],
+           pad=True,
+           pack_paddings=configs[0]['pack_padding'],
+           hoist_paddings=configs[0]['hoist_padding'])
+        .then(Vectorize('matmul_on_tensors', ''))
+        .then(LoweringOnlyExpert('matmul_on_tensors', 'linalg.generic'))
+    ]]
   return all_experts
 
 def doubleExpert(configs, default=False):
   if default == True:
-    # Use default config values from iree-llvm-sandbox DoubleTileAndDecompose2DLarge
-    configs[0]['tile_sizes'] = [128, 384, 512]
-    configs[0]['tile_interchange'] = [0, 1, 2]
+    # Use default config values from iree-llvm-sandbox DoubleTile2DPadAndHoist
+    configs[0]['tile_sizes'] = [288, 128, 512]
+    configs[0]['tile_interchange'] = [0, 2, 1]
     configs[1]['tile_sizes'] = [12, 32, 1]
-    configs[1]['tile_interchange'] = [1, 0, 2]
+    configs[1]['tile_interchange'] = [0, 1, 2]
   
   if default == True or 'pack_padding' not in configs[0]:
     configs[0]['pack_padding'] = [1, 1, 0]
   if default == True or 'hoist_padding' not in configs[0]:
-    configs[0]['hoist_padding'] = [3, 2, 0]
+    configs[0]['hoist_padding'] = [5, 6, 0]
 
   all_experts = [
     e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
-      DoubleTileAndDecompose('matmul_on_tensors',
-                             'linalg.generic',
-                             tile_sizes1=configs[0]['tile_sizes'],
-                             tile_interchange1=configs[0]['tile_interchange'],
-                             tile_sizes2=configs[1]['tile_sizes'],
-                             tile_interchange2=configs[1]['tile_interchange'],
-                             pad2=True,
-                             pack_paddings2=configs[0]['pack_padding'],
-                             hoist_paddings2=configs[0]['hoist_padding'])
-        .then(Vectorize('matmul_on_tensors', 'linalg.generic'))
-        .then(LoweringOnlyExpert('matmul_on_tensors',
-                                 'linalg.generic',
-                                 transpose_lowering='eltwise'))
-    ]]
-  return all_experts
-
-def singleExpert2D():
-  all_experts = [
-    e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
-      SingleTilingExpert('matmul_on_tensors',
-                         'linalg.generic',
-                         tile_sizes=[12, 32, 1],
-                         tile_interchange=[0, 1, 2],
-                         pad=True,
-                         pack_paddings=[1, 1, 0],
-                         hoist_paddings=[2, 3, 0])]]
-  return all_experts
-
-def doubleExpert2D():
-  all_experts = [
-    e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
-      DoubleTileAndDecompose('matmul_on_tensors',
-                             'linalg.generic',
-                             tile_sizes1=[288, 128, 512],
-                             tile_interchange1=[0, 2, 1],
-                             tile_sizes2=[12, 32, 1],
-                             tile_interchange2=[0, 1, 2],
-                             pad2=True,
-                             pack_paddings2=[1, 1, 0],
-                             hoist_paddings2=[5, 6, 0])
-        .then(Vectorize('matmul_on_tensors', 'linalg.generic'))
+      DoubleTile('matmul_on_tensors',
+                 'linalg.generic',
+                 tile_sizes1=configs[0]['tile_sizes'],
+                 tile_interchange1=configs[0]['tile_interchange'],
+                 tile_sizes2=configs[1]['tile_sizes'],
+                 tile_interchange2=configs[1]['tile_interchange'],
+                 pad2=True,
+                 pack_paddings2=configs[0]['pack_padding'],
+                 hoist_paddings2=configs[0]['hoist_padding'],
+                 transpose_paddings2=[[1, 0], [0, 1], [0, 1]],)
+        .then(Vectorize('matmul_on_tensors', ''))
         .then(UnrollOneParentLoop('matmul_on_tensors',
                                   'vector.contract',
                                   parent_loop_num=1,
@@ -104,22 +77,29 @@ def doubleExpert2D():
     ]]
   return all_experts
 
-def doubleExpert3D():
+def singleExpert2DPeel():
   all_experts = [
     e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
-      DoubleTileAndDecompose('matmul_on_tensors',
-                             'linalg.generic',
-                             tile_sizes1=[288, 128, 512],
-                             tile_interchange1=[0, 2, 1],
-                             tile_sizes2=[12, 32, 16],
-                             tile_interchange2=[0, 1, 2],
-                             pad2=True,
-                             pack_paddings2=[1, 1, 0],
-                             hoist_paddings2=[5, 6, 0])
-        .then(Vectorize('matmul_on_tensors', 'linalg.generic'))
-        .then(LoweringOnlyExpert('matmul_on_tensors',
-                                 'linalg.generic',
-                                 transpose_lowering='eltwise'))
+      Tile('matmul_on_tensors',
+           'linalg.generic',
+           tile_sizes=[6, 32, 1],
+           tile_interchange=[0, 1, 2],
+           peel=[0, 1, 2])
+        .then(Vectorize('matmul_on_tensors', ''))
+        .then(LoweringOnlyExpert('matmul_on_tensors', 'linalg.generic'))
+    ]]
+  return all_experts
+
+def singleExpert3DPeel():
+  all_experts = [
+    e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
+      Tile('matmul_on_tensors',
+           'linalg.generic',
+           tile_sizes=[12, 32, 16],
+           tile_interchange=[0, 1, 2],
+           peel=[0, 1, 2])
+        .then(Vectorize('matmul_on_tensors', ''))
+        .then(LoweringOnlyExpert('matmul_on_tensors', 'linalg.generic'))
     ]]
   return all_experts
 
@@ -142,11 +122,10 @@ def main(argv):
   parser.add_argument('-n_iters', type=int, default=100, help='Number of iterations to run matmul')
   args = parser.parse_args(argv[1:])
 
-  expert_lists = ["SingleTiling2D",
-                  "SingleTiling3D",
-                  "DoubleTileAndDecompose2D",
-                  "DoubleTileAndDecompose3D",
-                  "DoubleTileAndDecompose2DLarge"]
+  expert_lists = ["SingleTiling2DPeel",
+                  "SingleTiling3DPeel",
+                  "SingleTiling3DPad",
+                  "DoubleTile2DPadAndHoist"]
   speeds = []
   experts = []
   matrix_sizes = []
@@ -156,10 +135,9 @@ def main(argv):
       all_sizes = f.readlines()
       f.close()
 
-    all_experts = singleExpert2D() + \
+    all_experts = singleExpert2DPeel() + \
+                  singleExpert3DPeel() + \
                   singleExpert([{}, {}], True) + \
-                  doubleExpert2D() + \
-                  doubleExpert3D() + \
                   doubleExpert([{}, {}], True)
 
     for line in all_sizes:
@@ -168,9 +146,10 @@ def main(argv):
       m_size = [int(x) for x in line.split('x')]
       matrix_sizes.append(m_size)
 
-      results = test_harness(lambda s, t: EinsumProblem('km,kn', 2), [[np.float32] * 3],
+      results = test_harness(lambda s, t: EinsumProblem('km,kn', 'mnk', 2),
+                             [[np.float32] * 3],
                              test_sizes(keys, [m_size]),
-                             all_experts,
+                             test_experts(all_experts, expert_lists),
                              n_iters=args.n_iters,
                              function_name='matmul_on_tensors')
 
@@ -193,11 +172,12 @@ def main(argv):
       else:
         all_experts = doubleExpert(configs)
 
-      results = test_harness(lambda s, t: EinsumProblem('km,kn', 2), [[np.float32] * 3],
-                      test_sizes(make_size_list, [matrix_size]),
-                      all_experts,
-                      n_iters=args.n_iters,
-                      function_name='matmul_on_tensors')
+      results = test_harness(lambda s, t: EinsumProblem('km,kn', 'mnk', 2),
+                             [[np.float32] * 3],
+                             test_sizes(keys, [matrix_size]),
+                             test_experts(all_experts, expert_lists),
+                             n_iters=args.n_iters,
+                             function_name='matmul_on_tensors')
 
       expert_gflops = results.data['gflop_per_s_per_iter'][int(args.n_iters/2)].values.tolist()
       max_gflops = max(expert_gflops)
