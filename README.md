@@ -96,7 +96,7 @@ To run iree-llvm-sandbox, and plot the results
 python mmperf.py ./build/matmul results -sandbox -benchmark_path=/path/to/matrix_sizes -configs_path=/path/to/config_files
 ```
 
-Note: -benchmark_path should be used for original iree-llvm-sandbox, and -configs_path is used for nodai-search. If you don't have the search configs, just enable `-benchmark_path`.
+Note: -benchmark_path should be used for original iree-llvm-sandbox, and -configs_path is used for nodai-search. If you don't have the search configs, just enable `-benchmark_path`. Optional flag: `-num_iters` to change the number of iterations for matmul test.
 
 ### Building and Running Codes on GPU
 

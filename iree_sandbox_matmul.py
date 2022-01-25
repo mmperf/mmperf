@@ -140,23 +140,49 @@ def main(argv):
                   singleExpert([{}, {}], True) + \
                   doubleExpert([{}, {}], True)
 
+    dynamic_at_compile_time_list = [[],  # case 1: static at compile time
+                                    ['m', 'k'],  # case 2: partially dynamic at compile time
+                                    keys]  # case 3: fully dynamic at compile time
+    compile_time_name_list = ['static', 'partially dynamic', 'fully dynamic']
+    spec_list = [
+      'km,kn',  # C += A^T.B  fastest
+      'mk,kn',  # C += A.B
+      'mk,nk'  # C += A.B^T  slowest
+    ]
+
     for line in all_sizes:
       if line[0] == '#':
         continue
       m_size = [int(x) for x in line.split('x')]
       matrix_sizes.append(m_size)
 
-      results = test_harness(lambda s, t: EinsumProblem('km,kn', 'mnk', 2),
-                             [[np.float32] * 3],
-                             test_sizes(keys, [m_size]),
-                             test_experts(all_experts, expert_lists),
-                             n_iters=args.n_iters,
-                             function_name='matmul_on_tensors')
+      experts_2, speeds_2 = [], []
+      for dynamic_at_compile_time in dynamic_at_compile_time_list:
+        experts_1, speeds_1 = [], []
+        for spec in spec_list:
+          results = test_harness(lambda s, t: EinsumProblem(spec, 'mnk', 2),
+                                 [[np.float32] * 3],
+                                 test_sizes(keys, [m_size]),
+                                 test_experts(all_experts, expert_lists),
+                                 dynamic_at_compile_time_sizes=set(
+                                     dynamic_at_compile_time).intersection(keys),
+                                 n_iters=args.n_iters,
+                                 function_name='matmul_on_tensors')
 
-      expert_gflops = results.data['gflop_per_s_per_iter'][int(args.n_iters/2)].values.tolist()
-      max_gflops = max(expert_gflops)
-      speeds.append(max_gflops)
-      experts.append(expert_lists[expert_gflops.index(max_gflops)])
+          expert_gflops = results.data['gflop_per_s_per_iter'][int(args.n_iters/2)].values.tolist()
+          max_gflops = max(expert_gflops)
+          speeds_1.append(max_gflops)
+          experts_1.append(expert_lists[expert_gflops.index(max_gflops)])
+        max_speeds_1 = max(speeds_1)
+        max_speeds_idx = speeds_1.index(max_speeds_1)
+        speeds_2.append(max_speeds_1)
+        experts_2.append([experts_1[max_speeds_idx], spec_list[max_speeds_idx]])
+      max_speeds_2 = max(speeds_2)
+      max_speeds_idx = speeds_2.index(max_speeds_2)
+      speeds.append(max_speeds_2)
+      experts_2[max_speeds_idx].append(compile_time_name_list[max_speeds_idx])
+      experts.append(experts_2[max_speeds_idx])
+      print("Best speed: ", max_speeds_2, experts_2[max_speeds_idx])
 
   elif args.config_path:
     for f_path in glob.glob(os.path.join(args.config_path, '*.json')):
