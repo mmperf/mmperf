@@ -139,9 +139,9 @@ def main(argv):
   parser = argparse.ArgumentParser()
   parser.add_argument('-matrix_path', type=path_expand, help='Path to file containing matrix sizes to be run')
   parser.add_argument('-config_path', type=path_expand, help='Path to config file')
+  parser.add_argument('-n_iters', type=int, default=100, help='Number of iterations to run matmul')
   args = parser.parse_args(argv[1:])
 
-  n_iters = 100
   expert_lists = ["SingleTiling2D",
                   "SingleTiling3D",
                   "DoubleTileAndDecompose2D",
@@ -171,10 +171,10 @@ def main(argv):
       results = test_harness(lambda s, t: EinsumProblem('km,kn', 2), [[np.float32] * 3],
                              test_sizes(keys, [m_size]),
                              all_experts,
-                             n_iters=n_iters,
+                             n_iters=args.n_iters,
                              function_name='matmul_on_tensors')
 
-      expert_gflops = results.data['gflop_per_s_per_iter'][50].values.tolist()
+      expert_gflops = results.data['gflop_per_s_per_iter'][int(args.n_iters/2)].values.tolist()
       max_gflops = max(expert_gflops)
       speeds.append(max_gflops)
       experts.append(expert_lists[expert_gflops.index(max_gflops)])
@@ -196,10 +196,10 @@ def main(argv):
       results = test_harness(lambda s, t: EinsumProblem('km,kn', 2), [[np.float32] * 3],
                       test_sizes(make_size_list, [matrix_size]),
                       all_experts,
-                      n_iters=n_iters,
+                      n_iters=args.n_iters,
                       function_name='matmul_on_tensors')
 
-      expert_gflops = results.data['gflop_per_s_per_iter'][50].values.tolist()
+      expert_gflops = results.data['gflop_per_s_per_iter'][int(args.n_iters/2)].values.tolist()
       max_gflops = max(expert_gflops)
       speeds.append(max_gflops)
       experts.append(expert_lists[expert_gflops.index(max_gflops)])

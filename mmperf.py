@@ -70,6 +70,8 @@ def add_arguments(parser):
                         help='Path to file containing matrix sizes to be run')
     parser.add_argument('-configs_path', dest='configs_path',
                         help='Path to parameter configs')
+    parser.add_argument('-num_iters', dest='num_iters', type=int, default=100,
+                        help='Path to parameter configs')
 
 def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
@@ -233,12 +235,12 @@ def _gpu_nsys_permutation(i, path, msize, perm_name, warm_up_runs=5):
     except:
         return i, False, 0.0
 
-def sandbox_perf(file_path, use_configs=False):
+def sandbox_perf(file_path, num_iters, use_configs=False):
     try:
         if use_configs == True:
-            cmd = f'python -m python.examples.matmul.iree_sandbox_matmul -config_path {file_path}'
+            cmd = f'python -m python.examples.matmul.iree_sandbox_matmul -config_path {file_path} -n_iters {num_iters}'
         else:
-            cmd = f'python -m python.examples.matmul.iree_sandbox_matmul -matrix_path {file_path}'
+            cmd = f'python -m python.examples.matmul.iree_sandbox_matmul -matrix_path {file_path} -n_iters {num_iters}'
         dst_f = './external/iree-llvm-sandbox'
         result = subprocess.run(cmd, shell=True, check=True, timeout=20, cwd=dst_f)
     except subprocess.TimeoutExpired:
@@ -327,10 +329,10 @@ def main(argv):
 
         if args.benchmark_path:
             file_path = os.path.join(os.getcwd(), args.benchmark_path)
-            sandbox_sizes, sandbox_speeds = sandbox_perf(file_path)
+            sandbox_sizes, sandbox_speeds = sandbox_perf(file_path, args.num_iters)
         if args.configs_path:
             file_path = args.configs_path
-            nodai_sandbox_sizes, nodai_sandbox_speeds = sandbox_perf(file_path, use_configs=True)
+            nodai_sandbox_sizes, nodai_sandbox_speeds = sandbox_perf(file_path, args.num_iters, use_configs=True)
 
     # run them in parallel and collect the results
     speeds = do_permutations(args.jobs, list(x.name for x in bin_paths), args.bins, result_dir, BENCHMARK_ENV)
