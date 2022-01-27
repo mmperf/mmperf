@@ -66,6 +66,8 @@ if __name__ == '__main__':
         f.close()
     for size, expert in zip(matrix_sizes, expert_info):
       config = sandbox_config_options(size, expert[0], expert[1], expert[2])
+      expert[1] = expert[1].replace(',', '')
+      expert[2] = expert[2].replace(' ', '')
 
       output_path = Path(args.save_dir) / f'{matrix_size_string(tuple(size))}_{expert[0]}_{expert[1]}_{expert[2]}.json'
       with output_path.open('w') as of:
