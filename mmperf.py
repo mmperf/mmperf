@@ -27,7 +27,7 @@ BAR_WIDTH = 0.15
 BAR_COLORS = {'mkl': 'cornflowerblue',
               'accelerate': 'lightgray',
               'mlir': 'sandybrown',
-              'mlircuda': 'green',
+              'mlir-cuda': 'green',
               'openblas': 'mediumseagreen',
               'blis': 'mediumspringgreen',
               'blasfeo': 'olivedrab',
@@ -35,13 +35,13 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'halide': 'gold',
               'ruy': 'violet',
               'tvm': 'indigo',
-              'tvmcuda': 'darkslateblue',
+              'tvm-cuda': 'darkslateblue',
               'naive': 'black',
               'nodai': 'red',
-              'ireevmvx': 'thistle',
-              'ireedylib': 'aqua',
-              'ireecuda': 'deeppink',
-              'ireellvmsandbox': 'wheat',
+              'iree-vmvx': 'thistle',
+              'iree-dylib': 'aqua',
+              'iree-cuda': 'deeppink',
+              'iree-llvm-sandbox': 'wheat',
               'nodai-sandbox': 'dodgerblue'}
 BENCHMARK_ENV = os.environ.copy()
 BENCHMARK_ENV.update({
@@ -252,7 +252,11 @@ def sandbox_perf(file_path, num_iters, use_configs=False):
         print(f"  -> Returned error code {result.returncode}")
         return False
 
-    with open('sandbox_matmul_results.json', 'r') as f:
+    if use_configs == True:
+        output_file = 'nodai_sandbox_matmul_results.json'
+    else:
+        output_file = 'sandbox_matmul_results.json'
+    with open(output_file, 'r') as f:
         data = json.load(f)
         matrix_sizes = data[0]
         speeds = data[1]
@@ -348,7 +352,7 @@ def main(argv):
     if args.sandbox:
         if args.benchmark_path:
             for i, size in enumerate(sandbox_sizes):
-                binaries.setdefault('ireellvmsandbox', []).append(
+                binaries.setdefault('iree-llvm-sandbox', []).append(
                     {'path': '', 'size': tuple(size), 'speed': sandbox_speeds[i]})
         if args.configs_path:
             for i, size in enumerate(nodai_sandbox_sizes):
