@@ -4,6 +4,9 @@ This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries a
 
 ## Results
 
+### Results on Intel Alderlake 12900k (AVX2)
+![Results](https://github.com/mmperf/mmperf/raw/main/official_results/alderlake/2022-01-27_23-40-34-673036/matmul.png)
+
 ### Results on Intel XEON Skylake (iMAC PRO, AVX512)
 ![Results](https://github.com/mmperf/mmperf/raw/main/official_results/skylake-avx512/2021-01-31_19-11-51-528540/matmul.png)
 
