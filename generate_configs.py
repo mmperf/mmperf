@@ -51,8 +51,8 @@ def matrix_size_string(input):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('-load_file', help='Path to results file')
-  parser.add_argument('-save_dir', default='./sandbox_configs', help='Path to results file')
+  parser.add_argument('-load_file', help='Path to result json file from previous search')
+  parser.add_argument('-save_dir', default='./sandbox_configs', help='Path to save the config files')
   parser.add_argument('-matrix_path', help='Path to file containing matrix sizes to be run')
   args = parser.parse_args()
 

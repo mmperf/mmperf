@@ -64,14 +64,17 @@ def add_arguments(parser):
                         help='Result directory')
     parser.add_argument('-j', '--jobs', type=int, default=1,
                         help='Number of parallel jobs for running the benchmarks')
+    # Flags for mlir-sandbox and nodai-mlir-sandbox
     parser.add_argument('-sandbox', action='store_true',
                         help='Whether to run matmul in iree-llvm-sandbox')
     parser.add_argument('-benchmark_path', dest='benchmark_path',
-                        help='Path to file containing matrix sizes to be run')
+                        help='Path to matmul size list for mlir-sandbox')
     parser.add_argument('-configs_path', dest='configs_path',
-                        help='Path to parameter configs')
+                        help='Path to config files for nodai-mlir-sandbox')
     parser.add_argument('-num_iters', dest='num_iters', type=int, default=100,
-                        help='Path to parameter configs')
+                        help='Number of iterations to run each matmul')
+    parser.add_argument('-load_from_results', dest='load_from_results',
+                        help='Load results directly from previous runs for mlir-sanxbox')
 
 def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
@@ -334,6 +337,10 @@ def main(argv):
         if args.benchmark_path:
             file_path = os.path.join(os.getcwd(), args.benchmark_path)
             sandbox_sizes, sandbox_speeds = sandbox_perf(file_path, args.num_iters)
+        elif args.load_from_results:
+            file_path = args.load_from_results
+            sandbox_sizes, sandbox_speeds = sandbox_perf(file_path, args.num_iters, use_configs=True)
+
         if args.configs_path:
             file_path = args.configs_path
             nodai_sandbox_sizes, nodai_sandbox_speeds = sandbox_perf(file_path, args.num_iters, use_configs=True)
@@ -350,7 +357,7 @@ def main(argv):
             {'path': path.resolve(), 'size': size, 'speed': speeds[i]})
 
     if args.sandbox:
-        if args.benchmark_path:
+        if args.benchmark_path or args.load_from_results:
             for i, size in enumerate(sandbox_sizes):
                 binaries.setdefault('mlir-sandbox', []).append(
                     {'path': '', 'size': tuple(size), 'speed': sandbox_speeds[i]})
