@@ -26,23 +26,23 @@ plt.style.use('ggplot')
 BAR_WIDTH = 0.15
 BAR_COLORS = {'mkl': 'cornflowerblue',
               'accelerate': 'lightgray',
-              'mlir': 'sandybrown',
+              'mlir': 'olivedrab',
               'mlir-cuda': 'green',
-              'openblas': 'mediumseagreen',
+              'openblas': 'wheat',
               'blis': 'mediumspringgreen',
-              'blasfeo': 'olivedrab',
+              'blasfeo': 'sandybrown',
               'cublas': 'chocolate',
               'halide': 'gold',
               'ruy': 'violet',
               'tvm': 'indigo',
               'tvm-cuda': 'darkslateblue',
               'naive': 'black',
-              'nodai': 'red',
+              'nodai': 'orangered',
               'iree-vmvx': 'thistle',
               'iree-dylib': 'aqua',
               'iree-cuda': 'deeppink',
-              'iree-llvm-sandbox': 'wheat',
-              'nodai-sandbox': 'dodgerblue'}
+              'mlir-sandbox': 'mediumseagreen',
+              'nodai-mlir-sandbox': 'red'}
 BENCHMARK_ENV = os.environ.copy()
 BENCHMARK_ENV.update({
     "MKL_NUM_THREADS": "1",
@@ -352,11 +352,11 @@ def main(argv):
     if args.sandbox:
         if args.benchmark_path:
             for i, size in enumerate(sandbox_sizes):
-                binaries.setdefault('iree-llvm-sandbox', []).append(
+                binaries.setdefault('mlir-sandbox', []).append(
                     {'path': '', 'size': tuple(size), 'speed': sandbox_speeds[i]})
         if args.configs_path:
             for i, size in enumerate(nodai_sandbox_sizes):
-                binaries.setdefault('nodai-sandbox', []).append(
+                binaries.setdefault('nodai-mlir-sandbox', []).append(
                     {'path': '', 'size': tuple(size), 'speed': nodai_sandbox_speeds[i]})
 
     # used to impose a consistent sorting of the matrix sizes in the plot
@@ -398,6 +398,7 @@ def main(argv):
     x_pos = [i + 0.5*(len(binaries) - 1)*BAR_WIDTH for i in range(len(bar_ordering))]
     plt.xticks(x_pos, ['x'.join(str(d) for d in s) for s in bar_ordering], rotation=90, fontsize=5)
     plt.legend(loc='best')
+    #plt.ylim([60, 170])
     plt.savefig(result_dir / 'matmul.png', dpi=300, bbox_inches='tight')
 
     if any_error:
