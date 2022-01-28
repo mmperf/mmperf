@@ -53,12 +53,14 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('-load_file', help='Path to results file')
   parser.add_argument('-save_dir', default='./sandbox_configs', help='Path to results file')
+  parser.add_argument('-matrix_path', help='Path to file containing matrix sizes to be run')
   args = parser.parse_args()
 
   cmd = f'mkdir -p {args.save_dir}'
   subprocess.run(cmd, shell=True, check=True)
 
   if args.load_file:
+    # Generate specific config for each matmul size from previously generated results
     with open(Path(args.load_file), 'r') as f:
         data = json.load(f)
         matrix_sizes = data[0]
@@ -73,3 +75,37 @@ if __name__ == '__main__':
       with output_path.open('w') as of:
         of.write(json.dumps(config))
       print("Config file is saved to", output_path)
+  else:
+    # Generate all possible combination of configs and use for naive search
+    assert args.matrix_path != None, "Path to the input matmul sizes is needed!"
+    with open(args.matrix_path, 'r') as f:
+      all_sizes = f.readlines()
+      f.close()
+
+    expert_list = ["SingleTiling2DPeel",
+                   "SingleTiling3DPeel",
+                   "SingleTiling3DPad",
+                   "DoubleTile2DPadAndHoist"]
+    compile_time_name_list = ['static', 'partially dynamic', 'fully dynamic']
+    spec_list = [
+      'km,kn',  # C += A^T.B  fastest
+      'mk,kn',  # C += A.B
+      'mk,nk'  # C += A.B^T  slowest
+    ]
+
+    for line in all_sizes:
+      if line[0] == '#':
+        continue
+      matrix_size = line.strip('\n')
+      size = [int(x) for x in line.split('x')]
+
+      for expert in expert_list:
+        for spec in spec_list:
+          for compile in compile_time_name_list:
+            config = sandbox_config_options(size, expert, spec, compile)
+            spec_name = spec.replace(',', '')
+            compile_name = compile.replace(' ', '')
+            output_path = Path(args.save_dir) / f'{matrix_size}_{expert}_{spec_name}_{compile_name}.json'
+            with output_path.open('w') as of:
+              of.write(json.dumps(config))
+            print("Config file is saved to", output_path)

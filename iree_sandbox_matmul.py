@@ -195,16 +195,17 @@ def main(argv):
       f.close()
 
   elif args.config_path:
+    all_results = dict()
     for f_path in glob.glob(os.path.join(args.config_path, '*.json')):
       with open(f_path, 'r') as f:
         data = json.load(f)
         matrix_size = [int(data["m"]), int(data["n"]), int(data["k"])]
+        m_size_str = f'{matrix_size[0]}x{matrix_size[1]}x{matrix_size[2]}'
         configs = data["options"]
         expert_name = data["expert"]
         spec = data["spec"]
         compile_name = data["compile"]
         compile_type = dynamic_at_compile_time_list[compile_time_name_list.index(compile_name)]
-        matrix_sizes.append(matrix_size)
         f.close()
 
       if expert_name == "SingleTiling2DPeel":
@@ -225,8 +226,17 @@ def main(argv):
                              function_name='matmul_on_tensors')
 
       expert_gflops = results.data['gflop_per_s_per_iter'][int(args.n_iters/2)]
-      speeds.append(expert_gflops)
-      experts.append([expert_name, spec, compile_name])
+      key_str = str(matrix_size)
+      if key_str in all_results:
+        all_results[key_str] += [[expert_gflops, expert_name, spec, compile_name]]
+      else:
+        all_results[key_str] = [[expert_gflops, expert_name, spec, compile_name]]
+
+    for key, value in all_results.items():
+      matrix_sizes.append(json.loads(key))
+      max_expert = max(value)
+      speeds.append(max_expert[0])
+      experts.append(max_expert[1:])
 
     with open('../../nodai_sandbox_matmul_results.json', 'w') as f:
       json.dump([matrix_sizes, speeds, experts], f)
