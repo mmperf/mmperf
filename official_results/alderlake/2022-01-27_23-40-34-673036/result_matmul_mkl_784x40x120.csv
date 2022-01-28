@@ -1,0 +1,10 @@
+Matrix-format: Row-Major
+Benchmarking MKL 784 x 40 x 120 
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+Detected 0 errors.
+name,iterations,real_time,cpu_time,time_unit,bytes_per_second,items_per_second,label,error_occurred,error_message
+"BM_Matmul/process_time/real_time",14700,47328.3,47326.5,ns,,,,,

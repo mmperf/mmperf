@@ -1,0 +1,14 @@
+Matrix-format: Row-Major
+Benchmarking TVM 384 x 512 x 128 
+Using tuned module /home/anush/github/mmperf/tvm_tuner/matmul_384x512x128.so
+Detected 0 errors.
+Using tuned module /home/anush/github/mmperf/tvm_tuner/matmul_384x512x128.so
+Detected 0 errors.
+Using tuned module /home/anush/github/mmperf/tvm_tuner/matmul_384x512x128.so
+Detected 0 errors.
+Using tuned module /home/anush/github/mmperf/tvm_tuner/matmul_384x512x128.so
+Detected 0 errors.
+Using tuned module /home/anush/github/mmperf/tvm_tuner/matmul_384x512x128.so
+Detected 0 errors.
+name,iterations,real_time,cpu_time,time_unit,bytes_per_second,items_per_second,label,error_occurred,error_message
+"BM_Matmul/process_time/real_time",1958,356615,356601,ns,,,,,
