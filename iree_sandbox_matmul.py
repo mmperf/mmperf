@@ -181,8 +181,14 @@ def main(argv):
   parser.add_argument('-matrix_path', type=path_expand, help='Path to file containing matrix sizes to be run')
   parser.add_argument('-config_path', type=path_expand, help='Path to load config file')
   parser.add_argument('-n_iters', type=int, default=100, help='Number of iterations to run matmul')
-  parser.add_argument('-save_dir', default='./mlir_sandbox_configs', help='Path to save config files')
+  parser.add_argument('-save_dir', default='../../mlir_sandbox_configs', help='Path to save config files')
+  parser.add_argument('-obj_dir', default='../../mlir_sandbox_objs', help='Path to save config files')
   args = parser.parse_args(argv[1:])
+
+  cmd = f'mkdir -p {args.save_dir}'
+  subprocess.run(cmd, shell=True, check=True)
+  cmd = f'mkdir -p {args.obj_dir}'
+  subprocess.run(cmd, shell=True, check=True)
 
   expert_list = ["SingleTiling2DPeel",
                   "SingleTiling3DPeel",
@@ -204,9 +210,6 @@ def main(argv):
   matrix_sizes = []
 
   if args.matrix_path:
-    cmd = f'mkdir -p {args.save_dir}'
-    subprocess.run(cmd, shell=True, check=True)
-
     with open(args.matrix_path, 'r') as f:
       all_sizes = f.readlines()
       f.close()
@@ -230,6 +233,11 @@ def main(argv):
       for dynamic_at_compile_time in dynamic_at_compile_time_list:
         experts_1, speeds_1 = [], []
         for spec in spec_list:
+          spec_name = spec.replace(',', '')
+          compile_name = compile_time_name_list[dynamic_at_compile_time_list.
+                            index(dynamic_at_compile_time)].replace(' ', '')
+          obj_file_name = matrix_size_string(tuple(m_size)) + "_" + spec_name + "_" + compile_name + ".o"
+          obj_file_path = os.path.join(args.obj_dir, obj_file_name)
           results = test_harness(lambda s, t: EinsumProblem(spec, 'mnk', 2),
                                  [[np.float32] * 3],
                                  test_sizes(keys, [m_size]),
@@ -237,7 +245,8 @@ def main(argv):
                                  dynamic_at_compile_time_sizes=set(
                                      dynamic_at_compile_time).intersection(keys),
                                  n_iters=args.n_iters,
-                                 function_name='matmul')
+                                 function_name='matmul',
+                                 dump_obj_to_file=obj_file_path)
 
           expert_gflops = results.data['gflop_per_s_per_iter'][int(args.n_iters / 2)].values.tolist()
           max_gflops = max(expert_gflops)
@@ -286,21 +295,28 @@ def main(argv):
         f.close()
 
       if expert_name == "SingleTiling2DPeel":
-        all_experts = singleExpert2DPeel(configs)
+        all_experts, _ = singleExpert2DPeel(configs)
       elif expert_name == "SingleTiling3DPeel":
-        all_experts = singleExpert3DPeel(configs)
+        all_experts, _ = singleExpert3DPeel(configs)
       elif expert_name == "SingleTiling3DPad":
-        all_experts = singleExpert3DPad(configs)
+        all_experts, _ = singleExpert3DPad(configs)
+      elif expert_name == "SingleTiling3DPeelTranspose":
+        all_experts, _ = singleExpert3DPeelTranspose(configs)
       elif expert_name == "DoubleTile2DPadAndHoist":
-        all_experts = doubleExpert2DPad(configs)
+        all_experts, _ = doubleExpert2DPad(configs)
 
+      spec_name = spec.replace(',', '')
+      dynamic_compile_name = compile_name.replace(' ', '')
+      obj_file_name = m_size_str + "_" + expert_name + "_" + spec_name + "_" + dynamic_compile_name + ".o"
+      obj_file_path = os.path.join(args.obj_dir, obj_file_name)
       results = test_harness(lambda s, t: EinsumProblem(spec, 'mnk', 2),
                              [[np.float32] * 3],
                              test_sizes(keys, [matrix_size]),
                              test_experts(all_experts, [expert_name]),
                              dynamic_at_compile_time_sizes=compile_type,
                              n_iters=args.n_iters,
-                             function_name='matmul')
+                             function_name='matmul',
+                             dump_obj_to_file=obj_file_path)
 
       expert_gflops = results.data['gflop_per_s_per_iter'][int(args.n_iters/2)]
       key_str = str(matrix_size)
