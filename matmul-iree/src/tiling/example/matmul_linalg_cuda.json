@@ -1,0 +1,6 @@
+{"options": [
+  {"work_group_tile_sizes" : [16, 16],
+   "work_group_sizes" : [8, 4, 2],
+    "pipeline" : "GPU"
+   }]
+}
