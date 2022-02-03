@@ -67,14 +67,14 @@ def add_arguments(parser):
     # Flags for mlir-sandbox and nodai-mlir-sandbox
     parser.add_argument('-sandbox', action='store_true',
                         help='Whether to run matmul in iree-llvm-sandbox')
-    parser.add_argument('-benchmark_path', dest='benchmark_path',
-                        help='Path to matmul size list for mlir-sandbox')
-    parser.add_argument('-configs_path', dest='configs_path',
-                        help='Path to config files for nodai-mlir-sandbox')
     parser.add_argument('-num_iters', dest='num_iters', type=int, default=100,
                         help='Number of iterations to run each matmul')
-    parser.add_argument('-load_from_results', dest='load_from_results',
-                        help='Load results directly from previous runs for mlir-sanxbox')
+    parser.add_argument('-benchmark_path', dest='benchmark_path',
+                        help='Path to matmul size list for mlir-sandbox search')
+    parser.add_argument('-nodai_configs', dest='nodai_configs',
+                        help='Path to load config files generated for nodai-mlir-sandbox')
+    parser.add_argument('-sandbox_configs', dest='sandbox_configs',
+                        help='Path to load config files generated for mlir-sanxbox')
 
 def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
@@ -337,12 +337,12 @@ def main(argv):
         if args.benchmark_path:
             file_path = os.path.join(os.getcwd(), args.benchmark_path)
             sandbox_sizes, sandbox_speeds = sandbox_perf(file_path, args.num_iters)
-        elif args.load_from_results:
-            file_path = args.load_from_results
+        elif args.sandbox_configs:
+            file_path = args.sandbox_configs
             sandbox_sizes, sandbox_speeds = sandbox_perf(file_path, args.num_iters, use_configs=True)
 
-        if args.configs_path:
-            file_path = args.configs_path
+        if args.nodai_configs:
+            file_path = args.nodai_configs
             nodai_sandbox_sizes, nodai_sandbox_speeds = sandbox_perf(file_path, args.num_iters, use_configs=True)
 
     # run them in parallel and collect the results
@@ -357,11 +357,11 @@ def main(argv):
             {'path': path.resolve(), 'size': size, 'speed': speeds[i]})
 
     if args.sandbox:
-        if args.benchmark_path or args.load_from_results:
+        if args.benchmark_path or args.sandbox_configs:
             for i, size in enumerate(sandbox_sizes):
                 binaries.setdefault('mlir-sandbox', []).append(
                     {'path': '', 'size': tuple(size), 'speed': sandbox_speeds[i]})
-        if args.configs_path:
+        if args.nodai_configs:
             for i, size in enumerate(nodai_sandbox_sizes):
                 binaries.setdefault('nodai-mlir-sandbox', []).append(
                     {'path': '', 'size': tuple(size), 'speed': nodai_sandbox_speeds[i]})

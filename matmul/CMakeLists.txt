@@ -357,3 +357,14 @@ add_custom_target(run_all_tests
     ${CMAKE_SOURCE_DIR}/../results/${TARGET_CPU}
     DEPENDS ${ALL_TARGETS}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/..)
+
+set(SANDBOX_ARGS)
+list(APPEND SANDBOX_ARGS "-sandbox")
+list(APPEND SANDBOX_ARGS "-benchmark_path=${SIZE_FILE}")
+
+add_custom_target(sandbox_search
+    ${CMAKE_SOURCE_DIR}/../mmperf.py
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_SOURCE_DIR}/../results/${TARGET_CPU}
+    ${SANDBOX_ARGS}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/..)

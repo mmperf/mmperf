@@ -94,12 +94,18 @@ Each generated binary can also be executed individually. To run a specific matri
 ### Run iree-llvm-sandbox in mmperf
 To build mlir with iree-llvm-sandbox, enable the flag `-DUSE_IREE_LLVM_SANDBOX=ON`.
 
-To run iree-llvm-sandbox, and plot the results
+To run iree-llvm-sandbox, and get the best performance among different experts, run:
 ```
-python mmperf.py ./build/matmul results -sandbox -benchmark_path=/path/to/matrix_sizes -configs_path=/path/to/config_files
+cmake --build build/matmul --target sandbox_search
+```
+Note: This command will perform search on all expert configurations, and output the best configs to `mlir_sandbox_configs` for each matmul size.
+
+To compare results between original mlir-sandbox and nodai-sandbox, run:
+```
+python mmperf.py ./build/matmul results -sandbox -sandbox_configs=/path/to/mlir_sandbox_configs -nodai_configs=/path/to/nodai_sandbox_configs
 ```
 
-Note: -benchmark_path should be used for original iree-llvm-sandbox, and -configs_path is used for nodai-search. If you don't have the search configs, just enable `-benchmark_path`. Optional flag: `-num_iters` to change the number of iterations for matmul test.
+Note: If you just want to plot results for mlir_sandbox, enable `-sandbox_configs` (to load configs from previous run) or `-benchmark_path` (to rerun the search). Optional flag: `-num_iters` to change the number of iterations for matmul test.
 
 ### Building and Running Codes on GPU
 
