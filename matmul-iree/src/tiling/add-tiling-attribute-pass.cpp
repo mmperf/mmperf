@@ -93,7 +93,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
 
     // Appy pattern rewrite to add lowering.config attribute to op
     auto moduleOp = getOperation();
-    OwningRewritePatternList patterns(&getContext());
+    RewritePatternSet patterns(&getContext());
     const auto& options = config.options;
     int count = 0;
 
