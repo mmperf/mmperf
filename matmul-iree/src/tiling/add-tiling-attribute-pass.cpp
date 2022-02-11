@@ -118,7 +118,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         switch(option->pipeline) {
           case Nod::PipelineType_CPU:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
-            tileSizes = {{}, L1TileSizes, nativeVectorSizes};
+            tileSizes = {{}, L1TileSizes};
             std::cout << "Using CPUDoubleTilingExpert pass pipeline" << std::endl;
             break;
           case Nod::PipelineType_GPU:
@@ -128,7 +128,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
             break;
           default:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
-            tileSizes = {{}, L1TileSizes, nativeVectorSizes};
+            tileSizes = {{}, L1TileSizes};
             std::cout << "Default using CPU pass pipeline" << std::endl;
             break;
         }
