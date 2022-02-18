@@ -3,6 +3,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
+#include "llvm/Support/Error.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Dialect.h"
@@ -175,7 +176,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   context.allowUnregisteredDialects();
 
   llvm::errs() << "Read file: " << options.inputFile << "\n";
-  OwningModuleRef moduleRef = parseSourceFile(options.inputFile, &context);
+  OwningOpRef<mlir::ModuleOp> moduleRef = parseSourceFile(options.inputFile, &context);
   if (!moduleRef)
     return make_string_error(Twine("could not open ") + options.inputFile);
 

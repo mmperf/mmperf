@@ -3,7 +3,8 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
-#include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
+#include "llvm/Support/Error.h"
+#include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVM.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
@@ -16,7 +17,7 @@
 #include "mlir/Dialect/Linalg/Transforms/CodegenStrategy.h"
 #include "mlir/Dialect/Linalg/Utils/Utils.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
-#include "mlir/Dialect/Vector/VectorOps.h"
+#include "mlir/Dialect/Vector/IR/VectorOps.h"
 #include "mlir/Dialect/StandardOps/Transforms/Passes.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/AsmState.h"
@@ -76,7 +77,7 @@ struct Options {
 }
 
 namespace {
-struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
+struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, OperationPass<FuncOp>> {
   LinalgCodegenPass() = default;
   LinalgCodegenPass(Options &options) {
     params.targetCPU = options.targetCPU;
@@ -101,7 +102,7 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, FunctionPass> {
   template <typename LinalgNamedOp>
   void applyStrategyToNamedLinalgOp();
 
-  void runOnFunction() override;
+  void runOnOperation() override;
 
   struct Parameters {
     std::string vectorWidth, targetCPU;
@@ -289,15 +290,15 @@ void LinalgCodegenPass::runStrategy(Nod::OptionsT& options,
               .enableTransferToSCFConversion());
 
   // Created a nested OpPassManager and run.
-  FuncOp funcOp = getFunction();
+  FuncOp funcOp = getOperation();
   OpPassManager dynamicPM("builtin.func");
   strategy.configurePassPipeline(dynamicPM, funcOp.getContext());
   if (failed(runPipeline(dynamicPM, funcOp)))
     return signalPassFailure();
 }
 
-void LinalgCodegenPass::runOnFunction() {
-  MLIRContext *ctx = getFunction().getContext();
+void LinalgCodegenPass::runOnOperation() {
+  MLIRContext *ctx = getOperation().getContext();
   SmallVector<Attribute, 4> attrs;
   attrs.push_back(ArrayAttr::get(ctx,
                                  {StringAttr::get(ctx, "prefer-vector-width"),
@@ -307,7 +308,7 @@ void LinalgCodegenPass::runOnFunction() {
                                  {StringAttr::get(ctx, "target-cpu"),
                                   StringAttr::get(ctx, params.targetCPU)}
                                 ));
-  getFunction()->setAttr("passthrough", ArrayAttr::get(ctx, attrs));
+  getOperation()->setAttr("passthrough", ArrayAttr::get(ctx, attrs));
 
   // Load CompileOptions from file
   std::ifstream infile;
@@ -368,7 +369,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   MLIRContext context(registry);
   context.loadAllAvailableDialects();
   llvm::errs() << "Read file: " << options.inputFile << "\n";
-  OwningModuleRef moduleRef = parseSourceFile(options.inputFile, &context);
+  OwningOpRef<mlir::ModuleOp> moduleRef = parseSourceFile(options.inputFile, &context);
   if (!moduleRef)
     return make_string_error(Twine("could not open ") + options.inputFile);
 
@@ -384,7 +385,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   pm.addPass(createConvertLinalgToLoopsPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createLowerAffinePass());
-  pm.addPass(createLowerToCFGPass());
+  pm.addPass(createConvertSCFToCFPass());
   pm.addPass(createConvertLinalgToLLVMPass());
   pm.addPass(createConvertVectorToLLVMPass());
   pm.addPass(createMemRefToLLVMPass());
