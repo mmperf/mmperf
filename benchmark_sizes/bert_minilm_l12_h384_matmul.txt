@@ -5,7 +5,9 @@
 12x128x32x384
 #12 times
 12x128x128x384
-#60 times
+#48 times
 128x384x384
 #12 times
 128x1536x384
+#12 times
+128x384x1536
