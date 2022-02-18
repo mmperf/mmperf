@@ -107,10 +107,10 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         auto op = mhlo_dot ? mhlo_dot : linalg_matmul;
 
         // Set tiling vectors
-        SmallVector<int64_t> workloadPerWorkgroup, L1TileSizes, nativeVectorSizes, workgroupSizes;
+        SmallVector<int64_t> workloadPerWorkgroup, L1TileSizes, vectorTileSizes, workgroupSizes;
         populateSmallVector<int64_t>(option->work_group_tile_sizes, workloadPerWorkgroup);
         populateSmallVector<int64_t>(option->l1_tile_sizes, L1TileSizes);
-        populateSmallVector<int64_t>(option->vector_tile_sizes, nativeVectorSizes);
+        populateSmallVector<int64_t>(option->vector_tile_sizes, vectorTileSizes);
         populateSmallVector<int64_t>(option->work_group_sizes, workgroupSizes);
 
         // set DispatchLoweringPassPipeline
@@ -119,7 +119,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         switch(option->pipeline) {
           case Nod::PipelineType_CPU:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
-            tileSizes = {{}, L1TileSizes};
+            tileSizes = {{}, L1TileSizes, vectorTileSizes};
             std::cout << "Using CPUDoubleTilingExpert pass pipeline" << std::endl;
             break;
           case Nod::PipelineType_GPU:
@@ -129,16 +129,15 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
             break;
           default:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
-            tileSizes = {{}, L1TileSizes};
+            tileSizes = {{}, L1TileSizes, vectorTileSizes};
             std::cout << "Default using CPU pass pipeline" << std::endl;
             break;
         }
 
         auto compilationAttr = iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
-                               op->getContext(), tileSizes, nativeVectorSizes,
+                               op->getContext(), tileSizes, /*nativeVectorSizes=*/ArrayRef<int64_t>{},
                                passPipeline, workloadPerWorkgroup, workgroupSizes);
 
-        // Currently, verification only works for pass pipeline 'CPUTensorToVectors'
         LogicalResult status = iree_compiler::verifyLoweringConfiguration(
                 op, compilationAttr.getLoweringConfig(), compilationAttr.getTranslationInfo(),
                 /*workgroupSize =*/ArrayRef<int64_t>{});
