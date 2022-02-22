@@ -180,6 +180,14 @@ endforeach()
 # Build matmul-iree
 if(${USE_IREE} STREQUAL "ON")
   set(IREE_SOURCE ${MMPERF_SOURCE}/external/iree)
+  
+  set(IREE_TARGET_BACKEND_CUDA OFF)
+  set(IREE_HAL_DRIVER_CUDA OFF)
+  if(${IREE_CUDA})
+    set(IREE_TARGET_BACKEND_CUDA ON)
+    set(IREE_HAL_DRIVER_CUDA ON)
+  endif()
+
   ExternalProject_Add(matmul-iree
     DEPENDS benchmark
     PREFIX ${CMAKE_BINARY_DIR}/matmul-iree
@@ -191,6 +199,8 @@ if(${USE_IREE} STREQUAL "ON")
       -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
       -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON
       -DIREE_SOURCE=${IREE_SOURCE}
+      -DIREE_TARGET_BACKEND_CUDA:BOOL=${IREE_TARGET_BACKEND_CUDA}
+      -DIREE_HAL_DRIVER_CUDA:BOOL=${IREE_HAL_DRIVER_CUDA}
       ${MATMUL_CMAKE_ARGS}
   )
 endif()
