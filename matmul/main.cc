@@ -26,7 +26,6 @@
 #include "cuda_runtime.h"
 #include <sstream>
 #elif defined(MLIR)
-#include "mlir/ExecutionEngine/RunnerUtils.h"
 #endif
 #include <cstdio>
 #include <cstdlib>
@@ -55,13 +54,7 @@
 #endif
 #endif
 
-#if defined(MLIR)
-extern "C" void _mlir_ciface_print_memref_f32(UnrankedMemRefType<float> *M) {
-  //impl::printMemRef(*M);  // Uncomment to validate the MLIR results
-}
-#endif
-
-#if defined(MLIR) || defined(MLIR_CUDA) || defined(IREE_LLVM_SANDBOX) || defined(IREE_LLVM_SANDBOX_CUDA)
+#if defined(MLIR) || defined(MLIR_CUDA)
 extern "C" {
 struct memref_t {
   float *aligned;
@@ -315,7 +308,7 @@ float *A, *B, *C;
     ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 #elif defined(TVM)
     matmul(x, y, z);
-#elif defined(MLIR) || defined(MLIR_CUDA) || defined(IREE_LLVM_SANDBOX) || defined(IREE_LLVM_SANDBOX_CUDA)
+#elif defined(MLIR) || defined(MLIR_CUDA)
 #ifdef COLUMN_MAJOR
     matmul(A, A, 0, MDIM, KDIM, 1, LDA,
            B, B, 0, KDIM, NDIM, 1, LDB,
@@ -344,9 +337,7 @@ float *A, *B, *C;
   CHECK_CUBLAS(cublasGetVector(MDIM * NDIM, sizeof(float), CC, 1, C, 1));
 #endif
 
-// TODO: matmul results are no longer saved to C in mlir, find another way for validation
 #ifdef ENABLE_CHECK
-#if !defined(MLIR) && !defined(IREE_LLVM_SANDBOX) && !defined(IREE_LLVM_SANDBOX_CUDA)
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
   naive_matmul(A,B,C2,MDIM,KDIM,NDIM);
@@ -360,7 +351,6 @@ float *A, *B, *C;
     }
   }
   printf("Detected %ld errors.\n", errors);
-#endif
 #endif
 
 #if defined(TVM)
@@ -407,10 +397,6 @@ int main(int argc, char **argv) {
   printf("Benchmarking MLIR %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(MLIR_CUDA)
   printf("Benchmarking MLIR CUDA %d x %d x %d \n", MDIM, NDIM, KDIM);
-#elif defined(IREE_LLVM_SANDBOX)
-  printf("Benchmarking IREE LLVM Sandbox %d x %d x %d \n", MDIM, NDIM, KDIM);
-  #elif defined(IREE_LLVM_SANDBOX_CUDA)
-  printf("Benchmarking IREE LLVM Sandbox CUDA %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(NAIVE)
   printf("Benchmarking Naive C %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(OPENBLAS)
