@@ -139,8 +139,8 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
                                passPipeline, workloadPerWorkgroup, workgroupSizes);
 
         LogicalResult status = iree_compiler::verifyLoweringConfiguration(
-                op, compilationAttr.getLoweringConfig(), compilationAttr.getTranslationInfo(),
-                /*workgroupSize =*/ArrayRef<int64_t>{});
+                                  op, compilationAttr.getLoweringConfig(),
+                                  compilationAttr.getTranslationInfo(), workgroupSizes);
         if (failed(status)) signalPassFailure();
 
         op->setAttr("compilation.info", compilationAttr);

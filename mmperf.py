@@ -274,7 +274,7 @@ def _worker_init(result_dir, env):
     cmd = f'mkdir qdrep'
     subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, check=True, cwd=_result_dir)
 
-def do_permutations(jobs, perms, bin_path, result_dir, env, duration=None):
+def do_permutations(jobs, perms, bin_path, result_dir, env):
     num_tasks = len(perms)
     speeds = np.zeros((num_tasks,))
     runtimes = np.zeros((num_tasks,))

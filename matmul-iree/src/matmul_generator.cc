@@ -83,16 +83,9 @@ static void BenchmarkFunction(iree_vm_context_t* context,
           outputs, 0, iree_hal_buffer_view_get_descriptor());
 
   // Read back the results and ensure we got the right values.
-  iree_hal_buffer_mapping_t mapped_memory;
-  float *C = (float *) malloc(MDIM * NDIM * sizeof(float));
   float results[MDIM * NDIM];
   IREE_CHECK_OK(iree_hal_buffer_read_data(iree_hal_buffer_view_buffer(ret_buffer_view), 0,
                                 results, sizeof(results)));
-  for (iree_host_size_t i = 0; i < IREE_ARRAYSIZE(results); ++i) {
-    // Accessing the output elements
-    C[i] = results[i];
-  }
-
 #ifdef ENABLE_CHECK
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
@@ -100,15 +93,13 @@ static void BenchmarkFunction(iree_vm_context_t* context,
   for (size_t i = 0; i < MDIM; i++) {
     for (size_t j = 0; j < NDIM; j++) {
       size_t ci = i + j*MDIM;
-      if (fabs(C[ci] - C2[ci]) > 0.01f) {
+      if (fabs(results[ci] - C2[ci]) > 0.01f) {
         errors++;
         }
     }
   }
   printf("Detected %ld errors.\n", errors);
 #endif
-
-  iree_hal_buffer_unmap_range(&mapped_memory);
 }
 
 iree_status_t Run() {
