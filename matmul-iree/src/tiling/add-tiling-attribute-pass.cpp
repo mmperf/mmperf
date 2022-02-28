@@ -125,6 +125,8 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
           case Nod::PipelineType_GPU:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::LLVMGPUMatmulSimt;
             tileSizes = {workloadPerWorkgroup};
+            workloadPerWorkgroup.pop_back();
+            std::reverse(workloadPerWorkgroup.begin(), workloadPerWorkgroup.end());
             std::cout << "Using LLVMGPUMatmulSimt pass pipeline" << std::endl;
             break;
           default:
