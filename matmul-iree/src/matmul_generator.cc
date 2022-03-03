@@ -162,15 +162,25 @@ iree_status_t Run() {
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_wrap_or_clone_heap_buffer(
       iree_hal_device_allocator(device), arg0_shape, IREE_ARRAYSIZE(arg0_shape),
       IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
-      IREE_HAL_MEMORY_TYPE_HOST_VISIBLE | IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
-      IREE_HAL_MEMORY_ACCESS_ALL, IREE_HAL_BUFFER_USAGE_ALL,
+      (iree_hal_buffer_params_t){
+          .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL |
+                  IREE_HAL_MEMORY_TYPE_HOST_VISIBLE,
+          .usage = IREE_HAL_BUFFER_USAGE_DISPATCH |
+                   IREE_HAL_BUFFER_USAGE_TRANSFER |
+                   IREE_HAL_BUFFER_USAGE_MAPPING,
+      },
       iree_make_byte_span((void*)arg0, MDIM * KDIM * sizeof(float)),
       iree_allocator_null(), &arg0_buffer_view));
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_wrap_or_clone_heap_buffer(
       iree_hal_device_allocator(device), arg1_shape, IREE_ARRAYSIZE(arg1_shape),
       IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
-      IREE_HAL_MEMORY_TYPE_HOST_VISIBLE | IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
-      IREE_HAL_MEMORY_ACCESS_ALL, IREE_HAL_BUFFER_USAGE_ALL,
+      (iree_hal_buffer_params_t){
+          .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL |
+                  IREE_HAL_MEMORY_TYPE_HOST_VISIBLE,
+          .usage = IREE_HAL_BUFFER_USAGE_DISPATCH |
+                   IREE_HAL_BUFFER_USAGE_TRANSFER |
+                   IREE_HAL_BUFFER_USAGE_MAPPING,
+      },
       iree_make_byte_span((void*)arg1, KDIM * NDIM * sizeof(float)),
       iree_allocator_null(), &arg1_buffer_view));
 
