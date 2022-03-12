@@ -11,7 +11,7 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
-#include "mlir/Parser.h"
+#include "mlir/Parser/Parser.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/FileUtilities.h"
@@ -177,7 +177,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   context.allowUnregisteredDialects();
 
   llvm::errs() << "Read file: " << options.inputFile << "\n";
-  OwningOpRef<mlir::ModuleOp> moduleRef = parseSourceFile(options.inputFile, &context);
+  OwningOpRef<mlir::ModuleOp> moduleRef = parseSourceFile<mlir::ModuleOp>(options.inputFile, &context);
   if (!moduleRef)
     return make_string_error(Twine("could not open ") + options.inputFile);
 
