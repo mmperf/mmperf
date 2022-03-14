@@ -11,7 +11,7 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
-#include "mlir/Parser/Parser.h"
+#include "mlir/Parser.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/FileUtilities.h"
@@ -42,6 +42,8 @@ using llvm::Expected;
 using llvm::StringError;
 using llvm::Twine;
 
+#define kNumMaxParallelDims 3
+
 namespace mlir {
 
 namespace {
@@ -64,6 +66,29 @@ void populateSmallVector(std::vector<T> vec, SmallVector<T> &smallvec) {
   for (auto el : vec) {
     smallvec.push_back(el);
   }
+}
+
+SmallVector<int> getMatmulSize(Operation* op) {
+    auto linalg_matmul = llvm::dyn_cast<linalg::MatmulOp>(op);
+    auto mhlo_dot = llvm::dyn_cast<mhlo::DotOp>(op);
+    ArrayRef<int64_t> lhs_shape;
+    ArrayRef<int64_t> rhs_shape;
+    ArrayRef<int64_t> out_shape;
+    if(mhlo_dot) {
+      mhlo::DotOp dot_op = llvm::dyn_cast<mhlo::DotOp>(op);
+      lhs_shape = dot_op.lhs().getType().dyn_cast<RankedTensorType>().getShape();
+      rhs_shape = dot_op.rhs().getType().dyn_cast<RankedTensorType>().getShape();
+      out_shape = dot_op.getResult().getType().dyn_cast<RankedTensorType>().getShape();
+    } else {
+      linalg::MatmulOp linalg_op = llvm::dyn_cast<linalg::MatmulOp>(op);
+      lhs_shape = linalg_op.inputs()[0].getType().dyn_cast<RankedTensorType>().getShape();
+      rhs_shape = linalg_op.inputs()[1].getType().dyn_cast<RankedTensorType>().getShape();
+      out_shape = linalg_op.result_tensors()[0].getType().dyn_cast<RankedTensorType>().getShape();
+    }
+    int m = out_shape[0];
+    int n = out_shape[1];
+    int k = lhs_shape[1];
+    return {m, n, k};
 }
 
 struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleOp>> {
@@ -96,6 +121,10 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
     auto moduleOp = getOperation();
     RewritePatternSet patterns(&getContext());
     const auto& options = config.options;
+    bool tagging = false;
+    if(config.m && config.n && config.k) {
+      tagging = true;
+    }
     int count = 0;
 
     moduleOp->walk([&](Operation *nestedOp) {
@@ -129,6 +158,13 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
             std::reverse(workloadPerWorkgroup.begin(), workloadPerWorkgroup.end());
             std::cout << "Using LLVMGPUMatmulSimt pass pipeline" << std::endl;
             break;
+          case Nod::PipelineType_GPU_TENSORCORE:
+            passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::LLVMGPUMatmulTensorCore;
+            tileSizes = {workloadPerWorkgroup};
+            workloadPerWorkgroup.pop_back();
+            std::reverse(workloadPerWorkgroup.begin(), workloadPerWorkgroup.end());
+            std::cout << "Using LLVMGPUTensorCore pass pipeline" << std::endl;
+            break;
           default:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
             tileSizes = {{}, L1TileSizes, vectorTileSizes};
@@ -144,8 +180,14 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
                                   op, compilationAttr.getLoweringConfig(),
                                   compilationAttr.getTranslationInfo(), workgroupSizes);
         if (failed(status)) signalPassFailure();
-
-        op->setAttr("compilation.info", compilationAttr);
+        if(tagging) {
+          SmallVector<int>  mm_shape = getMatmulSize(op);
+          if(config.m == mm_shape[0] && config.n == mm_shape[1] && config.k == mm_shape[2]) {
+            op->setAttr("compilation.info", compilationAttr);
+          }
+        } else {
+          op->setAttr("compilation.info", compilationAttr);
+        }
       }
     });
   }
@@ -177,7 +219,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   context.allowUnregisteredDialects();
 
   llvm::errs() << "Read file: " << options.inputFile << "\n";
-  OwningOpRef<mlir::ModuleOp> moduleRef = parseSourceFile<mlir::ModuleOp>(options.inputFile, &context);
+  OwningOpRef<mlir::ModuleOp> moduleRef = parseSourceFile(options.inputFile, &context);
   if (!moduleRef)
     return make_string_error(Twine("could not open ") + options.inputFile);
 
