@@ -129,6 +129,13 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
             std::reverse(workloadPerWorkgroup.begin(), workloadPerWorkgroup.end());
             std::cout << "Using LLVMGPUMatmulSimt pass pipeline" << std::endl;
             break;
+	  case Nod::PipelineType_GPU_TENSORCORE:
+            passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::LLVMGPUMatmulTensorCore;
+            tileSizes = {workloadPerWorkgroup};
+            workloadPerWorkgroup.pop_back();
+            std::reverse(workloadPerWorkgroup.begin(), workloadPerWorkgroup.end());
+            std::cout << "Using LLVMGPUTensorCore pass pipeline" << std::endl;
+            break;
           default:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
             tileSizes = {{}, L1TileSizes, vectorTileSizes};

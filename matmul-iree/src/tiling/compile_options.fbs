@@ -5,7 +5,7 @@ namespace Nod;
 // 2) cache tile sizes: used for cache tiling (3 sizes for matmul)
 // 3) register tile sizes: used for register tiling and vectorization (3 sizes for matmul)
 
-enum PipelineType : byte {CPU, GPU}
+enum PipelineType : byte {CPU, GPU, GPU_TENSORCORE}
 table TileOptions {
   work_group_tile_sizes:[int64];
   l1_tile_sizes:[int64];
