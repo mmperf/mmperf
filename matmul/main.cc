@@ -201,6 +201,7 @@ float *A, *B, *C;
   cublasHandle_t handle;
   float *AA, *BB, *CC;
   CHECK_CUBLAS(cublasCreate(&handle));
+  CHECK_CUBLAS(cublasSetMathMode(handle, CUBLAS_TF32_TENSOR_OP_MATH));
   CHECK_CUDA(cudaMalloc((void **)(&AA), MDIM * KDIM * sizeof(float)));
   CHECK_CUDA(cudaMalloc((void **)(&BB), KDIM * NDIM * sizeof(float)));
   CHECK_CUDA(cudaMalloc((void **)(&CC), MDIM * NDIM * sizeof(float)));

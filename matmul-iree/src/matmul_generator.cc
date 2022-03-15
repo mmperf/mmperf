@@ -58,14 +58,16 @@ extern "C"{
                                      iree_hal_device_t** out_device);
 }
 
-static void BenchmarkFunction(iree_vm_context_t* context,
+static void BenchmarkFunction(int batch_size,
+                              iree_vm_context_t* context,
                               iree_vm_function_t function,
                               iree_vm_list_t* inputs,
                               iree_vm_list_t* outputs,
                               float* arg0,
                               float* arg1,
+                              iree_hal_device_t* device,
                               benchmark::State& state) {
-  for (auto _ : state) {
+  while (state.KeepRunningBatch(batch_size)) {
     IREE_CHECK_OK(iree_vm_list_create(
                            /*element_type=*/NULL,
                            /*capacity=*/1, iree_allocator_system(), &outputs));
@@ -76,6 +78,9 @@ static void BenchmarkFunction(iree_vm_context_t* context,
                                  /*policy=*/NULL, inputs, outputs,
                                  iree_allocator_system()));
   }
+
+  // Force a full flush and get the device back to an idle state.
+  IREE_CHECK_OK(iree_hal_device_wait_idle(device, iree_infinite_timeout()));
 
   // Get the result buffers from the invocation.
   iree_hal_buffer_view_t* ret_buffer_view =
@@ -94,6 +99,7 @@ static void BenchmarkFunction(iree_vm_context_t* context,
     for (size_t j = 0; j < NDIM; j++) {
       size_t ci = i + j*MDIM;
       if (fabs(results[ci] - C2[ci]) > 0.01f) {
+        fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, results[ci], C2[ci]);
         errors++;
         }
     }
@@ -163,8 +169,7 @@ iree_status_t Run() {
       iree_hal_device_allocator(device), arg0_shape, IREE_ARRAYSIZE(arg0_shape),
       IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
-          .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL |
-                  IREE_HAL_MEMORY_TYPE_HOST_VISIBLE,
+          .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
           .usage = IREE_HAL_BUFFER_USAGE_DISPATCH |
                    IREE_HAL_BUFFER_USAGE_TRANSFER |
                    IREE_HAL_BUFFER_USAGE_MAPPING,
@@ -175,8 +180,7 @@ iree_status_t Run() {
       iree_hal_device_allocator(device), arg1_shape, IREE_ARRAYSIZE(arg1_shape),
       IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
-          .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL |
-                  IREE_HAL_MEMORY_TYPE_HOST_VISIBLE,
+          .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
           .usage = IREE_HAL_BUFFER_USAGE_DISPATCH |
                    IREE_HAL_BUFFER_USAGE_TRANSFER |
                    IREE_HAL_BUFFER_USAGE_MAPPING,
@@ -203,9 +207,11 @@ iree_status_t Run() {
   IREE_RETURN_IF_ERROR(
       iree_vm_list_push_ref_move(inputs, &arg1_input_buffer_view_ref));
 
+  int batch_size = 100;
+
   ::benchmark::RegisterBenchmark("BM_Matmul",
-                               [context, main_function, inputs, outputs, arg0, arg1](benchmark::State& state)
-                               -> void {BenchmarkFunction(context, main_function, inputs, outputs, arg0, arg1, state);
+                               [batch_size, context, main_function, inputs, outputs, device, arg0, arg1](benchmark::State& state)
+                               -> void {BenchmarkFunction(batch_size, context, main_function, inputs, outputs, arg0, arg1, device, state);
                                }) ->MeasureProcessCPUTime() ->UseRealTime();
   ::benchmark::RunSpecifiedBenchmarks();
 
