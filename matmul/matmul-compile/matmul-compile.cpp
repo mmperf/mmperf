@@ -5,8 +5,7 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/Error.h"
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
-#include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVM.h"
-#include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
+#include "mlir/Conversion/FuncToLLVM/ConvertFuncToLLVM.h"
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/LinalgToLLVM/LinalgToLLVM.h"
 #include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
@@ -16,9 +15,9 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Linalg/Transforms/CodegenStrategy.h"
 #include "mlir/Dialect/Linalg/Utils/Utils.h"
-#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/Vector/IR/VectorOps.h"
-#include "mlir/Dialect/StandardOps/Transforms/Passes.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Func/Transforms/Passes.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Dialect.h"
@@ -30,7 +29,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/FileUtilities.h"
-#include "mlir/Support/MlirOptMain.h"
+#include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
@@ -94,7 +93,7 @@ struct LinalgCodegenPass : public PassWrapper<LinalgCodegenPass, OperationPass<F
                     linalg::LinalgDialect,
                     memref::MemRefDialect,
                     scf::SCFDialect,
-                    StandardOpsDialect,
+                    func::FuncDialect,
                     vector::VectorDialect>();
     // clang-format on
   }
@@ -369,7 +368,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   MLIRContext context(registry);
   context.loadAllAvailableDialects();
   llvm::errs() << "Read file: " << options.inputFile << "\n";
-  OwningOpRef<mlir::ModuleOp> moduleRef = parseSourceFile(options.inputFile, &context);
+  OwningOpRef<mlir::ModuleOp> moduleRef = parseSourceFile<mlir::ModuleOp>(options.inputFile, &context);
   if (!moduleRef)
     return make_string_error(Twine("could not open ") + options.inputFile);
 
@@ -389,7 +388,7 @@ Error compile(Options &options, mlir::DialectRegistry &registry) {
   pm.addPass(createConvertLinalgToLLVMPass());
   pm.addPass(createConvertVectorToLLVMPass());
   pm.addPass(createMemRefToLLVMPass());
-  pm.addPass(createLowerToLLVMPass());
+  pm.addPass(createConvertFuncToLLVMPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 
