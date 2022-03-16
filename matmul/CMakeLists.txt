@@ -147,7 +147,7 @@ function(compile_mlir_use_cuda mlir_prefix M N K)
   add_custom_command(OUTPUT ${OBJ}
     COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
     ${MLIR_OPT} --linalg-tile=\"loop-type=parallel tile-sizes=${TILE_SIZES_LOCAL}\" |
-    ${ML    ${} -fold-memref-subview-ops -canonicalize |
+    ${MLIR_OPT} -fold-memref-subview-ops -canonicalize |
     ${MLIR_OPT} -convert-vector-to-scf=full-unroll=true -convert-linalg-to-loops |
     ${MLIR_OPT} -gpu-kernel-outlining |
     ${MLIR_OPT} -lower-affine -convert-scf-to-std |
