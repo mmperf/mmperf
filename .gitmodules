@@ -15,7 +15,7 @@
 	url = https://github.com/apache/tvm.git
 [submodule "external/iree"]
 	path = external/iree
-	url = https://github.com/NodLabs/SHARK/tree/main/iree
+	url = https://github.com/NodLabs/SHARK
 [submodule "external/iree-llvm-sandbox"]
 	path = external/iree-llvm-sandbox
 	url = https://github.com/google/iree-llvm-sandbox.git
