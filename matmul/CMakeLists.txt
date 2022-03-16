@@ -10,6 +10,11 @@ endif()
 # Matrix sizes to benchmark
 message(STATUS "Reading matrix sizes from ... ${SIZE_FILE}")
 file(READ ${SIZE_FILE} MATRIX_SIZES)
+set_property(
+  DIRECTORY
+  APPEND
+  PROPERTY CMAKE_CONFIGURE_DEPENDS
+  ${SIZE_FILE})
 string(REGEX REPLACE "#[^\n]*\n" "" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE ";" "\\\\;" MATRIX_SIZES "${MATRIX_SIZES}")
 string(REGEX REPLACE "\n" ";" MATRIX_SIZES "${MATRIX_SIZES}")
@@ -46,8 +51,12 @@ function(compile_mlir_use_mlir mlir_prefix M N K)
   add_custom_command(
     OUTPUT ${TILE_BIN}
     COMMAND ${CMAKE_BINARY_DIR}/../flatbuffers-install/bin/flatc
-    -b ${CMAKE_CURRENT_SOURCE_DIR}/matmul-compile/compile_options.fbs
-    ${TILE_JSON}
+      -b ${CMAKE_CURRENT_SOURCE_DIR}/matmul-compile/compile_options.fbs
+      ${TILE_JSON}
+    DEPENDS
+      ${CMAKE_BINARY_DIR}/../flatbuffers-install/bin/flatc
+      ${CMAKE_CURRENT_SOURCE_DIR}/matmul-compile/compile_options.fbs
+      ${TILE_JSON}
   ) 
   add_custom_target("create_tiling_bin_${M}_${N}_${K}" ALL DEPENDS ${TILE_BIN})
   message(STATUS "Tile sizes = ${TILE_SIZES_LOCAL}")
@@ -60,10 +69,20 @@ function(compile_mlir_use_mlir mlir_prefix M N K)
     message(STATUS "Compiling linalg.matmul_column_major ...")
     configure_file(${CMAKE_SOURCE_DIR}/matmul_column_major_mlir_MxNxK.mlir.in
                    ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+    set_property(
+      DIRECTORY
+      APPEND
+      PROPERTY CMAKE_CONFIGURE_DEPENDS
+      ${CMAKE_SOURCE_DIR}/matmul_column_major_mlir_MxNxK.mlir.in)
   else()
     message(STATUS "Compiling linalg.matmul ...")
     configure_file(${CMAKE_SOURCE_DIR}/matmul_mlir_MxNxK.mlir.in
                    ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+    set_property(
+      DIRECTORY
+      APPEND
+      PROPERTY CMAKE_CONFIGURE_DEPENDS
+      ${CMAKE_SOURCE_DIR}/matmul_mlir_MxNxK.mlir.in)
   endif()
   string(REPLACE " " "," TILE_SIZES_LOCAL "${TILE_SIZES_LOCAL}")
   string(REPLACE " " "," COL_MAJOR_TILE_SIZES "${COL_MAJOR_TILE_SIZES}")
@@ -71,13 +90,15 @@ function(compile_mlir_use_mlir mlir_prefix M N K)
   add_custom_command(
     OUTPUT ${OBJ}
     COMMAND ${CMAKE_BINARY_DIR}/matmul-compile/matmul-compile
-    --compile-options ${TILE_BIN} --target-cpu=${TARGET_CPU} --vector-width=${VECTOR_WIDTH}
-    ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir
+      --compile-options ${TILE_BIN} --target-cpu=${TARGET_CPU} --vector-width=${VECTOR_WIDTH}
+      ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir
     COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir.ll
-    -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
-    -c -o ${OBJ} -g
+      -mllvm -enable-matrix -mllvm -matrix-allow-contract -mllvm -matrix-default-layout=row-major
+      -c -o ${OBJ} -g
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
-    DEPENDS matmul-compile
+    DEPENDS
+      matmul-compile
+      ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir
   )
 endfunction()
 
@@ -103,10 +124,20 @@ function(compile_mlir_use_cuda mlir_prefix M N K)
     message(STATUS "Compiling linalg.matmul_column_major ...")
     configure_file(${CMAKE_SOURCE_DIR}/matmul_column_major_mlir_MxNxK.mlir.in
                    ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+    set_property(
+      DIRECTORY
+      APPEND
+      PROPERTY CMAKE_CONFIGURE_DEPENDS
+      ${CMAKE_SOURCE_DIR}/matmul_column_major_mlir_MxNxK.mlir.in)
   else()
     message(STATUS "Compiling linalg.matmul with CUDA backend ...")
     configure_file(${CMAKE_SOURCE_DIR}/matmul_mlircuda_MxNxK.mlir.in
                    ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+    set_property(
+      DIRECTORY
+      APPEND
+      PROPERTY CMAKE_CONFIGURE_DEPENDS 
+      ${CMAKE_SOURCE_DIR}/matmul_mlircuda_MxNxK.mlir.in)
   endif()
   string(REPLACE " " "," TILE_SIZES_LOCAL "${TILE_SIZES_LOCAL}")
   string(REPLACE " " "," COL_MAJOR_TILE_SIZES "${COL_MAJOR_TILE_SIZES}")
@@ -116,7 +147,7 @@ function(compile_mlir_use_cuda mlir_prefix M N K)
   add_custom_command(OUTPUT ${OBJ}
     COMMAND cat ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir |
     ${MLIR_OPT} --linalg-tile=\"loop-type=parallel tile-sizes=${TILE_SIZES_LOCAL}\" |
-    ${MLIR_OPT} -fold-memref-subview-ops -canonicalize |
+    ${ML    ${} -fold-memref-subview-ops -canonicalize |
     ${MLIR_OPT} -convert-vector-to-scf=full-unroll=true -convert-linalg-to-loops |
     ${MLIR_OPT} -gpu-kernel-outlining |
     ${MLIR_OPT} -lower-affine -convert-scf-to-std |
@@ -125,7 +156,10 @@ function(compile_mlir_use_cuda mlir_prefix M N K)
     ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir.ll
     COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir.ll
     -c -o ${OBJ}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
+    DEPENDS
+      ${MLIR_OPT}
+      ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
 endfunction()
 
 # Function for compiling matmul with LLVM Sandbox
@@ -138,6 +172,11 @@ function(compile_llvm_sandbox_mlir mlir_prefix M N K)
 
   configure_file(${CMAKE_SOURCE_DIR}/matmul_llvmsandbox_MxNxK.mlir
                  ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+  set_property(
+    DIRECTORY
+    APPEND
+    PROPERTY CMAKE_CONFIGURE_DEPENDS 
+    ${CMAKE_SOURCE_DIR}/matmul_llvmsandbox_MxNxK.mlir)
 
   add_custom_command(
     OUTPUT ${OBJ}
@@ -157,7 +196,11 @@ function(compile_llvm_sandbox_mlir mlir_prefix M N K)
     ${MLIR_TRANSLATE} --mlir-to-llvmir -o=${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
     COMMAND ${CMAKE_CXX_COMPILER} -Ofast ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.ll
     -c -o ${OBJ}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs)
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/mlir-objs
+    DEPENDS
+      ${MLIR_PROTO_OPT}
+      ${MLIR_OPT}
+      ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
 endfunction()
 
 # Add backends
@@ -351,11 +394,21 @@ foreach(BACKEND ${BACKENDS})
   endforeach()
 endforeach()
 
+set(MMPERF_PY_RUN_DEPS
+  ${CMAKE_SOURCE_DIR}/../iree_sandbox_matmul.py
+  ${CMAKE_BINARY_DIR}/../cpuinfo-install/bin/cache-info
+  ${CMAKE_BINARY_DIR}/../cpuinfo-install/bin/cpu-info
+  ${CMAKE_BINARY_DIR}/../cpuinfo-install/bin/isa-info
+  )
+
 add_custom_target(run_all_tests
     ${CMAKE_SOURCE_DIR}/../mmperf.py
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}/../results/${TARGET_CPU}
-    DEPENDS ${ALL_TARGETS}
+    DEPENDS
+      ${CMAKE_SOURCE_DIR}/../mmperf.py
+      ${MMPERF_PY_RUN_DEPS}
+      ${ALL_TARGETS}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/..)
 
 set(SANDBOX_ARGS)
@@ -367,4 +420,8 @@ add_custom_target(sandbox_search
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}/../results/${TARGET_CPU}
     ${SANDBOX_ARGS}
+    DEPENDS
+      ${CMAKE_SOURCE_DIR}/../mmperf.py
+      ${MMPERF_PY_RUN_DEPS}
+      ${SIZE_FILE}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/..)

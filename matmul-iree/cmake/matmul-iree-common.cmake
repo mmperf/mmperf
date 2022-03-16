@@ -1,6 +1,12 @@
 # Method to generate matmul MLIR artifacts of specified sizes.
 function(compile_mlir mlir_prefix M N K)
-    configure_file(${CMAKE_SOURCE_DIR}/src/matmul_MxNxK.mlir ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+    configure_file(${CMAKE_SOURCE_DIR}/src/matmul_MxNxK.mlir
+      ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+    set_property(
+      DIRECTORY
+      APPEND
+      PROPERTY CMAKE_CONFIGURE_DEPENDS
+      ${CMAKE_SOURCE_DIR}/src/matmul_MxNxK.mlir)
 endfunction()
 
 # Method to generate a IREE matmul binary for a specific backend and matrix size 
@@ -43,6 +49,7 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
         COMMAND ${_TRANSLATE_TOOL_EXECUTABLE} ${_ARGS}
         DEPENDS ${_TRANSLATE_TOOL_EXECUTABLE}
                 ${_EMBEDDED_LINKER_TOOL_EXECUTABLE}
+                ${mlir_file}
     )
 
     #-------------------------------------------------------------------------------
