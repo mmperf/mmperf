@@ -67,10 +67,10 @@ def singleExpert3DPad(configs, default=False):
       Tile('matmul',
            'linalg.generic',
            tile_sizes=configs[0]['tile_sizes'],
-           tile_interchange=configs[0]['tile_interchange'],
-           pad=True,
-           pack_paddings=[1, 1, 0],
-           hoist_paddings=configs[0]['hoist_padding'])
+           tile_interchange=configs[0]['tile_interchange']
+        .then(Pad('matmul', 'linalg.generic',
+                  pack_paddings=[1, 1, 0],
+                  hoist_paddings=[2, 3, 0]))
         .then(Vectorize('matmul', ''))
         .then(LoweringOnlyExpert('matmul', 'linalg.generic'))
     ]]
@@ -109,22 +109,22 @@ def doubleExpert2DPad(configs, default=False):
 
   all_experts = [
     e.print_ir(after_all=False, at_begin=False, llvm=False) for e in [
-      DoubleTile('matmul',
-                 'linalg.generic',
-                 tile_sizes1=configs[0]['tile_sizes'],
-                 tile_interchange1=configs[0]['tile_interchange'],
-                 tile_sizes2=configs[1]['tile_sizes'],
-                 tile_interchange2=configs[1]['tile_interchange'],
-                 pad2=True,
-                 pack_paddings2=[1, 1, 0],
-                 hoist_paddings2=configs[0]['hoist_padding'],
-                 transpose_paddings2=[[1, 0], [0, 1], [0, 1]],)
-        .then(Vectorize('matmul', ''))
-        .then(UnrollOneParentLoop('matmul',
+      Tile('matmul', 'linalg.generic',
+           tile_sizes=configs[0]['tile_sizes'],
+           tile_interchange=configs[0]['tile_interchange'])
+          .then(Tile('matmul', 'linalg.generic',
+                     tile_sizes=configs[1]['tile_sizes'],
+                     tile_interchange=configs[1]['tile_interchange']))
+          .then(Pad('matmul', 'linalg.generic',
+                    pack_paddings=[1, 1, 0],
+                    hoist_paddings=configs[0]['hoist_padding'],
+                    transpose_paddings=[[1, 0], [0, 1], [0, 1]]))
+          .then(Vectorize('matmul', ''))
+          .then(UnrollOneParentLoop('matmul',
                                   'vector.contract',
                                   parent_loop_num=1,
                                   unroll_factor=4))
-        .then(LoweringOnlyExpert('matmul',
+          .then(LoweringOnlyExpert('matmul',
                                  'linalg.generic',
                                  transpose_lowering='eltwise'))
     ]]
