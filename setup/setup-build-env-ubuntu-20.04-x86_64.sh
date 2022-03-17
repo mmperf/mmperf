@@ -13,6 +13,7 @@ sudo apt-get install \
   lld-12 \
   ninja-build \
   python3.9 \
+  python3.9-venv \
   wget
 
 python3.9 -m venv .
