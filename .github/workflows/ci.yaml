@@ -9,6 +9,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  BIN_DIR: /tmp/mmperf
 
 jobs:
   build:
@@ -22,24 +23,28 @@ jobs:
     - name: Setup Build Environment
       run: |
         SRC_DIR="$PWD"
-        mkdir -p /tmp/mmperf/mmperf_venv
-        cd /tmp/mmperf/mmperf_venv
+        mkdir -p "$BIN_DIR/mmperf_venv"
+        cd "$BIN_DIR/mmperf_venv"
         "$SRC_DIR/setup/setup-build-env-ubuntu-20.04-x86_64.sh"
 
     - name: Configure
       run: |
         SRC_DIR="$PWD"
-        mkdir -p /tmp/mmperf/build
-        cd /tmp/mmperf/build
-        "$SRC_DIR/setup/configure.sh" --build-type $BUILD_TYPE
+        source "$BIN_DIR/mmperf_venv/bin/activate"
+        mkdir -p "$BIN_DIR/build"
+        cd "$BIN_DIR/build"
+        "$SRC_DIR/setup/configure.sh" --build-type "$BUILD_TYPE"
 
     - name: Build
       run: |
-        cd /tmp/mmperf/build
+        SRC_DIR="$PWD"
+        source "$BIN_DIR/mmperf_venv/bin/activate"
+        cd "$BIN_DIR/build"
         "$SRC_DIR/setup/build.sh"
 
     - name: Test
       run: |
         SRC_DIR="$PWD"
-        cd /tmp/mmperf/build
+        source "$BIN_DIR/mmperf_venv/bin/activate"
+        cd "$BIN_DIR/build"
         "$SRC_DIR/setup/test.sh"
