@@ -17,6 +17,7 @@ sudo apt-get install \
   wget
 
 python3.9 -m venv .
+source bin/activate
 pip install -r "$SCRIPT_DIR/../requirements.txt"
 
 wget https://github.com/Kitware/CMake/releases/download/v3.18.4/cmake-3.18.4-linux-x86_64.sh \

@@ -32,5 +32,5 @@ cmake \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="-fuse-ld=lld-12" \
   -DUSE_MLIR=ON \
   -DUSE_IREE=ON \
-  -DIREE_DYLIB=ON \ 
-  -S "$SCRIPT_DIR/.."
+  -DIREE_DYLIB=ON \
+  "$SCRIPT_DIR/.."
