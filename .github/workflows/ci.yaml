@@ -1,0 +1,50 @@
+name: mmperf CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+  BIN_DIR: /tmp/mmperf
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Setup Build Environment
+      run: |
+        SRC_DIR="$PWD"
+        mkdir -p "$BIN_DIR/mmperf_venv"
+        cd "$BIN_DIR/mmperf_venv"
+        "$SRC_DIR/ci/setup-build-env-ubuntu-20.04-x86_64.sh"
+
+    - name: Configure
+      run: |
+        SRC_DIR="$PWD"
+        source "$BIN_DIR/mmperf_venv/bin/activate"
+        mkdir -p "$BIN_DIR/build"
+        cd "$BIN_DIR/build"
+        "$SRC_DIR/ci/configure.sh" --build-type "$BUILD_TYPE"
+
+    - name: Build
+      run: |
+        SRC_DIR="$PWD"
+        source "$BIN_DIR/mmperf_venv/bin/activate"
+        cd "$BIN_DIR/build"
+        "$SRC_DIR/ci/build.sh"
+
+    - name: Test
+      run: |
+        SRC_DIR="$PWD"
+        source "$BIN_DIR/mmperf_venv/bin/activate"
+        cd "$BIN_DIR/build"
+        "$SRC_DIR/ci/test.sh"
