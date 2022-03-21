@@ -25,7 +25,7 @@ jobs:
         SRC_DIR="$PWD"
         mkdir -p "$BIN_DIR/mmperf_venv"
         cd "$BIN_DIR/mmperf_venv"
-        "$SRC_DIR/setup/setup-build-env-ubuntu-20.04-x86_64.sh"
+        "$SRC_DIR/ci/setup-build-env-ubuntu-20.04-x86_64.sh"
 
     - name: Configure
       run: |
@@ -33,18 +33,18 @@ jobs:
         source "$BIN_DIR/mmperf_venv/bin/activate"
         mkdir -p "$BIN_DIR/build"
         cd "$BIN_DIR/build"
-        "$SRC_DIR/setup/configure.sh" --build-type "$BUILD_TYPE"
+        "$SRC_DIR/ci/configure.sh" --build-type "$BUILD_TYPE"
 
     - name: Build
       run: |
         SRC_DIR="$PWD"
         source "$BIN_DIR/mmperf_venv/bin/activate"
         cd "$BIN_DIR/build"
-        "$SRC_DIR/setup/build.sh"
+        "$SRC_DIR/ci/build.sh"
 
     - name: Test
       run: |
         SRC_DIR="$PWD"
         source "$BIN_DIR/mmperf_venv/bin/activate"
         cd "$BIN_DIR/build"
-        "$SRC_DIR/setup/test.sh"
+        "$SRC_DIR/ci/test.sh"
