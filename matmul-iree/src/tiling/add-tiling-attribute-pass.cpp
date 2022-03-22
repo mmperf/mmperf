@@ -125,15 +125,11 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
           case Nod::PipelineType_GPU:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::LLVMGPUMatmulSimt;
             tileSizes = {workloadPerWorkgroup};
-            workloadPerWorkgroup.pop_back();
-            std::reverse(workloadPerWorkgroup.begin(), workloadPerWorkgroup.end());
             std::cout << "Using LLVMGPUMatmulSimt pass pipeline" << std::endl;
             break;
 	  case Nod::PipelineType_GPU_TENSORCORE:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::LLVMGPUMatmulTensorCore;
             tileSizes = {workloadPerWorkgroup};
-            workloadPerWorkgroup.pop_back();
-            std::reverse(workloadPerWorkgroup.begin(), workloadPerWorkgroup.end());
             std::cout << "Using LLVMGPUTensorCore pass pipeline" << std::endl;
             break;
           default:
@@ -145,14 +141,14 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
 
         auto compilationAttr = iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
                                op->getContext(), tileSizes, /*nativeVectorSizes=*/ArrayRef<int64_t>{},
-                               passPipeline, workloadPerWorkgroup, workgroupSizes);
+                               passPipeline, ArrayRef<int64_t>{}, workgroupSizes);
 
         LogicalResult status = iree_compiler::verifyLoweringConfiguration(
                                   op, compilationAttr.getLoweringConfig(),
                                   compilationAttr.getTranslationInfo(), workgroupSizes);
         if (failed(status)) signalPassFailure();
 
-        op->setAttr("compilation.info", compilationAttr);
+        iree_compiler::setCompilationInfo(op, compilationAttr);
       }
     });
   }
