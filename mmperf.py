@@ -42,7 +42,9 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'ireedylib': 'aqua',
               'ireecuda': 'deeppink',
               'mlir-sandbox': 'mediumseagreen',
-              'nodai-mlir-sandbox': 'red'}
+              'nodai-mlir-sandbox': 'red',
+              'nodai-iree': 'red',
+              'nodai-iree-cuda': 'red'}
 BENCHMARK_ENV = os.environ.copy()
 BENCHMARK_ENV.update({
     "MKL_NUM_THREADS": "1",
@@ -293,8 +295,12 @@ def do_permutations(jobs, perms, bin_path, result_dir, env):
 
     with Pool(jobs, _worker_init, (result_dir, env)) as pool:
         for i, perm in enumerate(perms):
-            perm_name = perm.split('_')[1]
-            matrix_size = perm.split('_')[2]
+            if type(perm) == str:
+                perm_name = perm.split('_')[1]
+                matrix_size = perm.split('_')[2].split('.')[0]
+            else:
+                perm_name = perm.stem.split('_')[1]
+                matrix_size = perm.stem.split('_')[2]
             #enable if you want nsys output
             #if perm_name in ['tvmcuda', 'ireecuda', 'mlircuda', 'cublas']:
             #    async_results[i] = pool.apply_async(_gpu_nsys_permutation, (i, bin_path / perm, matrix_size, perm_name), callback=callback)
@@ -351,7 +357,7 @@ def main(argv):
     binaries = {}
     for i, path in enumerate(bin_paths):
         parts = path.name.split('_')[1:]
-        parts[1] = parts[1].replace('m', '', 1)
+        parts[1] = parts[1].split('.')[0]
         size = tuple(int(y) for y in parts[1].split('x'))
         binaries.setdefault(parts[0], []).append(
             {'path': path.resolve(), 'size': size, 'speed': speeds[i]})
