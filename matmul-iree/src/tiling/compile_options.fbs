@@ -12,6 +12,7 @@ table TileOptions {
   vector_tile_sizes:[int64];
   work_group_sizes:[int64];
   pipeline: PipelineType;
+  split_k: int;
 }
 table CompileOptions {
   options:[TileOptions];
