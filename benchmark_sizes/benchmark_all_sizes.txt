@@ -1,6 +1,5 @@
 18x32x96
 24x64x96
-# Was changed from 24x64x512 because MLIR crashes
 24x64x512
 24x64x256
 48x64x128
