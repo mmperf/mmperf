@@ -4,6 +4,9 @@ This repository aims to benchmark Matrix Multiply (SGEMM) hand-tuned libraries a
 
 ## Results
 
+### Results on Nvidia A100 (cublas vs SHARK)
+![Results](https://github.com/mmperf/mmperf/raw/main/official_results/cuda_nodai7.png)
+
 ### Results on Intel Alderlake 12900k (AVX2)
 ![Results](https://github.com/mmperf/mmperf/raw/main/official_results/alderlake/2022-01-27_23-40-34-673036/matmul.png)
 
