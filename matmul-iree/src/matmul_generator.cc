@@ -172,9 +172,8 @@ iree_status_t Run() {
       IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
-          .usage = IREE_HAL_BUFFER_USAGE_DISPATCH |
-                   IREE_HAL_BUFFER_USAGE_TRANSFER |
-                   IREE_HAL_BUFFER_USAGE_MAPPING,
+          .usage =
+              IREE_HAL_BUFFER_USAGE_DISPATCH | IREE_HAL_BUFFER_USAGE_TRANSFER,
       },
       iree_make_const_byte_span((void*)arg0, MDIM * KDIM * sizeof(float)), &arg0_buffer_view));
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
@@ -182,9 +181,8 @@ iree_status_t Run() {
       IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
-          .usage = IREE_HAL_BUFFER_USAGE_DISPATCH |
-                   IREE_HAL_BUFFER_USAGE_TRANSFER |
-                   IREE_HAL_BUFFER_USAGE_MAPPING,
+          .usage =
+              IREE_HAL_BUFFER_USAGE_DISPATCH | IREE_HAL_BUFFER_USAGE_TRANSFER,
       },
       iree_make_const_byte_span((void*)arg1, KDIM * NDIM * sizeof(float)), &arg1_buffer_view));
 
