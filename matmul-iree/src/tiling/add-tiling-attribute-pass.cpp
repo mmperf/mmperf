@@ -140,8 +140,8 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         }
 
         auto compilationAttr = iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
-                               op->getContext(), tileSizes, /*nativeVectorSizes=*/ArrayRef<int64_t>{},
-                               passPipeline, ArrayRef<int64_t>{}, workgroupSizes);
+                               op->getContext(), tileSizes, {}, /*nativeVectorSizes=*/ArrayRef<int64_t>{},
+                               passPipeline, /*workloadPerWorkgroup=*/ArrayRef<int64_t>{}, workgroupSizes);
 
         LogicalResult status = iree_compiler::verifyLoweringConfiguration(
                                   op, compilationAttr.getLoweringConfig(),
