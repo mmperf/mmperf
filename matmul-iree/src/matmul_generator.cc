@@ -29,15 +29,15 @@
 #define STRING(s) #s
 #define TO_STRING(x) STRING(x)
 
-void init_matrix(float *a, int nrows, int ncols) {
+void init_matrix(uint16_t *a, int nrows, int ncols) {
   for (int j = 0; j < ncols; j++) {
     for (int i = 0; i < nrows; i++) {
-      a[i + j * nrows] = ((float) rand() / (float) RAND_MAX);
+      a[i + j * nrows] = ((uint16_t) rand() / (uint16_t) RAND_MAX);
     }
   }
 }
 
-void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, size_t n) {
+void naive_matmul(const uint16_t *a, const uint16_t *b, uint16_t *c, size_t m, size_t k, size_t n) {
   // correctness check
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
@@ -63,8 +63,8 @@ static void BenchmarkFunction(int batch_size,
                               iree_vm_function_t function,
                               iree_vm_list_t* inputs,
                               iree_vm_list_t* outputs,
-                              float* arg0,
-                              float* arg1,
+                              uint16_t* arg0,
+                              uint16_t* arg1,
                               iree_hal_device_t* device,
                               benchmark::State& state) {
   while (state.KeepRunningBatch(batch_size)) {
@@ -88,13 +88,13 @@ static void BenchmarkFunction(int batch_size,
           outputs, 0, iree_hal_buffer_view_get_descriptor());
 
   // Read back the results and ensure we got the right values.
-  float results[MDIM * NDIM];
+  uint16_t results[MDIM * NDIM];
   IREE_CHECK_OK(iree_hal_device_transfer_d2h(
       device, iree_hal_buffer_view_buffer(ret_buffer_view), 0, results,
       sizeof(results), IREE_HAL_TRANSFER_BUFFER_FLAG_DEFAULT,
       iree_infinite_timeout()));
 #ifdef ENABLE_CHECK
-  float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
+  uint16_t *C2 = (uint16_t *) malloc(MDIM * NDIM * sizeof(uint16_t));
   size_t errors = 0;
   naive_matmul(arg0,arg1,C2,MDIM,KDIM,NDIM);
   for (size_t i = 0; i < MDIM; i++) {
@@ -158,8 +158,8 @@ iree_status_t Run() {
   static iree_hal_dim_t arg0_shape[] = {MDIM, KDIM};
   static iree_hal_dim_t arg1_shape[] = {KDIM, NDIM};
 
-  float *arg0 = (float *) malloc(MDIM * KDIM * sizeof(float));
-  float *arg1 = (float *) malloc(KDIM * NDIM * sizeof(float));
+  uint16_t *arg0 = (uint16_t *) malloc(MDIM * KDIM * sizeof(uint16_t));
+  uint16_t *arg1 = (uint16_t *) malloc(KDIM * NDIM * sizeof(uint16_t));
 
   init_matrix(arg0, MDIM, KDIM);
   init_matrix(arg1, KDIM, NDIM);
@@ -169,22 +169,22 @@ iree_status_t Run() {
 
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
       iree_hal_device_allocator(device), arg0_shape, IREE_ARRAYSIZE(arg0_shape),
-      IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
+      IREE_HAL_ELEMENT_TYPE_FLOAT_16, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
           .usage =
               IREE_HAL_BUFFER_USAGE_DISPATCH | IREE_HAL_BUFFER_USAGE_TRANSFER,
       },
-      iree_make_const_byte_span((void*)arg0, MDIM * KDIM * sizeof(float)), &arg0_buffer_view));
+      iree_make_const_byte_span((void*)arg0, MDIM * KDIM * sizeof(uint16_t)), &arg0_buffer_view));
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
       iree_hal_device_allocator(device), arg1_shape, IREE_ARRAYSIZE(arg1_shape),
-      IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
+      IREE_HAL_ELEMENT_TYPE_FLOAT_16, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
           .usage =
               IREE_HAL_BUFFER_USAGE_DISPATCH | IREE_HAL_BUFFER_USAGE_TRANSFER,
       },
-      iree_make_const_byte_span((void*)arg1, KDIM * NDIM * sizeof(float)), &arg1_buffer_view));
+      iree_make_const_byte_span((void*)arg1, KDIM * NDIM * sizeof(uint16_t)), &arg1_buffer_view));
 
   // Pass in the tensor as an expanded HAL buffer.
   iree_vm_list_t* inputs = NULL;

@@ -199,14 +199,17 @@ float *A, *B, *C;
 
 #if defined(CUBLAS)
   cublasHandle_t handle;
-  float *AA, *BB, *CC;
+  half *AA, *BB;
+  float *CC; // if I make this half precision, cublas fails, 
+             // perhaps its an intentionally missing template as accumulation
+             // should be single precision?
   CHECK_CUBLAS(cublasCreate(&handle));
-  CHECK_CUBLAS(cublasSetMathMode(handle, CUBLAS_TF32_TENSOR_OP_MATH));
-  CHECK_CUDA(cudaMalloc((void **)(&AA), MDIM * KDIM * sizeof(float)));
-  CHECK_CUDA(cudaMalloc((void **)(&BB), KDIM * NDIM * sizeof(float)));
+  CHECK_CUBLAS(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
+  CHECK_CUDA(cudaMalloc((void **)(&AA), MDIM * KDIM * sizeof(half)));
+  CHECK_CUDA(cudaMalloc((void **)(&BB), KDIM * NDIM * sizeof(half)));
   CHECK_CUDA(cudaMalloc((void **)(&CC), MDIM * NDIM * sizeof(float)));
-  CHECK_CUBLAS(cublasSetVector(MDIM * KDIM, sizeof(float), A, 1, AA, 1));
-  CHECK_CUBLAS(cublasSetVector(KDIM * NDIM, sizeof(float), B, 1, BB, 1));
+  CHECK_CUBLAS(cublasSetVector(MDIM * KDIM, sizeof(half), A, 1, AA, 1));
+  CHECK_CUBLAS(cublasSetVector(KDIM * NDIM, sizeof(half), B, 1, BB, 1));
   CHECK_CUBLAS(cublasSetVector(MDIM * NDIM, sizeof(float), C, 1, CC, 1));
 #endif
 
@@ -323,11 +326,25 @@ float *A, *B, *C;
     naive_matmul(A,B,C,MDIM,KDIM,NDIM);
 #elif defined(CUBLAS)
 #if defined(COLUMN_MAJOR)
-    CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
-			     &alpha, AA, LDA, BB, LDB, &beta, CC, LDC));
+    // cublasSgemm does not seem to support fp16 
+    /*CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
+			     &alpha, AA, LDA, BB, LDB, &beta, CC, LDC));*/
+    // Is cublasSgemmEx same as cublasSgemm but allows flexible types?
+    CHECK_CUBLAS(cublasSgemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
+			     &alpha, 
+           AA,CUDA_R_16F, LDA, 
+           BB,CUDA_R_16F, LDB, 
+           &beta, 
+           CC,CUDA_R_32F, LDC));
 #else
-    CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
-			     &alpha, BB, LDB, AA, LDA, &beta, CC, LDC));
+    /*CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
+			     &alpha, BB, LDB, AA, LDA, &beta, CC, LDC));*/
+    CHECK_CUBLAS(cublasSgemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
+			     &alpha, 
+           AA,CUDA_R_16F, LDA, 
+           BB,CUDA_R_16F, LDB, 
+           &beta, 
+           CC,CUDA_R_32F, LDC));
 #endif
 #endif
   }
