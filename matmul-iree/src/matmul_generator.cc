@@ -88,11 +88,14 @@ static void BenchmarkFunction(int batch_size,
           outputs, 0, iree_hal_buffer_view_get_descriptor());
 
   // Read back the results and ensure we got the right values.
-  float results[MDIM * NDIM];
+  float *C;
+  IREE_CHECK_OK(iree_allocator_malloc(iree_allocator_system(),
+                MDIM * NDIM * sizeof(float), (void**)&C));
   IREE_CHECK_OK(iree_hal_device_transfer_d2h(
-      device, iree_hal_buffer_view_buffer(ret_buffer_view), 0, results,
-      sizeof(results), IREE_HAL_TRANSFER_BUFFER_FLAG_DEFAULT,
+      device, iree_hal_buffer_view_buffer(ret_buffer_view), 0, C,
+      MDIM * NDIM * sizeof(float), IREE_HAL_TRANSFER_BUFFER_FLAG_DEFAULT,
       iree_infinite_timeout()));
+
 #ifdef ENABLE_CHECK
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
@@ -100,14 +103,15 @@ static void BenchmarkFunction(int batch_size,
   for (size_t i = 0; i < MDIM; i++) {
     for (size_t j = 0; j < NDIM; j++) {
       size_t ci = i + j*MDIM;
-      if (fabs(results[ci] - C2[ci]) > 0.01f) {
-        //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, results[ci], C2[ci]);
+      if (fabs(C[ci] - C2[ci]) > 0.01f) {
+        //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
         errors++;
-        }
+      }
     }
   }
   printf("Detected %ld errors.\n", errors);
 #endif
+  iree_allocator_free(iree_allocator_system(), C);
 }
 
 iree_status_t Run() {
