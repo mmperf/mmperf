@@ -9,3 +9,6 @@ cloudpickle
 attrs
 numpy
 synr
+# packages for triton
+triton
+torch

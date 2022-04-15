@@ -20,6 +20,8 @@ import numpy as np
 import GPUtil
 import csv
 import json
+import torch
+import triton
 
 plt.style.use('ggplot')
 
@@ -42,6 +44,7 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'ireedylib': 'aqua',
               'ireecuda': 'deeppink',
               'mlir-sandbox': 'mediumseagreen',
+              'triton': 'purple',
               'nodai-mlir-sandbox': 'red',
               'nodai-iree': 'red',
               'nodai-iree-cuda': 'red'}
@@ -77,6 +80,11 @@ def add_arguments(parser):
                         help='Path to load config files generated for nodai-mlir-sandbox')
     parser.add_argument('-sandbox_configs', dest='sandbox_configs',
                         help='Path to load config files generated for mlir-sanxbox')
+    # Flags to enable triton
+    parser.add_argument('-triton', action='store_true',
+                        help='Whether to run matmul in triton')
+    parser.add_argument('-dtype', default='fp32',
+                        help='Data precision for triton benchmark')
 
 def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
@@ -85,8 +93,8 @@ def make_result_dir(base_dir):
     latest_symlink = os.path.join(base_dir, 'latest')
     print("Latest symlink path is: ", latest_symlink)
     print("Latest results path is: ", result_dir)
-    #Remove old latest link
-    if(os.path.isdir(latest_symlink)):
+    # Remove old latest link
+    if os.path.isdir(latest_symlink):
         os.unlink(latest_symlink)
     cwd = os.getcwd()
     os.chdir(base_dir)
@@ -142,7 +150,7 @@ def write_system_info(output_dir, cpuinfo_dir):
     try:
         GPUs = GPUtil.getGPUs()
         # TODO: investigate why GPUs gets set to empty list in some cases
-        if (len(GPUs) > 0):
+        if len(GPUs) > 0:
             with open(output_dir / 'gpu-info', 'w') as fg:
                 gpu_name = GPUs[0].name
                 fg.write(gpu_name)
@@ -156,7 +164,7 @@ def autolabel(rects):
     for rect in rects:
         height = rect.get_height()
         # If the floor value of GFLOPS is 0 print its float value
-        if(int(height) == 0):
+        if int(height) == 0:
             plt.text(rect.get_x() + rect.get_width()/2., 1.02*height,
                     '%.3f' % float(height), fontsize=5, ha='center', va='bottom')
         else:
@@ -268,6 +276,17 @@ def sandbox_perf(file_path, num_iters, use_configs=False):
         f.close()
     return matrix_sizes, speeds
 
+def triton_perf(M, N, K, AT=False, BT=False, dtype=torch.float16, warmup=25, rep=75):
+    a = torch.rand((K, M) if AT else (M, K), device="cuda", dtype=dtype)
+    b = torch.rand((N, K) if BT else (K, N), device="cuda", dtype=dtype)
+    if AT:
+        a = a.t()
+    if BT:
+        b = b.t()
+    gflops = lambda ms: 2. * M * N * K / ms * 1e-6
+    ms, min_ms, max_ms = triton.testing.do_bench(lambda: triton.ops.matmul(a, b), warmup=warmup, rep=rep)
+    return gflops(ms)
+
 def _worker_init(result_dir, env):
     global _result_dir, _env, _num_tasks, _done_tasks
     print('worker init')
@@ -351,6 +370,34 @@ def main(argv):
             file_path = args.nodai_configs
             nodai_sandbox_sizes, nodai_sandbox_speeds = sandbox_perf(file_path, args.num_iters, use_configs=True)
 
+    # run triton using python api
+    if args.triton:
+        if args.benchmark_path:
+            triton_sizes = []
+            triton_speeds = []
+            with open(args.benchmark_path, 'r') as f:
+                all_sizes = f.readlines()
+                f.close()
+
+            for line in all_sizes:
+                if line[0] == '#':
+                    continue
+                print("Triton running matmul size:", line)
+                m_size = [int(x) for x in line.split('x')]
+
+                if args.dtype == 'fp32':
+                    triton_dtype = torch.float32
+                elif args.dtype == 'fp16':
+                    triton_dtype = torch.float16
+                else:
+                    raise ValueError(args.dtype, "is not supported.")
+
+                speed = triton_perf(m_size[0], m_size[1], m_size[2], dtype=triton_dtype)
+                triton_sizes.append(m_size)
+                triton_speeds.append(speed)
+        else:
+            raise ValueError("Benchmark sizes are not provided!")
+
     # run them in parallel and collect the results
     speeds = do_permutations(args.jobs, list(x.name for x in bin_paths), args.bins, result_dir, BENCHMARK_ENV)
     # break up and interpret the file names
@@ -371,6 +418,11 @@ def main(argv):
             for i, size in enumerate(nodai_sandbox_sizes):
                 binaries.setdefault('nodai-mlir-sandbox', []).append(
                     {'path': '', 'size': tuple(size), 'speed': nodai_sandbox_speeds[i]})
+
+    if args.triton:
+        for i, size in enumerate(triton_sizes):
+            binaries.setdefault('triton', []).append(
+                {'path': '', 'size': tuple(size), 'speed': triton_speeds[i]})
 
     # used to impose a consistent sorting of the matrix sizes in the plot
     bar_ordering = list(collections.OrderedDict.fromkeys(y['size'] for x in binaries for y in binaries[x]))
@@ -411,7 +463,6 @@ def main(argv):
     x_pos = [i + 0.5*(len(binaries) - 1)*BAR_WIDTH for i in range(len(bar_ordering))]
     plt.xticks(x_pos, ['x'.join(str(d) for d in s) for s in bar_ordering], rotation=90, fontsize=5)
     plt.legend(loc='best')
-    #plt.ylim([60, 170])
     plt.savefig(result_dir / 'matmul.png', dpi=300, bbox_inches='tight')
 
     if any_error:
