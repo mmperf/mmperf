@@ -96,7 +96,7 @@ static void BenchmarkFunction(int batch_size,
       MDIM * NDIM * sizeof(float), IREE_HAL_TRANSFER_BUFFER_FLAG_DEFAULT,
       iree_infinite_timeout()));
 
-#ifdef USE_FP16_INPUT
+#ifdef FP16_INPUT
  printf("Yes this happens\n");
 #else
  printf("No this happens\n");
