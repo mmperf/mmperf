@@ -198,6 +198,11 @@ float *A, *B, *C;
 
 
 #if defined(CUBLAS)
+#if defined(FP16_INPUT)
+ printf("Yes this happens\n");
+#else
+ printf("No this happens\n");
+#endif
   cublasHandle_t handle;
   float *AA, *BB, *CC;
   CHECK_CUBLAS(cublasCreate(&handle));

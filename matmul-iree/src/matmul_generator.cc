@@ -96,6 +96,12 @@ static void BenchmarkFunction(int batch_size,
       MDIM * NDIM * sizeof(float), IREE_HAL_TRANSFER_BUFFER_FLAG_DEFAULT,
       iree_infinite_timeout()));
 
+#ifdef USE_FP16_INPUT
+ printf("Yes this happens\n");
+#else
+ printf("No this happens\n");
+#endif
+
 #ifdef ENABLE_CHECK
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
