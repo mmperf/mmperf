@@ -1,5 +1,5 @@
 # Method to generate matmul MLIR artifacts of specified sizes.
-function(compile_mlir mlir_prefix M N K)
+function(compile_mlir mlir_prefix M N K TYPE)
     configure_file(${CMAKE_SOURCE_DIR}/src/matmul_MxNxK.mlir
       ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
     set_property(
@@ -10,7 +10,7 @@ function(compile_mlir mlir_prefix M N K)
 endfunction()
 
 # Method to generate a IREE matmul binary for a specific backend and matrix size 
-function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
+function(generate_matmul_binary mlir_file matrix_size backend M N K TYPE NUM_REPS)
 
     string(CONCAT iree_executable_name "matmul_iree" ${backend} "_" ${matrix_size})
     string(CONCAT mlir_lib "matmul_" "_" ${backend} ${matrix_size} )
@@ -135,6 +135,9 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K NUM_REPS)
     target_compile_definitions(${iree_executable_name} PRIVATE FILE_NAME=${iree_executable_name}_perf.out)
     if (ENABLE_CHECK)
         target_compile_definitions(${iree_executable_name} PRIVATE ENABLE_CHECK)
+    endif()
+    if (USE_FP16)
+        target_compile_definitions(${iree_executable_name} PRIVATE USE_FP16)
     endif()
 
 endfunction()

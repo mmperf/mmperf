@@ -47,7 +47,7 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'triton': 'purple',
               'nodai-mlir-sandbox': 'red',
               'nodai-iree': 'red',
-              'nodai-iree-cuda': 'red'}
+              'nodai-shark-cuda': 'red'}
 BENCHMARK_ENV = os.environ.copy()
 BENCHMARK_ENV.update({
     "MKL_NUM_THREADS": "1",
@@ -458,6 +458,7 @@ def main(argv):
         lines=f.readlines()
         system_info = system_info + ", GPU Model:{}".format(lines[0].strip())
         f.close()
+    system_info = system_info + ", " + args.dtype
     plt.suptitle(system_info, fontsize=7)
 
     x_pos = [i + 0.5*(len(binaries) - 1)*BAR_WIDTH for i in range(len(bar_ordering))]

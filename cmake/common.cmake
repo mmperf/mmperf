@@ -23,6 +23,7 @@ option(USE_MATMUL_COMPILE "Use matmul-compile instead of mlir-opt for small and 
 # General options
 option(USE_COLUMN_MAJOR "Matrix format" OFF)
 option(ENABLE_CHECK "Enable verification by naive implementation" ON)
+option(USE_FP16 "Enable fp16 precision" OFF)
 set(SIZE_FILE ${MMPERF_SOURCE}/benchmark_sizes/benchmark_all_sizes.txt CACHE FILEPATH "File containing matrix sizes to be benchmarked")
 set(TILE_FILE "" CACHE FILEPATH "File containing association between matrix size and tile size")
 set(TARGET_CPU "haswell" CACHE STRING "Target CPU for MLIR")
@@ -63,6 +64,7 @@ set(VARS_TO_COPY
     USE_IREE_LLVM_SANDBOX
     USE_IREE_LLVM_SANDBOX_CUDA
     USE_COLUMN_MAJOR
+    USE_FP16
     ENABLE_CHECK
     SIZE_FILE
     TILE_FILE

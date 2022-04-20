@@ -13,6 +13,8 @@ table TileOptions {
   work_group_sizes:[int64];
   pipeline: PipelineType;
   split_k: int;
+  swizzle: int;
+  pipeline_depth: int;
 }
 table CompileOptions {
   options:[TileOptions];

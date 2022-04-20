@@ -23,28 +23,43 @@
 #include "iree/modules/hal/module.h"
 #include "iree/vm/api.h"
 #include "iree/vm/bytecode_module.h"
+#include "iree/base/internal/math.h"
 
 #include MATMUL_HEADER
 
 #define STRING(s) #s
 #define TO_STRING(x) STRING(x)
 
-void init_matrix(float *a, int nrows, int ncols) {
+#ifdef USE_FP16
+  using dtype = uint16_t;
+#else
+  using dtype = float;
+#endif
+
+void init_matrix(dtype *a, int nrows, int ncols) {
   for (int j = 0; j < ncols; j++) {
     for (int i = 0; i < nrows; i++) {
-      a[i + j * nrows] = ((float) rand() / (float) RAND_MAX);
+      #ifdef USE_FP16
+        a[i + j * nrows] = iree_math_f32_to_f16((float) rand() / (float) RAND_MAX);
+      #else
+        a[i + j * nrows] = ((float) rand() / (float) RAND_MAX);
+      #endif
     }
   }
 }
 
-void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, size_t n) {
+void naive_matmul(const dtype *a, const dtype *b, float *c, size_t m, size_t k, size_t n) {
   // correctness check
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
       size_t ci = i*n + j;
       c[ci] = 0.0f;
       for (size_t p = 0; p < k; p++) {
-        c[ci] += a[i*k + p] * b[p*n + j];
+        #ifdef USE_FP16
+          c[ci] += iree_math_f16_to_f32(a[i*k + p]) * iree_math_f16_to_f32(b[p*n + j]);
+        #else
+          c[ci] += a[i*k + p] * b[p*n + j];
+        #endif
       }
     }
   }
@@ -63,8 +78,8 @@ static void BenchmarkFunction(int batch_size,
                               iree_vm_function_t function,
                               iree_vm_list_t* inputs,
                               iree_vm_list_t* outputs,
-                              float* arg0,
-                              float* arg1,
+                              dtype* arg0,
+                              dtype* arg1,
                               iree_hal_device_t* device,
                               benchmark::State& state) {
   while (state.KeepRunningBatch(batch_size)) {
@@ -88,12 +103,12 @@ static void BenchmarkFunction(int batch_size,
           outputs, 0, iree_hal_buffer_view_get_descriptor());
 
   // Read back the results and ensure we got the right values.
-  float *C;
+  dtype *C;
   IREE_CHECK_OK(iree_allocator_malloc(iree_allocator_system(),
-                MDIM * NDIM * sizeof(float), (void**)&C));
+                MDIM * NDIM * sizeof(dtype), (void**)&C));
   IREE_CHECK_OK(iree_hal_device_transfer_d2h(
       device, iree_hal_buffer_view_buffer(ret_buffer_view), 0, C,
-      MDIM * NDIM * sizeof(float), IREE_HAL_TRANSFER_BUFFER_FLAG_DEFAULT,
+      MDIM * NDIM * sizeof(dtype), IREE_HAL_TRANSFER_BUFFER_FLAG_DEFAULT,
       iree_infinite_timeout()));
 
 #ifdef ENABLE_CHECK
@@ -162,8 +177,8 @@ iree_status_t Run() {
   static iree_hal_dim_t arg0_shape[] = {MDIM, KDIM};
   static iree_hal_dim_t arg1_shape[] = {KDIM, NDIM};
 
-  float *arg0 = (float *) malloc(MDIM * KDIM * sizeof(float));
-  float *arg1 = (float *) malloc(KDIM * NDIM * sizeof(float));
+  dtype *arg0 = (dtype *) malloc(MDIM * KDIM * sizeof(dtype));
+  dtype *arg1 = (dtype *) malloc(KDIM * NDIM * sizeof(dtype));
 
   init_matrix(arg0, MDIM, KDIM);
   init_matrix(arg1, KDIM, NDIM);
@@ -171,24 +186,32 @@ iree_status_t Run() {
   iree_hal_buffer_view_t* arg0_buffer_view = NULL;
   iree_hal_buffer_view_t* arg1_buffer_view = NULL;
 
+#ifdef USE_FP16
+  iree_hal_element_type_t element_type = IREE_HAL_ELEMENT_TYPE_FLOAT_16;
+  printf("Using FP16 \n");
+#else
+  iree_hal_element_type_t element_type = IREE_HAL_ELEMENT_TYPE_FLOAT_32;
+  printf("Using FP32 \n");
+#endif
+
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
       iree_hal_device_allocator(device), arg0_shape, IREE_ARRAYSIZE(arg0_shape),
-      IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
+      element_type, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
           .usage =
               IREE_HAL_BUFFER_USAGE_DISPATCH | IREE_HAL_BUFFER_USAGE_TRANSFER,
       },
-      iree_make_const_byte_span((void*)arg0, MDIM * KDIM * sizeof(float)), &arg0_buffer_view));
+      iree_make_const_byte_span((void*)arg0, MDIM * KDIM * sizeof(dtype)), &arg0_buffer_view));
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
       iree_hal_device_allocator(device), arg1_shape, IREE_ARRAYSIZE(arg1_shape),
-      IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
+      element_type, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
           .usage =
               IREE_HAL_BUFFER_USAGE_DISPATCH | IREE_HAL_BUFFER_USAGE_TRANSFER,
       },
-      iree_make_const_byte_span((void*)arg1, KDIM * NDIM * sizeof(float)), &arg1_buffer_view));
+      iree_make_const_byte_span((void*)arg1, KDIM * NDIM * sizeof(dtype)), &arg1_buffer_view));
 
   // Pass in the tensor as an expanded HAL buffer.
   iree_vm_list_t* inputs = NULL;

@@ -54,6 +54,12 @@
 #endif
 #endif
 
+#ifdef USE_FP16
+  using dtype = half;
+#else
+  using dtype = float;
+#endif
+
 #if defined(MLIR) || defined(MLIR_CUDA)
 extern "C" {
 struct memref_t {
@@ -199,15 +205,21 @@ float *A, *B, *C;
 
 #if defined(CUBLAS)
   cublasHandle_t handle;
-  float *AA, *BB, *CC;
+  dtype *AA, *BB, *CC;
   CHECK_CUBLAS(cublasCreate(&handle));
+#ifdef USE_FP16
+  CHECK_CUBLAS(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
+  printf("Using FP16 \n");
+#else
   CHECK_CUBLAS(cublasSetMathMode(handle, CUBLAS_TF32_TENSOR_OP_MATH));
-  CHECK_CUDA(cudaMalloc((void **)(&AA), MDIM * KDIM * sizeof(float)));
-  CHECK_CUDA(cudaMalloc((void **)(&BB), KDIM * NDIM * sizeof(float)));
-  CHECK_CUDA(cudaMalloc((void **)(&CC), MDIM * NDIM * sizeof(float)));
-  CHECK_CUBLAS(cublasSetVector(MDIM * KDIM, sizeof(float), A, 1, AA, 1));
-  CHECK_CUBLAS(cublasSetVector(KDIM * NDIM, sizeof(float), B, 1, BB, 1));
-  CHECK_CUBLAS(cublasSetVector(MDIM * NDIM, sizeof(float), C, 1, CC, 1));
+  printf("Using FP32 \n");
+#endif
+  CHECK_CUDA(cudaMalloc((void **)(&AA), MDIM * KDIM * sizeof(dtype)));
+  CHECK_CUDA(cudaMalloc((void **)(&BB), KDIM * NDIM * sizeof(dtype)));
+  CHECK_CUDA(cudaMalloc((void **)(&CC), MDIM * NDIM * sizeof(dtype)));
+  CHECK_CUBLAS(cublasSetVector(MDIM * KDIM, sizeof(dtype), A, 1, AA, 1));
+  CHECK_CUBLAS(cublasSetVector(KDIM * NDIM, sizeof(dtype), B, 1, BB, 1));
+  CHECK_CUBLAS(cublasSetVector(MDIM * NDIM, sizeof(dtype), C, 1, CC, 1));
 #endif
 
 #if defined(MLIR_CUDA)
@@ -323,11 +335,22 @@ float *A, *B, *C;
     naive_matmul(A,B,C,MDIM,KDIM,NDIM);
 #elif defined(CUBLAS)
 #if defined(COLUMN_MAJOR)
-    CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
-			     &alpha, AA, LDA, BB, LDB, &beta, CC, LDC));
+    #ifdef USE_FP16
+        CHECK_CUBLAS(cublasSgemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
+			     &alpha, AA, CUDA_R_16F, LDA, BB,CUDA_R_16F, LDB, &beta, CC,CUDA_R_16F, LDC));
+    #else
+        CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
+			         &alpha, AA, LDA, BB, LDB, &beta, CC, LDC));
+    #endif
+
 #else
-    CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
-			     &alpha, BB, LDB, AA, LDA, &beta, CC, LDC));
+    #ifdef USE_FP16
+        CHECK_CUBLAS(cublasSgemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
+			     &alpha, BB,CUDA_R_16F, LDB, AA,CUDA_R_16F, LDA, &beta, CC,CUDA_R_16F, LDC));
+    #else
+        CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
+			         &alpha, BB, LDB, AA, LDA, &beta, CC, LDC));
+    #endif
 #endif
 #endif
   }
@@ -335,7 +358,7 @@ float *A, *B, *C;
 #if defined(TVM)
   TVMArrayCopyToBytes(z, C, MDIM * NDIM * sizeof(float));
 #elif defined(CUBLAS)
-  CHECK_CUBLAS(cublasGetVector(MDIM * NDIM, sizeof(float), CC, 1, C, 1));
+  CHECK_CUBLAS(cublasGetVector(MDIM * NDIM, sizeof(dtype), CC, 1, C, 1));
 #endif
 
 #ifdef ENABLE_CHECK

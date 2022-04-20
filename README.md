@@ -159,7 +159,7 @@ python3 mmperf.py ./build/matmul/ results
 
 Matrix sizes: `benchmark_sizes` folder has text files containing the matrix sizes that mmperf runs on. You can change the matrix size input file by editing `SIZE_FILE` option in `cmake/common.cmake`. Default is `benchmark_all_sizes.txt`.
 
-Number of iterations: The number of iterations for a matmul to be benchmarked can be set by changing NUM_REPS variable in `cmake/common.cmake`. Default is 100.
+Precision: The default precision for all backends is FP32. FP16 benchmark has been added to cuBLAS, IREE, and triton backends.
 
 ### Building with a standalone `llvm`
 

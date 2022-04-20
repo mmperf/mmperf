@@ -18,31 +18,37 @@ set(_EMBEDDED_LINKER_TOOL_EXECUTABLE $<TARGET_FILE:lld>)
 
 message(STATUS "Generating mhlo.dot mlir files...")
 foreach(MATRIX_SIZE ${MATRIX_SIZES})
+  if(${USE_FP16} STREQUAL "ON")
+    set(TYPE "f16")
+  else()
+    set(TYPE "f32")
+  endif()
+
   if ("${MATRIX_SIZE}" STREQUAL "")
     continue()
   endif()
 
   string(CONCAT MATMUL "matmul_" ${MATRIX_SIZE})
-  message(STATUS "Compiling ${MATMUL}")
+  message(STATUS "Compiling ${MATMUL} ${TYPE}")
 
   string(REPLACE "x" ";" SIZES ${MATRIX_SIZE})
   list(GET SIZES 0 M)
   list(GET SIZES 1 N)
   list(GET SIZES 2 K)
 
-  compile_mlir(${MATMUL} ${M} ${N} ${K})
+  compile_mlir(${MATMUL} ${M} ${N} ${K} ${TYPE})
 
   set(MATMUL_MLIR_FILE ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.mlir)
 
   # Generate binary for each backend and specific matrix size
   if(${IREE_VMVX} STREQUAL "ON")
-    generate_matmul_binary(${MATMUL_MLIR_FILE} ${MATRIX_SIZE} vmvx ${M} ${N} ${K} ${NUM_REPS})
+    generate_matmul_binary(${MATMUL_MLIR_FILE} ${MATRIX_SIZE} vmvx ${M} ${N} ${K} ${TYPE} ${NUM_REPS})
   endif()
   if(${IREE_DYLIB} STREQUAL "ON")
-    generate_matmul_binary(${MATMUL_MLIR_FILE} ${MATRIX_SIZE} dylib ${M} ${N} ${K} ${NUM_REPS})
+    generate_matmul_binary(${MATMUL_MLIR_FILE} ${MATRIX_SIZE} dylib ${M} ${N} ${K} ${TYPE} ${NUM_REPS})
   endif()
   if(${IREE_CUDA} STREQUAL "ON")
-    generate_matmul_binary(${MATMUL_MLIR_FILE} ${MATRIX_SIZE} cuda ${M} ${N} ${K} ${NUM_REPS})
+    generate_matmul_binary(${MATMUL_MLIR_FILE} ${MATRIX_SIZE} cuda ${M} ${N} ${K} ${TYPE} ${NUM_REPS})
   endif()
   
 endforeach()
