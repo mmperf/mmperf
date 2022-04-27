@@ -46,6 +46,8 @@ pip install -r ./external/llvm-project/mlir/python/requirements.txt
 
 ```
 
+## Building the codes
+### Building specified backends on CPU
 Build the project specifying the backend(s) to run matmul. Below is a command to build mmperf with MLIR backend.
 
 ```
@@ -77,44 +79,8 @@ HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -
 cmake --build build
 ```
 
-## Running the code
-
-We use AOT compilation to generate binaries for matrix multiplication for specified backends
-and run them to generate the benchmarking numbers. To run all tests and generate performance numbers run:
-
-```
-cmake --build build/matmul --target run_all_tests
-```
-
-`results` folder will be created in the mmperf top-level directory which will contain GLOPS for every matmul size and every backend. A plot comparing performances of backends will also be generated in `matmul.png`.
-
-Each generated binary can also be executed individually. To run a specific matrix size (say 24x64x512) for a backend run:
-
-```
-./build/matmul/matmul_<LIBRARY>_24x64x512
-```
-
-### Run iree-llvm-sandbox in mmperf
-To build mlir with iree-llvm-sandbox, enable the flag `-DUSE_IREE_LLVM_SANDBOX=ON`.
-
-To run iree-llvm-sandbox, and get the best performance among different experts, run:
-```
-cmake --build build/matmul --target sandbox_search
-```
-Note: This command will perform search on all expert configurations, and output the best configs to `mlir_sandbox_configs` for each matmul size.
-
-To compare results between original mlir-sandbox and nodai-sandbox, run:
-```
-python mmperf.py ./build/matmul results -sandbox -sandbox_configs=/path/to/mlir_sandbox_configs -nodai_configs=/path/to/nodai_sandbox_configs
-```
-
-Note: If you just want to plot results for mlir_sandbox, enable `-sandbox_configs` (to load configs from previous run) or `-benchmark_path` (to rerun the search). Optional flag: `-num_iters` to change the number of iterations for matmul test.
-
-### Building and Running Codes on GPU
-
-#### Building mmperf with CUDA
-
-With any CUDA backend, NVIDIA CUDA-11.4 has to be installed on your system. How to install NIVIDIA CUDA-11.4 toolkit, please refer to this [link](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). Make sure environment variables `$PATH` and `$LD_LIBRARY_PATH` are correctly configured. CUDA Compiler should be set as `nvcc` in the command line. For example, to compile the MLIR-CUDA backend run:
+### Building specified backends on GPU
+With any GPU backends, NVIDIA CUDA-11.4 should be pre-installed on your system. To install NVIDIA CUDA-11.4 toolkit, please refer to this [link](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). Make sure environment variables `$PATH` and `$LD_LIBRARY_PATH` are correctly configured. CUDA Compiler should be set as `nvcc` in the command line. For example, to compile the MLIR-CUDA backend run:
 
 ```bash
 cmake -GNinja \
@@ -127,9 +93,7 @@ cmake -GNinja \
 cmake --build build
 ```
 
-#### Compare mmperf results among different backends
-
-We compare mmperf results among cuBLAS, IREE-CUDA and TVM-CUDA (TVM Auto-scheduler, a.k.a. Ansor) with this command line:
+Another example to compare mmperf results among cuBLAS, IREE-CUDA and TVM-CUDA (TVM Auto-scheduler, a.k.a. Ansor) with this command line:
 
 ```bash
 cmake -GNinja \
@@ -146,22 +110,9 @@ cmake -GNinja \
     -DSIZE_FILE=benchmark_sizes/bert_large_matmul.txt 
     -B build .
 ```
-
 Note: `-DTVM_LIB_DIR` should be set as the absolute path of where TVM binaries located. For how to run TVM auto-scheduler, please refer to this [README](tvm_tuner/README.md).
 
-
-To generate performance plot run:
-```bash
-python3 mmperf.py ./build/matmul/ results
-```
-
-### Program configuration
-
-Matrix sizes: `benchmark_sizes` folder has text files containing the matrix sizes that mmperf runs on. You can change the matrix size input file by editing `SIZE_FILE` option in `cmake/common.cmake`. Default is `benchmark_all_sizes.txt`.
-
-Precision: The default precision for all backends is FP32. FP16 benchmark has been added to cuBLAS, IREE, and triton backends.
-
-### Building with a standalone `llvm`
+### Building with a standalone `llvm` (optional)
 
 The building of submodule `external/llvm-project` can be space and time consuming. If you already have your own standalone `llvm` and don't want to fetch and compile this submodule, you scan specify the `llvm` on your system with `PREBUILT_LLVM_PATH` compilation flag:
 
@@ -190,9 +141,54 @@ apt-get install -y clang-11 clang-tools-11 libc++1-11 libc++-11-dev \
     llvm-11-tools libfuzzer-11-dev
 ```
 
-### Installing optional dependencies: Halide, OpenBLAS, MKL
+## Running and generating results
 
-#### Halide
+We use AOT compilation to generate binaries for matrix multiplication for specified backends
+and run them to generate the benchmarking numbers. To generate performance numbers and get a comparison plot run:
+
+```
+python3 mmperf.py ./build/matmul/ results
+```
+
+`results` folder will be created in the mmperf top-level directory which will contain GLOPS for every matmul size and every backend. A plot comparing performances of backends will also be generated in `matmul.png`.
+
+Each generated binary can also be executed individually. To run a specific matrix size (say 24x64x512) for a backend run:
+
+```
+./build/matmul/matmul_<LIBRARY>_24x64x512
+```
+
+### Program configuration
+
+Matrix sizes: `benchmark_sizes` folder has text files containing the matrix sizes that mmperf runs on. You can change the matrix size input file by editing `SIZE_FILE` option in `cmake/common.cmake`. Default is `benchmark_all_sizes.txt`.
+
+Precision: The default precision for all backends is FP32. FP16 benchmark has been added to cuBLAS, IREE, and triton backends. To enable FP16, use flag `-DUSE_FP16=ON`
+
+
+### Run iree-llvm-sandbox in mmperf
+To build mlir with iree-llvm-sandbox, enable the flag `-DUSE_IREE_LLVM_SANDBOX=ON`.
+
+To run iree-llvm-sandbox, and get the best performance among different experts, run:
+```
+cmake --build build/matmul --target sandbox_search
+```
+Note: This command will perform search on all expert configurations, and output the best configs to `mlir_sandbox_configs` for each matmul size.
+
+To compare results between original mlir-sandbox and nodai-sandbox, run:
+```
+python mmperf.py ./build/matmul results -sandbox -sandbox_configs=/path/to/mlir_sandbox_configs -nodai_configs=/path/to/nodai_sandbox_configs
+```
+
+Note: If you just want to plot results for mlir_sandbox, enable `-sandbox_configs` (to load configs from previous run) or `-benchmark_path` (to rerun the search). Optional flag: `-num_iters` to change the number of iterations for matmul test.
+
+### Run triton with FP16
+```
+python mmperf.py ./build/matmul results -triton -dtype f16 -benchmark_path=./benchmark_sizes/bert_large_matmul.txt
+```
+
+## Installing optional dependencies: Halide, OpenBLAS, MKL
+
+### Halide
 ```
 git clone https://github.com/halide/Halide.git --recurse-submodules
 cd Halide/
@@ -206,7 +202,7 @@ ninja install
 export HALIDE_DIR=/home/<foo>/lokal/halide
 ```
 
-#### OpenBLAS
+### OpenBLAS
 ```
 sudo apt install libopenblas-dev
 ```
@@ -220,14 +216,9 @@ make -j 16
 make install
 ```
 
-#### Intel MKL
+### Intel MKL
 Download and install from https://software.intel.com/content/www/us/en/develop/articles/installation-guide-for-intel-oneapi-toolkits.html
 
-### Code structure
-
-The linalg codegen pass is in matmul/matmul-compile/matmul-compile.cpp.
-
-### Theoretical Max FLOPS
-
+## Theoretical Max FLOPS
 This benchmark was run on an Intel Xeon CPU running at 3.1GHz. The machine has 256Kb L1 cache, 8Mb L2 cache and 24.8Mb L3 cache. It supports AVX-512 instructions. The peak performance of the machine is 3.1 x 8 x 2 x 2 = 99.2 GFLOPS for double precision and 198.4 GFLOPS for single precision.
 

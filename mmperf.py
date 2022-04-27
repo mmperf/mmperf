@@ -11,6 +11,7 @@ import shutil
 import re
 import collections
 import signal
+import glob
 from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
@@ -46,7 +47,7 @@ BAR_COLORS = {'mkl': 'cornflowerblue',
               'mlir-sandbox': 'mediumseagreen',
               'triton': 'purple',
               'nodai-mlir-sandbox': 'red',
-              'nodai-iree': 'red',
+              'nodai-shark': 'red',
               'nodai-shark-cuda': 'red'}
 BENCHMARK_ENV = os.environ.copy()
 BENCHMARK_ENV.update({
@@ -69,6 +70,8 @@ def add_arguments(parser):
                         help='Result directory')
     parser.add_argument('-j', '--jobs', type=int, default=1,
                         help='Number of parallel jobs for running the benchmarks')
+    parser.add_argument('-dtype', default='f32',
+                        help='Data precision for triton/iree/nodai-shark benchmark')
     # Flags for mlir-sandbox and nodai-mlir-sandbox
     parser.add_argument('-sandbox', action='store_true',
                         help='Whether to run matmul in iree-llvm-sandbox')
@@ -76,15 +79,20 @@ def add_arguments(parser):
                         help='Number of iterations to run each matmul')
     parser.add_argument('-benchmark_path', dest='benchmark_path',
                         help='Path to matmul size list for mlir-sandbox search')
-    parser.add_argument('-nodai_configs', dest='nodai_configs',
+    parser.add_argument('-nodai_sandbox_configs', dest='nodai_sandbox_configs',
                         help='Path to load config files generated for nodai-mlir-sandbox')
     parser.add_argument('-sandbox_configs', dest='sandbox_configs',
                         help='Path to load config files generated for mlir-sanxbox')
     # Flags to enable triton
     parser.add_argument('-triton', action='store_true',
                         help='Whether to run matmul in triton')
-    parser.add_argument('-dtype', default='fp32',
-                        help='Data precision for triton benchmark')
+    # Flags to load json config files for nodai-shark and nodai-shark-cuda
+    parser.add_argument('-nodai_shark', action='store_true',
+                        help='Whether to run nodai_shark (cpu)')
+    parser.add_argument('-nodai_shark_cuda', action='store_true',
+                        help='Whether to run nodai_shark_cuda (gpu)')
+    parser.add_argument('-nodai_shark_configs', dest='nodai_shark_configs',
+                        help='Path to load config files generated for nodai-shark(_cuda)')
 
 def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
@@ -342,10 +350,6 @@ def main(argv):
 
     write_system_info(result_dir, args.bins.parent / 'cpuinfo-install')
 
-    # get only the executables
-    bin_paths = [x for x in args.bins.iterdir() if
-                x.is_file() and x.stat().st_mode & 0o111 and x.name.startswith('matmul')]
-
     # run iree-llvm-sandbox using python api
     if args.sandbox:
         build_path = args.bins.parent.absolute()
@@ -366,8 +370,8 @@ def main(argv):
             file_path = args.sandbox_configs
             sandbox_sizes, sandbox_speeds = sandbox_perf(file_path, args.num_iters, use_configs=True)
 
-        if args.nodai_configs:
-            file_path = args.nodai_configs
+        if args.nodai_sandbox_configs:
+            file_path = args.nodai_sandbox_configs
             nodai_sandbox_sizes, nodai_sandbox_speeds = sandbox_perf(file_path, args.num_iters, use_configs=True)
 
     # run triton using python api
@@ -385,9 +389,9 @@ def main(argv):
                 print("Triton running matmul size:", line)
                 m_size = [int(x) for x in line.split('x')]
 
-                if args.dtype == 'fp32':
+                if args.dtype == 'f32':
                     triton_dtype = torch.float32
-                elif args.dtype == 'fp16':
+                elif args.dtype == 'f16':
                     triton_dtype = torch.float16
                 else:
                     raise ValueError(args.dtype, "is not supported.")
@@ -398,7 +402,48 @@ def main(argv):
         else:
             raise ValueError("Benchmark sizes are not provided!")
 
-    # run them in parallel and collect the results
+    # generate nodai_shark(_cuda) executables from config files
+    if args.nodai_shark or args.nodai_shark_cuda:
+        from nodai_config_parser import IREEExecutionHandler
+        if args.nodai_shark_configs is None:
+            raise ValueError("Config path -nodai_shark_configs is not provided.")
+        if args.nodai_shark:
+            args.target = "shark"
+        elif args.nodai_shark_cuda:
+            args.target = "shark-cuda"
+
+        mmperf_build = args.bins.parent.absolute()
+        mmperf_src = mmperf_build.parent.absolute()
+        exec_handle = IREEExecutionHandler(mmperf_src, mmperf_build, args)
+
+        for f_path in glob.glob(os.path.abspath(os.path.join(args.nodai_shark_configs, '*.json'))):
+            with open(f_path, 'r') as f:
+                data = json.load(f)
+                matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
+                best_config = data
+                try:
+                    best_depth = data["options"][0]["pipeline_depth"]
+                except:
+                    best_depth = None
+                try:
+                    best_reduction = data["options"][0]["split_k"]
+                except:
+                    best_reduction = None
+                try:
+                    best_swizzle = data["options"][0]["swizzle"]
+                except:
+                    best_swizzle = None
+                print("Best config", best_config)
+
+                matmul_size_str = 'x'.join([str(d) for d in tuple(matmul_size)])
+                file_name = f'nodai-shark-cuda_{matmul_size_str}'
+                exec_handle.generate_nodai_bins(f_path, file_name, matmul_size,
+                            reduction=best_reduction, swizzle=best_swizzle, depth=best_depth)
+
+    # get only the executables
+    bin_paths = [x for x in args.bins.iterdir() if
+                 x.is_file() and x.stat().st_mode & 0o111 and x.name.startswith('matmul')]
+    # run all backends in parallel and collect the results
     speeds = do_permutations(args.jobs, list(x.name for x in bin_paths), args.bins, result_dir, BENCHMARK_ENV)
     # break up and interpret the file names
     binaries = {}
@@ -414,7 +459,7 @@ def main(argv):
             for i, size in enumerate(sandbox_sizes):
                 binaries.setdefault('mlir-sandbox', []).append(
                     {'path': '', 'size': tuple(size), 'speed': sandbox_speeds[i]})
-        if args.nodai_configs:
+        if args.nodai_sandbox_configs:
             for i, size in enumerate(nodai_sandbox_sizes):
                 binaries.setdefault('nodai-mlir-sandbox', []).append(
                     {'path': '', 'size': tuple(size), 'speed': nodai_sandbox_speeds[i]})
