@@ -25,3 +25,6 @@
 [submodule "external/benchmark"]
 	path = external/benchmark
 	url = https://github.com/google/benchmark.git
+[submodule "external/plaidml"]
+	path = external/plaidml
+	url = https://github.com/plaidml/plaidml.git
