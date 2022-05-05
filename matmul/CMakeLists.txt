@@ -30,7 +30,7 @@ if(USE_IREE_LLVM_SANDBOX_CUDA)
 endif()
 
 # Function for compiling matmul with core MLIR
-function(compile_mlir_use_mlir mlir_prefix M N K)
+function(compile_mlir_use_mlir mlir_prefix B M N K)
   set(OBJ ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.o)
   message(STATUS "Using default tile sizes")
   if(M GREATER 1000)
@@ -75,14 +75,25 @@ function(compile_mlir_use_mlir mlir_prefix M N K)
       PROPERTY CMAKE_CONFIGURE_DEPENDS
       ${CMAKE_SOURCE_DIR}/matmul_column_major_mlir_MxNxK.mlir.in)
   else()
-    message(STATUS "Compiling linalg.matmul ...")
-    configure_file(${CMAKE_SOURCE_DIR}/matmul_mlir_MxNxK.mlir.in
-                   ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
-    set_property(
-      DIRECTORY
-      APPEND
-      PROPERTY CMAKE_CONFIGURE_DEPENDS
-      ${CMAKE_SOURCE_DIR}/matmul_mlir_MxNxK.mlir.in)
+    if ("${B}" STREQUAL "0")
+      message(STATUS "Compiling linalg.matmul ...")
+      configure_file(${CMAKE_SOURCE_DIR}/matmul_mlir_MxNxK.mlir.in
+                     ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+      set_property(
+        DIRECTORY
+        APPEND
+        PROPERTY CMAKE_CONFIGURE_DEPENDS
+        ${CMAKE_SOURCE_DIR}/matmul_mlir_MxNxK.mlir.in)
+    else()
+      message(STATUS "Compiling linalg.batch_matmul ...")
+      configure_file(${CMAKE_SOURCE_DIR}/batch_matmul_mlir_BxMxNxK.mlir.in
+                     ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+      set_property(
+        DIRECTORY
+        APPEND
+        PROPERTY CMAKE_CONFIGURE_DEPENDS
+        ${CMAKE_SOURCE_DIR}/batch_matmul_mlir_BxMxNxK.mlir.in)
+    endif()
   endif()
   string(REPLACE " " "," TILE_SIZES_LOCAL "${TILE_SIZES_LOCAL}")
   string(REPLACE " " "," COL_MAJOR_TILE_SIZES "${COL_MAJOR_TILE_SIZES}")
@@ -270,12 +281,22 @@ foreach(BACKEND ${BACKENDS})
     message(STATUS "Compiling ${MATMUL}")
 
     string(REPLACE "x" ";" SIZES ${MATRIX_SIZE})
-    list(GET SIZES 0 M)
-    list(GET SIZES 1 N)
-    list(GET SIZES 2 K)
+
+    list(LENGTH SIZES LEN)
+    if ("${LEN}" STREQUAL "4")
+      list(GET SIZES 0 B)
+      list(GET SIZES 1 M)
+      list(GET SIZES 2 N)
+      list(GET SIZES 3 K)
+    else()
+      list(GET SIZES 0 M)
+      list(GET SIZES 1 N)
+      list(GET SIZES 2 K)
+      set(B "0")
+    endif()
 
     if(${BACKEND} STREQUAL "mlir")
-      compile_mlir_use_mlir(${MATMUL} ${M} ${N} ${K})
+      compile_mlir_use_mlir(${MATMUL} ${B} ${M} ${N} ${K})
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     elseif(${BACKEND} STREQUAL "mlircuda")
       compile_mlir_use_cuda(${MATMUL} ${M} ${N} ${K})
@@ -291,6 +312,7 @@ foreach(BACKEND ${BACKENDS})
       list(APPEND SRC ${CMAKE_BINARY_DIR}/mlir-objs/${MATMUL}.o)
     endif()
     add_executable(${MATMUL} ${SRC})
+    target_compile_definitions(${MATMUL} PRIVATE BDIM=${B})
     target_compile_definitions(${MATMUL} PRIVATE MDIM=${M})
     target_compile_definitions(${MATMUL} PRIVATE NDIM=${N})
     target_compile_definitions(${MATMUL} PRIVATE KDIM=${K})
@@ -309,7 +331,7 @@ foreach(BACKEND ${BACKENDS})
       target_compile_definitions(${MATMUL} PRIVATE MKL)
       target_include_directories(${MATMUL} PRIVATE ${MKL_DIR}/include)
       target_link_directories(${MATMUL} PRIVATE ${MKL_DIR}/lib/intel64)
-      target_link_libraries(${MATMUL} PRIVATE mkl_intel_ilp64 mkl_gnu_thread mkl_core gomp)
+      target_link_libraries(${MATMUL} PRIVATE mkl_intel_lp64 mkl_gnu_thread mkl_core gomp)
     elseif(${BACKEND} STREQUAL "accelerate")
       set(BLA_VENDOR Apple)
       target_include_directories(${MATMUL} PRIVATE /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Accelerate.framework/Versions/Current/Frameworks/vecLib.framework/Headers)

@@ -156,10 +156,20 @@ tvm::runtime::Module create_module() {
 }
 #endif
 
-void init_matrix(float *a, int nrows, int ncols) {
+void init_matrix(dtype *a, int nrows, int ncols) {
   for (int j = 0; j < ncols; j++) {
     for (int i = 0; i < nrows; i++) {
       a[i + j * nrows] = ((float) rand() / (float) RAND_MAX);
+    }
+  }
+}
+
+void init_matrix_batch(dtype *a, int batch, int nrows, int ncols) {
+  for (int b = 0; b < batch; b++){
+    for (int j = 0; j < ncols; j++) {
+      for (int i = 0; i < nrows; i++) {
+        a[i + j * nrows + b * ncols * nrows] = ((float) rand() / (float) RAND_MAX);
+      }
     }
   }
 }
@@ -186,26 +196,48 @@ void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, 
 }
 
 static void BenchmarkFunction(benchmark::State& state) {
-float *A, *B, *C;
+dtype *A, *B, *C;
+const dtype *A_Array[BDIM];
+const dtype *B_Array[BDIM];
+dtype *C_Array[BDIM];
 
+if (BDIM == 0){
 #ifdef MLIR_CUDA
   CHECK_CUDA(cudaMallocHost((void **) &A, MDIM * KDIM * sizeof(float)));
   CHECK_CUDA(cudaMallocHost((void **) &B, KDIM * NDIM * sizeof(float)));
   CHECK_CUDA(cudaMallocHost((void **) &C, MDIM * NDIM * sizeof(float)));
 #else
-  A = (float *) malloc(MDIM * KDIM * sizeof(float));
-  B = (float *) malloc(KDIM * NDIM * sizeof(float));
-  C = (float *) malloc(MDIM * NDIM * sizeof(float));
+  A = (dtype *) malloc(MDIM * KDIM * sizeof(dtype));
+  B = (dtype *) malloc(KDIM * NDIM * sizeof(dtype));
+  C = (dtype *) malloc(MDIM * NDIM * sizeof(dtype));
 #endif
 
   init_matrix(A, MDIM, KDIM);
   init_matrix(B, KDIM, NDIM);
   init_matrix(C, MDIM, NDIM);
-
+}
+else{
+  A = (dtype *) malloc(BDIM * MDIM * KDIM * sizeof(dtype));
+  B = (dtype *) malloc(BDIM * KDIM * NDIM * sizeof(dtype));
+  C = (dtype *) malloc(BDIM * MDIM * NDIM * sizeof(dtype));
+  init_matrix_batch(A, BDIM, MDIM, KDIM);
+  init_matrix_batch(B, BDIM, KDIM, NDIM);
+  init_matrix_batch(C, BDIM, MDIM, NDIM);
+  for (int i = 0; i < BDIM; ++i) {
+    A_Array[i] = A + i * MDIM * KDIM;
+    B_Array[i] = B + i * KDIM * NDIM;
+    C_Array[i] = C + i * MDIM * NDIM;
+  }
+}
 
 #if defined(CUBLAS)
   cublasHandle_t handle;
   dtype *AA, *BB, *CC;
+  const dtype **AA_Array, **BB_Array;
+  dtype **CC_Array;
+  dtype *devA[BDIM];
+  dtype *devB[BDIM];
+  dtype *devC[BDIM];
   CHECK_CUBLAS(cublasCreate(&handle));
 #ifdef USE_FP16
   CHECK_CUBLAS(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
@@ -214,12 +246,33 @@ float *A, *B, *C;
   CHECK_CUBLAS(cublasSetMathMode(handle, CUBLAS_TF32_TENSOR_OP_MATH));
   printf("Using FP32 \n");
 #endif
-  CHECK_CUDA(cudaMalloc((void **)(&AA), MDIM * KDIM * sizeof(dtype)));
-  CHECK_CUDA(cudaMalloc((void **)(&BB), KDIM * NDIM * sizeof(dtype)));
-  CHECK_CUDA(cudaMalloc((void **)(&CC), MDIM * NDIM * sizeof(dtype)));
-  CHECK_CUBLAS(cublasSetVector(MDIM * KDIM, sizeof(dtype), A, 1, AA, 1));
-  CHECK_CUBLAS(cublasSetVector(KDIM * NDIM, sizeof(dtype), B, 1, BB, 1));
-  CHECK_CUBLAS(cublasSetVector(MDIM * NDIM, sizeof(dtype), C, 1, CC, 1));
+  if (BDIM == 0){
+    CHECK_CUDA(cudaMalloc((void **)(&AA), MDIM * KDIM * sizeof(dtype)));
+    CHECK_CUDA(cudaMalloc((void **)(&BB), KDIM * NDIM * sizeof(dtype)));
+    CHECK_CUDA(cudaMalloc((void **)(&CC), MDIM * NDIM * sizeof(dtype)));
+    CHECK_CUBLAS(cublasSetVector(MDIM * KDIM, sizeof(dtype), A, 1, AA, 1));
+    CHECK_CUBLAS(cublasSetVector(KDIM * NDIM, sizeof(dtype), B, 1, BB, 1));
+    CHECK_CUBLAS(cublasSetVector(MDIM * NDIM, sizeof(dtype), C, 1, CC, 1));
+  }
+  else{
+    for (int i = 0; i < BDIM; ++i) {
+      CHECK_CUDA(cudaMalloc((void **)(&devA[i]), MDIM * KDIM * sizeof(dtype)));
+      CHECK_CUDA(cudaMalloc((void **)(&devB[i]), KDIM * NDIM * sizeof(dtype)));
+      CHECK_CUDA(cudaMalloc((void **)(&devC[i]), MDIM * NDIM * sizeof(dtype)));
+    }
+    CHECK_CUDA(cudaMalloc((void **)(&AA_Array), BDIM * sizeof(dtype*)));
+    CHECK_CUDA(cudaMalloc((void **)(&BB_Array), BDIM * sizeof(dtype*)));
+    CHECK_CUDA(cudaMalloc((void **)(&CC_Array), BDIM * sizeof(dtype*)));
+
+    for (int i = 0; i < BDIM; i++){
+      CHECK_CUDA(cudaMemcpy(devA[i], A_Array[i], MDIM * KDIM * sizeof(dtype), cudaMemcpyHostToDevice));
+      CHECK_CUDA(cudaMemcpy(devB[i], B_Array[i], KDIM * NDIM * sizeof(dtype), cudaMemcpyHostToDevice));
+      CHECK_CUDA(cudaMemcpy(devC[i], C_Array[i], MDIM * NDIM * sizeof(dtype), cudaMemcpyHostToDevice));
+    }
+    CHECK_CUDA(cudaMemcpy(AA_Array, devA, BDIM * sizeof(dtype *), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(BB_Array, devB, BDIM * sizeof(dtype *), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(CC_Array, devC, BDIM * sizeof(dtype *), cudaMemcpyHostToDevice));
+  }
 #endif
 
 #if defined(MLIR_CUDA)
@@ -295,73 +348,120 @@ float *A, *B, *C;
 
   for (auto _ : state){
 #if defined(MKL) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
+  if (BDIM == 0){
     cblas_sgemm(MATRIX_FORMAT, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);
+  }
+  else{
+    CBLAS_TRANSPOSE transA = CblasNoTrans;
+    CBLAS_TRANSPOSE transB = CblasNoTrans;
+    int mdim = MDIM;
+    int ndim = NDIM;
+    int kdim = KDIM;
+    int bdim = BDIM;
+    cblas_sgemm_batch(MATRIX_FORMAT, &transA, &transB, &mdim, &ndim, &kdim, &alpha,
+                      A_Array, &LDA, B_Array, &LDB, &beta, C_Array, &LDC, 1, &bdim);
+  }
+
 #elif defined(HALIDE)
 #if defined(COLUMN_MAJOR)
-    hblas_sgemm(MATRIX_FORMAT, HblasNoTrans, HblasNoTrans, MDIM, NDIM, KDIM, alpha,
-                A, LDA, B, LDB, beta, C, LDC);
+  hblas_sgemm(MATRIX_FORMAT, HblasNoTrans, HblasNoTrans, MDIM, NDIM, KDIM, alpha,
+              A, LDA, B, LDB, beta, C, LDC);
 #else
-    // We assume A, B are row-major (_rm)
-    // Since hblas_sgemm only does column major (_cm), we do
-    // C_rm = C_cm'
-    //      = hblas_sgemm(A_cm, B_cm)'
-    //      = hblas_sgemm(B_cm', A_cm')
-    //      = hblas_sgemm(B_rm, A_rm)
-    hblas_sgemm(MATRIX_FORMAT, HblasNoTrans, HblasNoTrans, NDIM, MDIM, KDIM, alpha,
-                B, LDB, A, LDA, beta, C, LDC);
+  // We assume A, B are row-major (_rm)
+  // Since hblas_sgemm only does column major (_cm), we do
+  // C_rm = C_cm'
+  //      = hblas_sgemm(A_cm, B_cm)'
+  //      = hblas_sgemm(B_cm', A_cm')
+  //      = hblas_sgemm(B_rm, A_rm)
+  hblas_sgemm(MATRIX_FORMAT, HblasNoTrans, HblasNoTrans, NDIM, MDIM, KDIM, alpha,
+              B, LDB, A, LDA, beta, C, LDC);
 #endif
 #elif defined(BLASFEO)
-    char c_t = 't';
-    int m0 = MDIM;
-    int n0 = NDIM;
-    int k0 = KDIM;
-    blas_sgemm(&c_t, &c_t, &m0, &n0, &k0, &alpha, A, &LDA, B, &LDB, &beta, C, &LDC);
+  char c_t = 't';
+  int m0 = MDIM;
+  int n0 = NDIM;
+  int k0 = KDIM;
+  blas_sgemm(&c_t, &c_t, &m0, &n0, &k0, &alpha, A, &LDA, B, &LDB, &beta, C, &LDC);
 #elif defined(RUY)
-    ruy::Mul(lhs, rhs, mul_params, &context, &dst);
+  ruy::Mul(lhs, rhs, mul_params, &context, &dst);
 #elif defined(TVM)
-    matmul(x, y, z);
+  matmul(x, y, z);
 #elif defined(MLIR) || defined(MLIR_CUDA)
+if (BDIM == 0){
 #ifdef COLUMN_MAJOR
-    matmul(A, A, 0, MDIM, KDIM, 1, LDA,
-           B, B, 0, KDIM, NDIM, 1, LDB,
-           C, C, 0, MDIM, NDIM, 1, LDC);
+  matmul(A, A, 0, MDIM, KDIM, 1, LDA,
+         B, B, 0, KDIM, NDIM, 1, LDB,
+         C, C, 0, MDIM, NDIM, 1, LDC);
 #else
-    matmul(A, A, 0, MDIM, KDIM, LDA, 1,
-           B, B, 0, KDIM, NDIM, LDB, 1,
-           C, C, 0, MDIM, NDIM, LDC, 1);
+  matmul(A, A, 0, MDIM, KDIM, LDA, 1,
+         B, B, 0, KDIM, NDIM, LDB, 1,
+         C, C, 0, MDIM, NDIM, LDC, 1);
 #endif
+}
 #elif defined(NAIVE)
-    naive_matmul(A,B,C,MDIM,KDIM,NDIM);
+  naive_matmul(A,B,C,MDIM,KDIM,NDIM);
+
 #elif defined(CUBLAS)
 #if defined(COLUMN_MAJOR)
-    #ifdef USE_FP16
-        CHECK_CUBLAS(cublasSgemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
-			     &alpha, AA, CUDA_R_16F, LDA, BB,CUDA_R_16F, LDB, &beta, CC,CUDA_R_16F, LDC));
-    #else
-        CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
-			         &alpha, AA, LDA, BB, LDB, &beta, CC, LDC));
-    #endif
-
+  #ifdef USE_FP16
+    if (BDIM == 0){
+      CHECK_CUBLAS(cublasSgemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
+                   &alpha, AA, CUDA_R_16F, LDA, BB, CUDA_R_16F, LDB, &beta, CC, CUDA_R_16F, LDC));
+    } else {
+      CHECK_CUBLAS(cublasGemmBatchedEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
+                   &alpha, (void **)&AA_Array[0], CUDA_R_16F, LDA, (void **)&BB_Array[0], CUDA_R_16F, LDB,
+                   &beta, (void **)&CC_Array[0], CUDA_R_16F, LDC, BDIM, CUBLAS_COMPUTE_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP));
+    }
+  #else
+    if (BDIM == 0){
+      CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
+                   &alpha, AA, LDA, BB, LDB, &beta, CC, LDC));
+    } else {
+      CHECK_CUBLAS(cublasSgemmBatched(handle, CUBLAS_OP_N, CUBLAS_OP_N, MDIM, NDIM, KDIM,
+                   &alpha, AA_Array, LDA, BB_Array, LDB, &beta, CC_Array, LDC, BDIM));
+    }
+  #endif
 #else
-    #ifdef USE_FP16
-        CHECK_CUBLAS(cublasSgemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
-			     &alpha, BB,CUDA_R_16F, LDB, AA,CUDA_R_16F, LDA, &beta, CC,CUDA_R_16F, LDC));
-    #else
-        CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
-			         &alpha, BB, LDB, AA, LDA, &beta, CC, LDC));
-    #endif
+  #ifdef USE_FP16
+    if (BDIM == 0){
+      CHECK_CUBLAS(cublasSgemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
+                 &alpha, BB, CUDA_R_16F, LDB, AA, CUDA_R_16F, LDA, &beta, CC, CUDA_R_16F, LDC));
+    } else {
+      CHECK_CUBLAS(cublasGemmBatchedEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
+                   &alpha, (void **)&BB_Array[0], CUDA_R_16F, LDB, (void **)&AA_Array[0], CUDA_R_16F, LDA,
+                   &beta, (void **)&CC_Array[0], CUDA_R_16F, LDC, BDIM, CUBLAS_COMPUTE_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP));
+    }
+  #else
+    if (BDIM == 0){
+      CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
+                   &alpha, BB, LDB, AA, LDA, &beta, CC, LDC));
+    } else {
+      CHECK_CUBLAS(cublasSgemmBatched(handle, CUBLAS_OP_N, CUBLAS_OP_N, NDIM, MDIM, KDIM,
+                   &alpha, BB_Array, LDB, AA_Array, LDA, &beta, CC_Array, LDC, BDIM));
+    }
+  #endif
 #endif
 #endif
-  }
+}
 
 #if defined(TVM)
   TVMArrayCopyToBytes(z, C, MDIM * NDIM * sizeof(float));
 #elif defined(CUBLAS)
-  CHECK_CUBLAS(cublasGetVector(MDIM * NDIM, sizeof(dtype), CC, 1, C, 1));
+  if (BDIM ==0){
+    CHECK_CUBLAS(cublasGetVector(MDIM * NDIM, sizeof(dtype), CC, 1, C, 1));
+  }
+  else{
+    for (int i = 0; i < BDIM; i++){
+      CHECK_CUDA(cudaMemcpy(C_Array[i], devC[i], MDIM * NDIM * sizeof(dtype), cudaMemcpyDeviceToHost));
+      CHECK_CUDA(cudaFree(devA[i]));
+      CHECK_CUDA(cudaFree(devB[i]));
+      CHECK_CUDA(cudaFree(devC[i]));
+    }
+  }
 #endif
 
-#ifdef ENABLE_CHECK
+#if defined(ENABLE_CHECK) && !defined(USE_FP16)
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
   naive_matmul(A,B,C2,MDIM,KDIM,NDIM);
@@ -382,9 +482,15 @@ float *A, *B, *C;
   TVMArrayFree(y);
   TVMArrayFree(z);
 #elif defined(CUBLAS)
+if (BDIM == 0){
   CHECK_CUDA(cudaFree(AA));
   CHECK_CUDA(cudaFree(BB));
   CHECK_CUDA(cudaFree(CC));
+}else{
+  CHECK_CUDA(cudaFree(AA_Array));
+  CHECK_CUDA(cudaFree(BB_Array));
+  CHECK_CUDA(cudaFree(CC_Array));
+}
   CHECK_CUBLAS(cublasDestroy(handle));
 #elif defined(MLIR_CUDA)
   CHECK_CUDA(cudaFree(devA));
@@ -412,11 +518,19 @@ int main(int argc, char **argv) {
 #elif defined(BLIS)
   printf("Benchmarking BLIS %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(CUBLAS)
-  printf("Benchmarking CUBLAS %d x %d x %d \n", MDIM, NDIM, KDIM);
+  if (BDIM == 0){
+    printf("Benchmarking CUBLAS %d x %d x %d \n", MDIM, NDIM, KDIM);
+  } else {
+    printf("Benchmarking CUBLAS %d x %d x %d x %d \n", BDIM, MDIM, NDIM, KDIM);
+  }
 #elif defined(HALIDE)
   printf("Benchmarking Halide %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(MKL)
-  printf("Benchmarking MKL %d x %d x %d \n", MDIM, NDIM, KDIM);
+  if (BDIM == 0){
+    printf("Benchmarking MKL %d x %d x %d \n", MDIM, NDIM, KDIM);
+  } else {
+    printf("Benchmarking MKL %d %d x %d x %d \n", BDIM, MDIM, NDIM, KDIM);
+  }
 #elif defined(MLIR)
   printf("Benchmarking MLIR %d x %d x %d \n", MDIM, NDIM, KDIM);
 #elif defined(MLIR_CUDA)

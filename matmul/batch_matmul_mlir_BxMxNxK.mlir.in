@@ -1,0 +1,11 @@
+func @batch_matmul(%a: tensor<${B}x${M}x${K}xf32>,
+             %b: tensor<${B}x${K}x${N}xf32>,
+             %c: tensor<${B}x${M}x${N}xf32>) -> tensor<${B}x${M}x${N}xf32>
+attributes { passthrough = [["target-cpu", "${TARGET_CPU}"], ["prefer-vector-width", "${VECTOR_WIDTH}"]]}
+{
+  %f0 = arith.constant 0.0 : f32
+  %f1 = linalg.fill ins(%f0 : f32) outs(%c : tensor<${B}x${M}x${N}xf32>) -> tensor<${B}x${M}x${N}xf32>
+  %d = linalg.batch_matmul ins(%a, %b : tensor<${B}x${M}x${K}xf32>, tensor<${B}x${K}x${N}xf32>)
+    outs(%f1: tensor<${B}x${M}x${N}xf32>) -> tensor<${B}x${M}x${N}xf32>
+  return %d : tensor<${B}x${M}x${N}xf32>
+}

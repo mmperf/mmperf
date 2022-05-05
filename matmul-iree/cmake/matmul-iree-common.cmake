@@ -1,16 +1,26 @@
 # Method to generate matmul MLIR artifacts of specified sizes.
-function(compile_mlir mlir_prefix M N K TYPE)
-    configure_file(${CMAKE_SOURCE_DIR}/src/matmul_MxNxK.mlir
-      ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
-    set_property(
-      DIRECTORY
-      APPEND
-      PROPERTY CMAKE_CONFIGURE_DEPENDS
-      ${CMAKE_SOURCE_DIR}/src/matmul_MxNxK.mlir)
+function(compile_mlir mlir_prefix B M N K TYPE)
+    if ("${B}" STREQUAL "0")
+        configure_file(${CMAKE_SOURCE_DIR}/src/matmul_MxNxK.mlir
+          ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+        set_property(
+          DIRECTORY
+          APPEND
+          PROPERTY CMAKE_CONFIGURE_DEPENDS
+          ${CMAKE_SOURCE_DIR}/src/matmul_MxNxK.mlir)
+    else()
+        configure_file(${CMAKE_SOURCE_DIR}/src/batch_matmul_BxMxNxK.mlir
+          ${CMAKE_BINARY_DIR}/mlir-objs/${mlir_prefix}.mlir)
+        set_property(
+          DIRECTORY
+          APPEND
+          PROPERTY CMAKE_CONFIGURE_DEPENDS
+          ${CMAKE_SOURCE_DIR}/src/batch_matmul_BxMxNxK.mlir)
+    endif()
 endfunction()
 
 # Method to generate a IREE matmul binary for a specific backend and matrix size 
-function(generate_matmul_binary mlir_file matrix_size backend M N K TYPE NUM_REPS)
+function(generate_matmul_binary mlir_file matrix_size backend B M N K TYPE NUM_REPS)
 
     string(CONCAT iree_executable_name "matmul_iree" ${backend} "_" ${matrix_size})
     string(CONCAT mlir_lib "matmul_" "_" ${backend} ${matrix_size} )
@@ -128,6 +138,7 @@ function(generate_matmul_binary mlir_file matrix_size backend M N K TYPE NUM_REP
 
     target_compile_definitions(${iree_executable_name}
     PRIVATE "MATMUL_HEADER=\"${mlir_lib}.h\"")
+    target_compile_definitions(${iree_executable_name} PRIVATE BDIM=${B})
     target_compile_definitions(${iree_executable_name} PRIVATE MDIM=${M})
     target_compile_definitions(${iree_executable_name} PRIVATE NDIM=${N})
     target_compile_definitions(${iree_executable_name} PRIVATE KDIM=${K})
