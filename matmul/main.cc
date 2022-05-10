@@ -159,7 +159,11 @@ tvm::runtime::Module create_module() {
 void init_matrix(dtype *a, int nrows, int ncols) {
   for (int j = 0; j < ncols; j++) {
     for (int i = 0; i < nrows; i++) {
-      a[i + j * nrows] = ((float) rand() / (float) RAND_MAX);
+      #ifdef USE_FP16
+        a[i + j * nrows] = __float2half(((float) rand() / (float) RAND_MAX));
+      #else
+        a[i + j * nrows] = ((float) rand() / (float) RAND_MAX);
+      #endif
     }
   }
 }
@@ -168,13 +172,17 @@ void init_matrix_batch(dtype *a, int batch, int nrows, int ncols) {
   for (int b = 0; b < batch; b++){
     for (int j = 0; j < ncols; j++) {
       for (int i = 0; i < nrows; i++) {
-        a[i + j * nrows + b * ncols * nrows] = ((float) rand() / (float) RAND_MAX);
+        #ifdef USE_FP16
+          a[i + j * nrows + b * ncols * nrows] = __float2half((float) rand() / (float) RAND_MAX);
+        #else
+          a[i + j * nrows + b * ncols * nrows] = ((float) rand() / (float) RAND_MAX);
+        #endif
       }
     }
   }
 }
 
-void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, size_t n) {
+void naive_matmul(const dtype *a, const dtype *b, float *c, size_t m, size_t k, size_t n) {
   // correctness check
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
@@ -188,7 +196,7 @@ void naive_matmul(const float *a, const float *b, float *c, size_t m, size_t k, 
 #ifdef COLUMN_MAJOR
         c[ci] += a[i + p*m] * b[p + j*k];
 #else
-        c[ci] += a[i*k + p] * b[p*n + j];
+        c[ci] += __half2float(a[i*k + p]) * __half2float(b[p*n + j]);
 #endif
       }
     }
@@ -461,17 +469,25 @@ if (BDIM == 0){
   }
 #endif
 
-#if defined(ENABLE_CHECK) && !defined(USE_FP16)
+#ifdef ENABLE_CHECK
   float *C2 = (float *) malloc(MDIM * NDIM * sizeof(float));
   size_t errors = 0;
   naive_matmul(A,B,C2,MDIM,KDIM,NDIM);
   for (size_t i = 0; i < MDIM; i++) {
     for (size_t j = 0; j < NDIM; j++) {
       size_t ci = i + j*MDIM;
-      if (std::abs(C[ci] - C2[ci]) > 0.01f) {
-        //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
-        errors++;
-      }
+      #ifdef USE_FP16
+        float C1 = __half2float(C[ci]);
+        if (fabs(C1- C2[ci]) > 0.5f) {  // Difference could be large for mixed precision calculation
+          fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C1, C2[ci]);
+          errors++;
+        }
+      #else
+        if (fabs(C[ci] - C2[ci]) > 0.1f) {
+          fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
+          errors++;
+        }
+      #endif
     }
   }
   printf("Detected %ld errors.\n", errors);
