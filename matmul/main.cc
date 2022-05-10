@@ -486,12 +486,12 @@ if (BDIM == 0){
       size_t ci = i + j*MDIM;
       #ifdef USE_FP16
         float C1 = __half2float(C[ci]);
-        if (fabs(C1- C2[ci]) > 0.5f) {  // Difference could be large for mixed precision calculation
+        if (std::abs(C1- C2[ci]) > 0.5f) {  // Difference could be large for mixed precision calculation
           //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C1, C2[ci]);
           errors++;
         }
       #else
-        if (fabs(C[ci] - C2[ci]) > 0.1f) {
+        if (std::abs(C[ci] - C2[ci]) > 0.1f) {
           //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
           errors++;
         }
