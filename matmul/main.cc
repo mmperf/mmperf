@@ -194,9 +194,17 @@ void naive_matmul(const dtype *a, const dtype *b, float *c, size_t m, size_t k, 
       c[ci] = 0.0f;
       for (size_t p = 0; p < k; p++) {
 #ifdef COLUMN_MAJOR
-        c[ci] += a[i + p*m] * b[p + j*k];
+        #ifdef USE_FP16
+          c[ci] += __half2float(a[i + p*m]) * __half2float(b[p + j*k]);
+        #else
+          c[ci] += a[i + p*m] * b[p + j*k];
+        #endif
 #else
-        c[ci] += __half2float(a[i*k + p]) * __half2float(b[p*n + j]);
+        #ifdef USE_FP16
+          c[ci] += __half2float(a[i*k + p]) * __half2float(b[p*n + j]);
+        #else
+          c[ci] += a[i*k + p] * b[p*n + j];
+        #endif
 #endif
       }
     }
@@ -479,12 +487,12 @@ if (BDIM == 0){
       #ifdef USE_FP16
         float C1 = __half2float(C[ci]);
         if (fabs(C1- C2[ci]) > 0.5f) {  // Difference could be large for mixed precision calculation
-          fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C1, C2[ci]);
+          //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C1, C2[ci]);
           errors++;
         }
       #else
         if (fabs(C[ci] - C2[ci]) > 0.1f) {
-          fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
+          //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C[ci], C2[ci]);
           errors++;
         }
       #endif
