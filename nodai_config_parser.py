@@ -79,7 +79,11 @@ class IREEExecutionHandler(object):
         subprocess.run(cmd, shell=True, check=True, cwd=self.bin_dir)
 
     def create_main(self, filename, sizes):
-        M, N, K = sizes
+        if len(sizes) == 3:
+            M, N, K = sizes
+            B = 0
+        else:
+            B, M, N, K = sizes
         header = f'\"matmul_{filename}.h\"'
         cmd = f'cat {self.matmul_generator_src} | ' \
                "sed 's@MATMUL_HEADER@'" + f"'{str(header)}'" + "'@g' " \
@@ -89,7 +93,7 @@ class IREEExecutionHandler(object):
               f'-I{self.mmperf_dir}/external/benchmark/include ' \
               f'-I{self.mmperf_dir}/external/iree -c matmul_generator_{filename}.cc ' \
               f'-DFILE_NAME="matmul_{str(filename)}_perf.out" ' \
-              f'-DMDIM={M} -DNDIM={N} -DKDIM={K} ' \
+              f'-DMDIM={M} -DNDIM={N} -DKDIM={K} -DBDIM={B} ' \
               f'-Wno-reorder-init-list '
         if self.compile_args.dtype == "f16":
             cmd += f'-DUSE_FP16'
@@ -110,7 +114,7 @@ class IREEExecutionHandler(object):
         subprocess.run(cmd, shell=True, check=True, cwd=self.bin_dir)
 
     def create_matmul_executable(self, filename):
-        iree = abspath(self.build_dir/'matmul-iree'/'iree' /'iree')
+        iree = abspath(self.build_dir/'matmul-iree'/'iree'/'iree')
         third_party = abspath(self.build_dir/'matmul-iree'/'iree'/'third_party')
         build_tools = abspath(self.build_dir/'matmul-iree'/'iree'/ 'build_tools')
 
@@ -270,11 +274,18 @@ def main(argv):
     mmperf_src = Path(args.mmperf_src)
     mmperf_build = Path(dirname(abspath(__file__))) / args.mmperf_build
     exec_handle = IREEExecutionHandler(mmperf_src, mmperf_build, args)
-    for f_path in glob.glob(abspath(os.path.join(config_path, '*.json'))):
+    for f_path in glob.glob(abspath(os.path.join(args.config_path, '*.json'))):
         with open(f_path, 'r') as f:
             data = json.load(f)
-            matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
             best_config = data
+            if data["identifier"] == "matmul":
+                matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
+            elif data["identifier"] == "batch_matmul":
+                matmul_size = [int(data["b"]), int(data["m"]), int(data["n"]), int(data["k"])]
+            else:
+                print(data["identifier"], "is not supported!")
+                continue
+
             try:
                 best_depth = data["options"][0]["pipeline_depth"]
             except:

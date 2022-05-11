@@ -419,8 +419,15 @@ def main(argv):
         for f_path in glob.glob(os.path.abspath(os.path.join(args.nodai_shark_configs, '*.json'))):
             with open(f_path, 'r') as f:
                 data = json.load(f)
-                matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
                 best_config = data
+                if data["identifier"] == "matmul":
+                    matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
+                elif data["identifier"] == "batch_matmul":
+                    matmul_size = [int(data["b"]), int(data["m"]), int(data["n"]), int(data["k"])]
+                else:
+                    print(data["identifier"], "is not supported!")
+                    continue
+
                 try:
                     best_depth = data["options"][0]["pipeline_depth"]
                 except:

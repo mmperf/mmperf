@@ -19,6 +19,7 @@ table TileOptions {
 table CompileOptions {
   options:[TileOptions];
   identifier:string; // Identifier for what mlir file should be compiled
+  b:int;
   m:int;
   n:int;
   k:int;

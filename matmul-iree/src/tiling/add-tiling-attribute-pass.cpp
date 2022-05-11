@@ -100,11 +100,17 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
 
     moduleOp->walk([&](Operation *nestedOp) {
       auto linalg_matmul = llvm::dyn_cast<linalg::MatmulOp>(nestedOp);
+      auto linalg_bmm = llvm::dyn_cast<mlir::linalg::BatchMatmulOp>(nestedOp);
       auto mhlo_dot = llvm::dyn_cast<mhlo::DotOp>(nestedOp);
+      auto mhlo_dot_general = llvm::dyn_cast<mhlo::DotGeneralOp>(nestedOp);
 
-      if(mhlo_dot || linalg_matmul) {
+      if(mhlo_dot || mhlo_dot_general || linalg_matmul || linalg_bmm) {
         const auto& option = (count < options.size()) ? options[count++] : options.back();
-        auto op = mhlo_dot ? mhlo_dot : linalg_matmul;
+        Operation *op = NULL;
+        if (linalg_matmul) op = linalg_matmul;
+        else if (linalg_bmm) op = linalg_bmm;
+        else if (mhlo_dot) op = mhlo_dot;
+        else if (mhlo_dot_general) op = mhlo_dot_general;
 
         // Set tiling vectors
         SmallVector<int64_t> workloadPerWorkgroup, L1TileSizes, vectorTileSizes, workgroupSizes;
