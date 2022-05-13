@@ -1,4 +1,4 @@
-func @batch_matmul(%arg0: tensor<1x${B}x${M}x${K}x${TYPE}>, %arg1: tensor<1x${B}x${K}x${N}x${TYPE}>) -> tensor<1x${B}x${M}x${N}x${TYPE}>
+func.func @batch_matmul(%arg0: tensor<1x${B}x${M}x${K}x${TYPE}>, %arg1: tensor<1x${B}x${K}x${N}x${TYPE}>) -> tensor<1x${B}x${M}x${N}x${TYPE}>
     {
     	%0 = "mhlo.dot_general"(%arg0, %arg1) {
     dot_dimension_numbers = #mhlo.dot<

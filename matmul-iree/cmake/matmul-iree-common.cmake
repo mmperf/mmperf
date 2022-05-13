@@ -42,7 +42,7 @@ function(generate_matmul_binary mlir_file matrix_size backend B M N K TYPE NUM_R
         list(APPEND _ARGS "-iree-vm-emit-polyglot-zip=false")
     elseif(${backend} STREQUAL "cuda")
         list(APPEND _ARGS "-iree-hal-target-backends=cuda")
-        list(APPEND _ARGS "-iree-cuda-llvm-target-arch=sm_80")
+        list(APPEND _ARGS "-iree-hal-cuda-llvm-target-arch=sm_80")
         list(APPEND _ARGS "-iree-hal-cuda-disable-loop-nounroll-wa")
     else()
         list(APPEND _ARGS "-iree-hal-target-backends=${backend}")

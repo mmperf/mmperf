@@ -420,13 +420,10 @@ def main(argv):
             with open(f_path, 'r') as f:
                 data = json.load(f)
                 best_config = data
-                if data["identifier"] == "matmul":
-                    matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
-                elif data["identifier"] == "batch_matmul":
+                if "b" in data.keys():
                     matmul_size = [int(data["b"]), int(data["m"]), int(data["n"]), int(data["k"])]
                 else:
-                    print(data["identifier"], "is not supported!")
-                    continue
+                    matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
 
                 try:
                     best_depth = data["options"][0]["pipeline_depth"]

@@ -58,7 +58,7 @@ class IREEExecutionHandler(object):
                   f'-iree-input-type=mhlo ' \
                   f'-iree-mlir-to-vm-bytecode-module ' \
                   f'-iree-hal-target-backends=cuda ' \
-                  f'-iree-cuda-llvm-target-arch=sm_80 ' \
+                  f'-iree-hal-cuda-llvm-target-arch=sm_80 ' \
                   f'-iree-hal-cuda-disable-loop-nounroll-wa ' \
                   f'-iree-hal-benchmark-dispatch-repeat-count=100 ' \
                   f'{mlir_file} -o matmul_{str(filename)}.vmfb ' \
@@ -114,7 +114,7 @@ class IREEExecutionHandler(object):
         subprocess.run(cmd, shell=True, check=True, cwd=self.bin_dir)
 
     def create_matmul_executable(self, filename):
-        iree = abspath(self.build_dir/'matmul-iree'/'iree'/'iree')
+        iree = abspath(self.build_dir/'matmul-iree'/'iree'/'runtime'/'src'/'iree')
         third_party = abspath(self.build_dir/'matmul-iree'/'iree'/'third_party')
         build_tools = abspath(self.build_dir/'matmul-iree'/'iree'/ 'build_tools')
 
@@ -277,15 +277,12 @@ def main(argv):
     for f_path in glob.glob(abspath(os.path.join(args.config_path, '*.json'))):
         with open(f_path, 'r') as f:
             data = json.load(f)
-            best_config = data
-            if data["identifier"] == "matmul":
-                matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
-            elif data["identifier"] == "batch_matmul":
-                matmul_size = [int(data["b"]), int(data["m"]), int(data["n"]), int(data["k"])]
+            if "b" in data.keys():
+              matmul_size = [int(data["b"]), int(data["m"]), int(data["n"]), int(data["k"])]
             else:
-                print(data["identifier"], "is not supported!")
-                continue
+              matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
 
+            best_config = data
             try:
                 best_depth = data["options"][0]["pipeline_depth"]
             except:
