@@ -67,10 +67,10 @@ def singleExpert3DPad(configs, default=False):
       Tile('matmul',
            'linalg.generic',
            tile_sizes=configs[0]['tile_sizes'],
-           tile_interchange=configs[0]['tile_interchange']
+           tile_interchange=configs[0]['tile_interchange'])
         .then(Pad('matmul', 'linalg.generic',
                   pack_paddings=[1, 1, 0],
-                  hoist_paddings=[2, 3, 0]))
+                  hoist_paddings=configs[0]['hoist_padding']))
         .then(Vectorize('matmul', ''))
         .then(LoweringOnlyExpert('matmul', 'linalg.generic'))
     ]]

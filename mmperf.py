@@ -353,7 +353,7 @@ def main(argv):
     # run iree-llvm-sandbox using python api
     if args.sandbox:
         build_path = args.bins.parent.absolute()
-        os.environ["PYTHONPATH"] = os.path.join(build_path, "mlir/tools/iree_llvm_sandbox/python_package")
+        os.environ["PYTHONPATH"] = os.path.join(build_path, "mlir/tools/iree_llvm_sandbox/python_packages")
         os.environ["MLIR_RUNNER_UTILS_LIB"] = os.path.join(build_path, "mlir/lib/libmlir_runner_utils.so")
         os.environ["MLIR_C_RUNNER_UTILS_LIB"] = os.path.join(build_path, "mlir/lib/libmlir_c_runner_utils.so")
         try:
