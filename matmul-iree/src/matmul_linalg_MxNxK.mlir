@@ -1,4 +1,4 @@
-func @matmul(%a: tensor<${M}x${K}xf32>, %b: tensor<${K}x${N}xf32>)
+func.func @matmul(%a: tensor<${M}x${K}xf32>, %b: tensor<${K}x${N}xf32>)
   -> tensor<${M}x${N}xf32>
 {
   %c = arith.constant dense<0.0> : tensor<${M}x${N}xf32>

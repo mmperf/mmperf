@@ -155,6 +155,11 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         if (failed(status)) signalPassFailure();
 
         iree_compiler::setCompilationInfo(op, compilationAttr);
+
+        if (option->split_k){
+          IntegerAttr intAttr = IntegerAttr::get(IntegerType::get(op->getContext(), 64), option->split_k);
+          op->setAttr("iree_flow_split_k", intAttr);
+        }
       }
     });
   }

@@ -91,7 +91,7 @@ class IREEExecutionHandler(object):
         subprocess.run(cmd, shell=True, check=True, cwd=self.bin_dir)
         cmd = f'{self.cxx_compiler} ' \
               f'-I{self.mmperf_dir}/external/benchmark/include ' \
-              f'-I{self.mmperf_dir}/external/iree -c matmul_generator_{filename}.cc ' \
+              f'-I{self.mmperf_dir}/external/iree/runtime/src -c matmul_generator_{filename}.cc ' \
               f'-DFILE_NAME="matmul_{str(filename)}_perf.out" ' \
               f'-DMDIM={M} -DNDIM={N} -DKDIM={K} -DBDIM={B} ' \
               f'-Wno-reorder-init-list '
@@ -101,7 +101,7 @@ class IREEExecutionHandler(object):
 
     def create_device(self):
         cmd = f'{self.c_compiler} ' \
-              f'-I{self.mmperf_dir}/external/iree -c {self.device_src} '
+              f'-I{self.mmperf_dir}/external/iree/runtime/src -c {self.device_src} '
         subprocess.run(cmd, shell=True, check=True, cwd=self.bin_dir)
 
     def create_matmul_static_library(self, filename):
