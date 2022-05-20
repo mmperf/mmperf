@@ -324,7 +324,7 @@ def do_permutations(jobs, perms, bin_path, result_dir, env):
         for i, perm in enumerate(perms):
             if type(perm) == str:
                 perm_name = perm.split('_')[1]
-                matrix_size = perm.split('_')[2].split('.')[0]
+                matrix_size = perm.split('_')[2]
             else:
                 perm_name = perm.stem.split('_')[1]
                 matrix_size = perm.stem.split('_')[2]

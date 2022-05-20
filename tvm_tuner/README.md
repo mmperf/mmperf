@@ -7,6 +7,7 @@ First, set the environment variable PYTHONPATH:
 ```
 export TVM_HOME=/path/to/tvm
 export PYTHONPATH=$TVM_HOME/python:${PYTHONPATH}
+export LD_LIBRARY_PATH=/path/to/build_tvm/:$LD_LIBRARY_PATH
 ```
 
 Then, run `tuner.py` to search for optimal schedules for each matmul input size. Specify the matrix sizes and target by setting `-m` and `-target` flags. For example, if you want to run search on Bert sizes with GPU, run the command:

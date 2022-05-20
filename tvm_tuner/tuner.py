@@ -10,6 +10,7 @@ def main(argv):
     parser.add_argument('-target', dest='target', action='store', help='Backend to run on',
                         default='llvm -mcpu=skylake-avx512')
     parser.add_argument('-num_threads', type=int, default=1, help='The number of physical CPU cores')
+    parser.add_argument('-dtype', default='float32', help='Data precision f32 or f16')
     args = parser.parse_args()
     os.environ["TVM_NUM_THREADS"] = str(args.num_threads)
 
@@ -19,7 +20,7 @@ def main(argv):
     for line in all_sizes:
         if line[0] != '#':
             dims = [int(x) for x in line.split('x')]
-            autotune(dims[0], dims[1], dims[2], args.target)
+            autotune(dims[0], dims[1], dims[2], args.target, args.dtype)
 
     return 0
 

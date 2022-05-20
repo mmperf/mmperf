@@ -27,7 +27,7 @@ def matmul(M, N, K, dtype):
     return [A, B, C]
 
 
-def autotune(M, N, K, target_name):
+def autotune(M, N, K, target_name, dtype):
     ######################################################################
     # Create the search task
     # ^^^^^^^^^^^^^^^^^^^^^^
@@ -37,7 +37,7 @@ def autotune(M, N, K, target_name):
     #   - replace "llvm" below with "llvm -mcpu=core-avx2" to enable AVX2
     #   - replace "llvm" below with "llvm -mcpu=skylake-avx512" to enable AVX-512
     target = tvm.target.Target(target_name)
-    task = tvm.auto_scheduler.SearchTask(func=matmul, args=(M, N, K, "float32"), target=target)
+    task = tvm.auto_scheduler.SearchTask(func=matmul, args=(M, N, K, dtype), target=target)
     # Inspect the computational graph
     print("Computational DAG:")
     print(task.compute_dag)
@@ -101,8 +101,12 @@ def autotune(M, N, K, target_name):
     # We build the binary and check its correctness and performance.
     func = tvm.build(sch, args, target, name="matmul")
     func.export_library("matmul_{}x{}x{}.so".format(M, N, K))
-    a_np = np.random.uniform(size=(M, K)).astype(np.float32)
-    b_np = np.random.uniform(size=(K, N)).astype(np.float32)
+    if dtype == "float16":
+        np_dtype = np.float16
+    else:
+        np_dtype = np.float32
+    a_np = np.random.uniform(size=(M, K)).astype(np_dtype)
+    b_np = np.random.uniform(size=(K, N)).astype(np_dtype)
     out_np = a_np.dot(b_np)
 
     ctx = None
@@ -112,11 +116,11 @@ def autotune(M, N, K, target_name):
         ctx = tvm.cpu()
     a_tvm = tvm.nd.array(a_np, device=ctx)
     b_tvm = tvm.nd.array(b_np, device=ctx)
-    out_tvm = tvm.nd.empty(out_np.shape, device=ctx)
+    out_tvm = tvm.nd.empty(out_np.shape, dtype=dtype, device=ctx)
     func(a_tvm, b_tvm, out_tvm)
 
     # Check results
-    np.testing.assert_allclose(out_np, out_tvm.asnumpy(), rtol=1e-3)
+    np.testing.assert_allclose(out_np, out_tvm.asnumpy(), rtol=0.5)
 
     # Evaluate execution time.
     evaluator = func.time_evaluator(func.entry_name, ctx, min_repeat_ms=500)

@@ -8,7 +8,7 @@
 #include "halide_blas.h"
 #elif defined(RUY)
 #include "ruy/ruy.h"
-#elif defined(TVM)
+#elif defined(TVM) || defined(TVM_CUDA)
 #include <unordered_map>
 #include "tvm/te/schedule_pass.h"
 #include "tvm/te/schedule.h"
@@ -54,9 +54,14 @@
 #endif
 #endif
 
-#ifdef USE_FP16
+#if defined(USE_FP16) && defined(CUBLAS)
   using dtype = half;
+#elif defined(USE_FP16) && (defined(TVM) || defined(TVM_CUDA))
+  int n_bits = 16;
+  // TODO: find the correct data type of fp16 that can be used by TVM
+  using dtype = float;
 #else
+  int n_bits = 32;
   using dtype = float;
 #endif
 
@@ -101,8 +106,8 @@ void matmul(float *aligned_a, float *allocated_a, int64_t offset_a,
 #if defined(TVM)|| defined(TVM_CUDA)
 tvm::runtime::Module create_module() {
   // Define algorithm
-  tvm::te::Tensor A = tvm::te::placeholder({MDIM, KDIM}, tvm::DataType::Float(32), "A");
-  tvm::te::Tensor B = tvm::te::placeholder({KDIM, NDIM}, tvm::DataType::Float(32), "B");
+  tvm::te::Tensor A = tvm::te::placeholder({MDIM, KDIM}, tvm::DataType::Float(n_bits), "A");
+  tvm::te::Tensor B = tvm::te::placeholder({KDIM, NDIM}, tvm::DataType::Float(n_bits), "B");
   auto k = tvm::te::reduce_axis(tvm::Range{0, KDIM}, "k");
   // TODO: Add column major support to TVM
   int bn = 32;
@@ -159,7 +164,7 @@ tvm::runtime::Module create_module() {
 void init_matrix(dtype *a, int nrows, int ncols) {
   for (int j = 0; j < ncols; j++) {
     for (int i = 0; i < nrows; i++) {
-      #ifdef USE_FP16
+      #if defined(USE_FP16) && defined(CUBLAS)
         a[i + j * nrows] = __float2half(((float) rand() / (float) RAND_MAX));
       #else
         a[i + j * nrows] = ((float) rand() / (float) RAND_MAX);
@@ -172,7 +177,7 @@ void init_matrix_batch(dtype *a, int batch, int nrows, int ncols) {
   for (int b = 0; b < batch; b++){
     for (int j = 0; j < ncols; j++) {
       for (int i = 0; i < nrows; i++) {
-        #ifdef USE_FP16
+        #if defined(USE_FP16) && defined(CUBLAS)
           a[i + j * nrows + b * ncols * nrows] = __float2half((float) rand() / (float) RAND_MAX);
         #else
           a[i + j * nrows + b * ncols * nrows] = ((float) rand() / (float) RAND_MAX);
@@ -194,13 +199,13 @@ void naive_matmul(const dtype *a, const dtype *b, float *c, size_t m, size_t k, 
       c[ci] = 0.0f;
       for (size_t p = 0; p < k; p++) {
 #ifdef COLUMN_MAJOR
-        #ifdef USE_FP16
+        #if defined(USE_FP16) && defined(CUBLAS)
           c[ci] += __half2float(a[i + p*m]) * __half2float(b[p + j*k]);
         #else
           c[ci] += a[i + p*m] * b[p + j*k];
         #endif
 #else
-        #ifdef USE_FP16
+        #if defined(USE_FP16) && defined(CUBLAS)
           c[ci] += __half2float(a[i*k + p]) * __half2float(b[p*n + j]);
         #else
           c[ci] += a[i*k + p] * b[p*n + j];
@@ -325,13 +330,13 @@ else{
 #endif
   DLTensor *x, *y, *z;
   int64_t xshape[2] = {MDIM, KDIM};
-  TVMArrayAlloc(xshape, 2, kDLFloat, 32, 1, deviceType, 0, &x);
-  TVMArrayCopyFromBytes(x, A, MDIM * KDIM * sizeof(float));
+  TVMArrayAlloc(xshape, 2, kDLFloat, n_bits, 1, deviceType, 0, &x);
+  TVMArrayCopyFromBytes(x, A, MDIM * KDIM * sizeof(dtype));
   int64_t yshape[2] = {KDIM, NDIM};
-  TVMArrayAlloc(yshape, 2, kDLFloat, 32, 1, deviceType, 0, &y);
-  TVMArrayCopyFromBytes(y, B, KDIM * NDIM * sizeof(float));
+  TVMArrayAlloc(yshape, 2, kDLFloat, n_bits, 1, deviceType, 0, &y);
+  TVMArrayCopyFromBytes(y, B, KDIM * NDIM * sizeof(dtype));
   int64_t zshape[2] = {MDIM, NDIM};
-  TVMArrayAlloc(zshape, 2, kDLFloat, 32, 1, deviceType, 0, &z);
+  TVMArrayAlloc(zshape, 2, kDLFloat, n_bits, 1, deviceType, 0, &z);
 #endif
 
 #if defined(COLUMN_MAJOR)
@@ -484,10 +489,10 @@ if (BDIM == 0){
   for (size_t i = 0; i < MDIM; i++) {
     for (size_t j = 0; j < NDIM; j++) {
       size_t ci = i + j*MDIM;
-      #ifdef USE_FP16
+      #if defined(USE_FP16) && defined(CUBLAS)
         float C1 = __half2float(C[ci]);
         if (std::abs(C1- C2[ci]) > 0.5f) {  // Difference could be large for mixed precision calculation
-          //fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C1, C2[ci]);
+          fprintf(stderr, "Incorrect result at index %ld,%ld: C=%0.2f C2=%0.2f\n", i, j, C1, C2[ci]);
           errors++;
         }
       #else
