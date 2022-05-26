@@ -122,6 +122,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         // set DispatchLoweringPassPipeline
         iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline passPipeline;
         iree_compiler::TileSizesListType tileSizes;
+        unsigned softwarePipelineDepth = 0;
         switch(option->pipeline) {
           case Nod::PipelineType_CPU:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
@@ -133,7 +134,10 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
             tileSizes = {workloadPerWorkgroup};
             std::cout << "Using LLVMGPUMatmulSimt pass pipeline" << std::endl;
             break;
-	  case Nod::PipelineType_GPU_TENSORCORE:
+	        case Nod::PipelineType_GPU_TENSORCORE:
+	          if (option->pipeline_depth){
+              softwarePipelineDepth = option->pipeline_depth;
+            }
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::LLVMGPUMatmulTensorCore;
             tileSizes = {workloadPerWorkgroup};
             std::cout << "Using LLVMGPUTensorCore pass pipeline" << std::endl;
@@ -145,9 +149,18 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
             break;
         }
 
+        auto configAttr = iree_compiler::IREE::Codegen::LoweringConfigAttr::get(
+                          op->getContext(), tileSizes, {},
+                          /*nativeVectorSizes=*/ArrayRef<int64_t>{});
+
+        auto translationInfo = iree_compiler::IREE::Codegen::TranslationInfoAttr::get(
+                               op->getContext(), passPipeline,
+                               /*workloadPerWorkgroup=*/ArrayRef<int64_t>{},
+                               softwarePipelineDepth);
+
         auto compilationAttr = iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
-                               op->getContext(), tileSizes, {}, /*nativeVectorSizes=*/ArrayRef<int64_t>{},
-                               passPipeline, /*workloadPerWorkgroup=*/ArrayRef<int64_t>{}, workgroupSizes);
+                               op->getContext(), configAttr,
+                               translationInfo, workgroupSizes);
 
         LogicalResult status = iree_compiler::verifyLoweringConfiguration(
                                   op, compilationAttr.getLoweringConfig(),

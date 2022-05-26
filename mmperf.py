@@ -420,7 +420,7 @@ def main(argv):
             with open(f_path, 'r') as f:
                 data = json.load(f)
                 best_config = data
-                if "b" in data.keys():
+                if "b" in data.keys() and data["b"] != 0:
                     matmul_size = [int(data["b"]), int(data["m"]), int(data["n"]), int(data["k"])]
                 else:
                     matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
