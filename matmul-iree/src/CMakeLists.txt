@@ -13,7 +13,7 @@ set(NUM_REPS ${NUM_REPS})
 
 # Use `iree-translate` to transform an MLIR file into an VM bytcode module.
 # Resolve the executable binary path for iree-translate from the target name.
-set(_TRANSLATE_TOOL_EXECUTABLE $<TARGET_FILE:iree-translate>)
+set(_TRANSLATE_TOOL_EXECUTABLE $<TARGET_FILE:iree-compile>)
 set(_EMBEDDED_LINKER_TOOL_EXECUTABLE $<TARGET_FILE:lld>)
 
 message(STATUS "Generating mhlo.dot mlir files...")

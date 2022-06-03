@@ -2,9 +2,9 @@
 # once
 1x384x384
 #12 times
-#12x128x32x384
+12x128x32x128
 #12 times
-#12x128x128x384
+12x128x128x32
 #48 times
 128x384x384
 #12 times

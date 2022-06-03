@@ -13,7 +13,7 @@ class IREEExecutionHandler(object):
         self.mmperf_dir = mmperf_dir
         self.build_dir = build_dir
         self.matmul_generator_src = abspath(self.mmperf_dir/'matmul-iree'/'src'/'matmul_generator.cc')
-        self.iree_translate = abspath(self.build_dir/'matmul-iree'/'iree'/'iree'/'tools'/'iree-translate')
+        self.iree_translate = abspath(self.build_dir/'matmul-iree'/'iree'/'tools'/'iree-compile')
         self.generate_embed_data = abspath(self.build_dir/'matmul-iree'/'iree'/'build_tools'/'embed_data'/'generate_embed_data')
         self.tiling_pass = os.path.abspath(self.build_dir/'matmul-iree'/'src'/'tiling'/'add-tiling-attribute-pass')
         self.flatc = abspath(self.build_dir/"flatbuffers-install/bin/flatc")
@@ -67,8 +67,6 @@ class IREEExecutionHandler(object):
                 cmd += f'-iree-flow-split-matmul-reduction={reduction} '
             if swizzle != None:
                 cmd += f'-iree-codegen-log-swizzle-tile={swizzle} '
-            if depth != None:
-                cmd += f'-iree-codegen-cuda-pipeline-depth={depth} '
         subprocess.run(cmd, shell=True, check=True, cwd=self.bin_dir)
         return abspath(f'{self.bin_dir}/matmul_{str(filename)}.vmfb')
 
@@ -277,7 +275,7 @@ def main(argv):
     for f_path in glob.glob(abspath(os.path.join(args.config_path, '*.json'))):
         with open(f_path, 'r') as f:
             data = json.load(f)
-            if "b" in data.keys():
+            if "b" in data.keys() and data["b"] != 0:
               matmul_size = [int(data["b"]), int(data["m"]), int(data["n"]), int(data["k"])]
             else:
               matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
