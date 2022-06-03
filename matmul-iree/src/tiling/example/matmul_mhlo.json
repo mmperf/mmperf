@@ -1,6 +1,8 @@
 {"options": [
-  {"work_group_tile_sizes" : [32, 32],
+  {"work_group_tile_sizes" : [32, 32, 0],
    "l1_tile_sizes" : [32, 8, 0],
-   "vector_tile_sizes" : [0, 0, 4]
+   "vector_tile_sizes" : [0, 0, 4],
+    "tile_interchange" : [1, 0, 2],
+    "pipeline" : "CPU"
    }]
 }

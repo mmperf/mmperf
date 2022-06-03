@@ -1,6 +1,6 @@
 # Test mhlo.dot
 ../../../../build/flatbuffers-install/bin/flatc -b ../compile_options.fbs matmul_mhlo.json && \
-cat ../../matmul_MxNxK.mlir | sed 's@${M}@'"256"'@g' | sed 's@${N}@'"256"'@g' | sed 's@${K}@'"256"'@g' > matmul_mhlo.mlir && \
+cat ../../matmul_MxNxK.mlir | sed 's@${M}@'"256"'@g' | sed 's@${N}@'"256"'@g' | sed 's@${K}@'"256"'@g' | sed 's@${TYPE}@'"f32"'@g' > matmul_mhlo.mlir && \
 ../../../../build/matmul-iree/src/tiling/add-tiling-attribute-pass matmul_mhlo.mlir --compile-options "./matmul_mhlo.bin"
 
 # Test linalg.matmul

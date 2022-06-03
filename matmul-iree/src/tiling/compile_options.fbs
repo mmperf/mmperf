@@ -11,6 +11,7 @@ table TileOptions {
   l1_tile_sizes:[int64];
   vector_tile_sizes:[int64];
   work_group_sizes:[int64];
+  tile_interchange:[int64];
   pipeline: PipelineType;
   split_k: int;
   swizzle: int;

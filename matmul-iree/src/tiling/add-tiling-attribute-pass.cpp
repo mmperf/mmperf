@@ -113,20 +113,23 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         else if (mhlo_dot_general) op = mhlo_dot_general;
 
         // Set tiling vectors
-        SmallVector<int64_t> workloadPerWorkgroup, L1TileSizes, vectorTileSizes, workgroupSizes;
+        SmallVector<int64_t> workloadPerWorkgroup, L1TileSizes, vectorTileSizes;
+        SmallVector<int64_t> workgroupSizes, interchange;
         populateSmallVector<int64_t>(option->work_group_tile_sizes, workloadPerWorkgroup);
         populateSmallVector<int64_t>(option->l1_tile_sizes, L1TileSizes);
         populateSmallVector<int64_t>(option->vector_tile_sizes, vectorTileSizes);
         populateSmallVector<int64_t>(option->work_group_sizes, workgroupSizes);
+        populateSmallVector<int64_t>(option->tile_interchange, interchange);
 
         // set DispatchLoweringPassPipeline
         iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline passPipeline;
-        iree_compiler::TileSizesListType tileSizes;
+        iree_compiler::TileSizesListType tileSizes, tile_interchange;
         unsigned softwarePipelineDepth = 0;
         switch(option->pipeline) {
           case Nod::PipelineType_CPU:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
-            tileSizes = {{}, L1TileSizes, vectorTileSizes};
+            tileSizes = {workloadPerWorkgroup, L1TileSizes, vectorTileSizes};
+            tile_interchange = {interchange, {}, {}};
             std::cout << "Using CPUDoubleTilingExpert pass pipeline" << std::endl;
             break;
           case Nod::PipelineType_GPU:
@@ -144,13 +147,13 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
             break;
           default:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
-            tileSizes = {{}, L1TileSizes, vectorTileSizes};
+            tileSizes = {workloadPerWorkgroup, L1TileSizes, vectorTileSizes};
             std::cout << "Default using CPU pass pipeline" << std::endl;
             break;
         }
 
         auto configAttr = iree_compiler::IREE::Codegen::LoweringConfigAttr::get(
-                          op->getContext(), tileSizes, {},
+                          op->getContext(), tileSizes, tile_interchange,
                           /*nativeVectorSizes=*/ArrayRef<int64_t>{});
 
         auto translationInfo = iree_compiler::IREE::Codegen::TranslationInfoAttr::get(
