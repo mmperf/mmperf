@@ -36,6 +36,7 @@ function(generate_matmul_binary mlir_file matrix_size backend B M N K TYPE NUM_R
     if(${backend} STREQUAL "dylib")
         list(APPEND _ARGS "-iree-hal-target-backends=dylib-llvm-aot")
         list(APPEND _ARGS "-iree-llvm-target-cpu-features=host")
+        list(APPEND _ARGS "-iree-llvmcpu-enable-hoist-padding")
         list(APPEND _ARGS "-iree-llvm-link-embedded=true")
         list(APPEND _ARGS "-iree-llvm-debug-symbols=false")
         list(APPEND _ARGS "-iree-vm-bytecode-module-strip-source-map=true")
@@ -120,21 +121,33 @@ function(generate_matmul_binary mlir_file matrix_size backend B M N K TYPE NUM_R
         ${BENCHMARK_SOURCE_DIR}/include
     )
 
-    target_link_libraries(${iree_executable_name}
-        ${MLIR_LIB}
-        iree_base_base
-        iree_hal_hal
-        iree_hal_local_local
-        iree_hal_local_sync_driver
-        iree_hal_local_loaders_vmvx_module_loader
-        iree_hal_local_loaders_embedded_library_loader
-        iree_hal_${backend}_registration_registration
-        iree_modules_hal_hal
-        iree_task_api
-        iree_vm_vm
-        iree_vm_bytecode_module
-        benchmark
-    )
+    if((${backend} STREQUAL "dylib") OR (${backend} STREQUAL "vmvx"))
+        target_link_libraries(${iree_executable_name}
+            ${MLIR_LIB}
+            iree_base_base
+            iree_hal_hal
+            iree_hal_local_local
+            iree_hal_drivers_local_sync_sync_driver
+            iree_hal_local_loaders_embedded_elf_loader
+            iree_hal_local_loaders_vmvx_module_loader
+            iree_modules_hal_hal
+            iree_task_api
+            iree_vm_vm
+            iree_vm_bytecode_module
+            benchmark
+        )
+    elseif(${backend} STREQUAL "cuda")
+        target_link_libraries(${iree_executable_name}
+            ${MLIR_LIB}
+            iree_base_base
+            iree_hal_hal
+            iree_hal_drivers_cuda_registration_registration
+            iree_modules_hal_hal
+            iree_vm_vm
+            iree_vm_bytecode_module
+            benchmark
+        )
+    endif()
 
     target_compile_definitions(${iree_executable_name}
     PRIVATE "MATMUL_HEADER=\"${mlir_lib}.h\"")

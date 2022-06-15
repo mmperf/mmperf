@@ -12,7 +12,7 @@
 #include "iree/hal/api.h"
 #include "iree/hal/local/executable_loader.h"
 #include "iree/hal/local/loaders/vmvx_module_loader.h"
-#include "iree/hal/local/sync_device.h"
+#include "iree/hal/drivers/local_sync/sync_device.h"
 
 iree_status_t create_sample_device(iree_allocator_t host_allocator,
                                    iree_hal_device_t** out_device) {

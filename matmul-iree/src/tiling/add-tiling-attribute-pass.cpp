@@ -127,10 +127,10 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         unsigned softwarePipelineDepth = 0;
         switch(option->pipeline) {
           case Nod::PipelineType_CPU:
-            passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
+            passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingPadExpert;
             tileSizes = {workloadPerWorkgroup, L1TileSizes, vectorTileSizes};
             tile_interchange = {interchange, {}, {}};
-            std::cout << "Using CPUDoubleTilingExpert pass pipeline" << std::endl;
+            std::cout << "Using CPUDoubleTilingPadExpert pass pipeline" << std::endl;
             break;
           case Nod::PipelineType_GPU:
             passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::LLVMGPUMatmulSimt;
@@ -146,7 +146,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
             std::cout << "Using LLVMGPUTensorCore pass pipeline" << std::endl;
             break;
           default:
-            passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingExpert;
+            passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingPadExpert;
             tileSizes = {workloadPerWorkgroup, L1TileSizes, vectorTileSizes};
             std::cout << "Default using CPU pass pipeline" << std::endl;
             break;

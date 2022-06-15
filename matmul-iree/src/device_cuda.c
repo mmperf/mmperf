@@ -10,7 +10,7 @@
 
 #include "iree/base/api.h"
 #include "iree/hal/api.h"
-#include "iree/hal/cuda/registration/driver_module.h"
+#include "iree/hal/drivers/cuda/registration/driver_module.h"
 
 iree_status_t create_sample_device(iree_allocator_t host_allocator,
                                    iree_hal_device_t** out_device) {

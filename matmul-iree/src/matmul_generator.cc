@@ -182,8 +182,8 @@ iree_status_t Run() {
   iree_vm_context_t* context = NULL;
   iree_vm_module_t* modules[] = {hal_module, bytecode_module};
   IREE_RETURN_IF_ERROR(iree_vm_context_create_with_modules(
-      instance, IREE_VM_CONTEXT_FLAG_TRACE_EXECUTION, &modules[0], IREE_ARRAYSIZE(modules), iree_allocator_system(),
-      &context));
+      instance, IREE_VM_CONTEXT_FLAG_TRACE_EXECUTION, IREE_ARRAYSIZE(modules),
+      &modules[0], iree_allocator_system(), &context));
   iree_vm_module_release(hal_module);
   iree_vm_module_release(bytecode_module);
 
@@ -248,21 +248,19 @@ iree_status_t Run() {
 #endif
 
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
-      iree_hal_device_allocator(device), arg0_shape, arg0_size,
+      iree_hal_device_allocator(device), arg0_size, arg0_shape,
       element_type, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
-          .usage =
-              IREE_HAL_BUFFER_USAGE_DISPATCH | IREE_HAL_BUFFER_USAGE_TRANSFER,
+          .usage = IREE_HAL_BUFFER_USAGE_DEFAULT,
       },
       initial_data0, &arg0_buffer_view));
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
-      iree_hal_device_allocator(device), arg1_shape, arg1_size,
+      iree_hal_device_allocator(device), arg1_size, arg1_shape,
       element_type, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
-          .usage =
-              IREE_HAL_BUFFER_USAGE_DISPATCH | IREE_HAL_BUFFER_USAGE_TRANSFER,
+          .usage = IREE_HAL_BUFFER_USAGE_DEFAULT,
       },
       initial_data1, &arg1_buffer_view));
 
