@@ -44,7 +44,7 @@ class IREEExecutionHandler(object):
             cmd = f'{self.iree_translate} ' \
                   f'-iree-input-type=mhlo ' \
                   f'-iree-mlir-to-vm-bytecode-module ' \
-                  f'-iree-hal-target-backends=dylib-llvm-aot ' \
+                  f'-iree-hal-target-backends=llvm-cpu ' \
                   f'-iree-llvm-target-cpu-features=host ' \
                   f'-iree-llvmcpu-enable-hoist-padding ' \
                   f'-iree-llvm-link-embedded=true ' \
@@ -61,6 +61,7 @@ class IREEExecutionHandler(object):
                   f'-iree-hal-target-backends=cuda ' \
                   f'-iree-hal-cuda-llvm-target-arch=sm_80 ' \
                   f'-iree-hal-cuda-disable-loop-nounroll-wa ' \
+                  f'-iree-flow-fuse-reduction-broadcast-elementwise ' \
                   f'-iree-hal-benchmark-dispatch-repeat-count=100 ' \
                   f'{mlir_file} -o matmul_{str(filename)}.vmfb ' \
                   f'-iree-llvm-embedded-linker-path=lld '

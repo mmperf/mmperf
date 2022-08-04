@@ -153,7 +153,7 @@ static void BenchmarkFunction(int batch_size,
 
 iree_status_t Run() {
   // TODO(benvanik): move to instance-based registration.
-  IREE_RETURN_IF_ERROR(iree_hal_module_register_types());
+  IREE_RETURN_IF_ERROR(iree_hal_module_register_all_types());
 
   iree_vm_instance_t* instance = NULL;
   IREE_RETURN_IF_ERROR(
@@ -163,7 +163,8 @@ iree_status_t Run() {
   IREE_RETURN_IF_ERROR(create_sample_device(iree_allocator_system(), &device));
   iree_vm_module_t* hal_module = NULL;
   IREE_RETURN_IF_ERROR(
-      iree_hal_module_create(device, iree_allocator_system(), &hal_module));
+      iree_hal_module_create(device, IREE_HAL_MODULE_FLAG_SYNCHRONOUS,
+                             iree_allocator_system(), &hal_module));
 
   // Note the setup here only supports native build. The bytecode is not built
   // for the cross-compile execution. The code can be compiled but it will
