@@ -1,0 +1,1 @@
+{"options": [{"work_group_tile_sizes": [1, 32, 128], "work_group_sizes": [32, 1, 1], "pipeline": "GPU"}], "identifier": "matmul", "m": 1, "n": 384, "k": 384}

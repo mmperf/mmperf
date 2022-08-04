@@ -1,0 +1,1 @@
+{"options": [{"work_group_tile_sizes": [32, 32, 16], "work_group_sizes": [64, 2, 1], "pipeline": "GPU_TENSORCORE", "pipeline_depth": 4}], "identifier": "matmul", "m": 128, "n": 384, "k": 384}

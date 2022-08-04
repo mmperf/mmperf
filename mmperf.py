@@ -426,14 +426,6 @@ def main(argv):
                     matmul_size = [int(data["m"]), int(data["n"]), int(data["k"])]
 
                 try:
-                    best_depth = data["options"][0]["pipeline_depth"]
-                except:
-                    best_depth = None
-                try:
-                    best_reduction = data["options"][0]["split_k"]
-                except:
-                    best_reduction = None
-                try:
                     best_swizzle = data["options"][0]["swizzle"]
                 except:
                     best_swizzle = None
@@ -441,8 +433,7 @@ def main(argv):
 
                 matmul_size_str = 'x'.join([str(d) for d in tuple(matmul_size)])
                 file_name = f'nodai-shark-cuda_{matmul_size_str}'
-                exec_handle.generate_nodai_bins(f_path, file_name, matmul_size,
-                            reduction=best_reduction, swizzle=best_swizzle, depth=best_depth)
+                exec_handle.generate_nodai_bins(f_path, file_name, matmul_size, swizzle=best_swizzle)
 
     # get only the executables
     bin_paths = [x for x in args.bins.iterdir() if

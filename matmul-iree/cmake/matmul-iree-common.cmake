@@ -45,7 +45,6 @@ function(generate_matmul_binary mlir_file matrix_size backend B M N K TYPE NUM_R
         list(APPEND _ARGS "-iree-hal-target-backends=cuda")
         list(APPEND _ARGS "-iree-hal-cuda-llvm-target-arch=sm_80")
         list(APPEND _ARGS "-iree-hal-cuda-disable-loop-nounroll-wa")
-        list(APPEND _ARGS "-iree-flow-fuse-reduction-broadcast-elementwise")
     else()
         list(APPEND _ARGS "-iree-hal-target-backends=${backend}")
     endif()

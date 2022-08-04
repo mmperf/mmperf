@@ -39,7 +39,7 @@ class IREEExecutionHandler(object):
         subprocess.run(cmd, shell=True, check=True, cwd=self.mlir_objs_dir)
         return abspath(f'{self.mlir_objs_dir}/matmul_{matmul_size_str}-tiled.mlir')
 
-    def translate_to_vm_bytecode(self, mlir_file, filename, reduction=None, swizzle=None, depth=None):
+    def translate_to_vm_bytecode(self, mlir_file, filename, swizzle=None):
         if self.compile_args.target == "iree" or self.compile_args.target == "shark":
             cmd = f'{self.iree_translate} ' \
                   f'-iree-input-type=mhlo ' \
@@ -61,16 +61,11 @@ class IREEExecutionHandler(object):
                   f'-iree-hal-target-backends=cuda ' \
                   f'-iree-hal-cuda-llvm-target-arch=sm_80 ' \
                   f'-iree-hal-cuda-disable-loop-nounroll-wa ' \
-                  f'-iree-flow-fuse-reduction-broadcast-elementwise ' \
                   f'-iree-hal-benchmark-dispatch-repeat-count=100 ' \
                   f'{mlir_file} -o matmul_{str(filename)}.vmfb ' \
                   f'-iree-llvm-embedded-linker-path=lld '
-            if reduction != None:
-                cmd += f'-iree-flow-split-matmul-reduction={reduction} '
             if swizzle != None:
                 cmd += f'-iree-codegen-log-swizzle-tile={swizzle} '
-            if depth != None:
-                cmd += f'-iree-codegen-cuda-pipeline-depth={depth} '
         subprocess.run(cmd, shell=True, check=True, cwd=self.bin_dir)
         return abspath(f'{self.bin_dir}/matmul_{str(filename)}.vmfb')
 
@@ -197,11 +192,13 @@ class IREEExecutionHandler(object):
                   f'matmul_{filename}.a ' \
                   f'{iree}/base/libiree_base_base.a ' \
                   f'{iree}/hal/libiree_hal_hal.a ' \
-                  f'{iree}/hal/cuda/registration/libiree_hal_cuda_registration_registration.a ' \
+                  f'{iree}/hal/drivers/cuda/registration/libiree_hal_drivers_cuda_registration_registration.a ' \
                   f'{iree}/modules/hal/libiree_modules_hal_hal.a ' \
+                  f'{iree}/modules/hal/libiree_modules_hal_types.a ' \
+                  f'{iree}/modules/hal/utils/libiree_modules_hal_utils_buffer_diagnostics.a ' \
                   f'{iree}/vm/libiree_vm_bytecode_module.a ' \
                   f'{iree}/base/internal/libiree_base_internal_dynamic_library.a ' \
-                  f'{iree}/base/internal/libiree_base_internal_file_path.a ' \
+                  f'{iree}/base/internal/libiree_base_internal_path.a ' \
                   f'{iree}/modules/hal/libiree_modules_hal_hal.a ' \
                   f'{iree}/base/internal/libiree_base_internal_arena.a ' \
                   f'{iree}/base/internal/libiree_base_internal_fpu_state.a ' \
@@ -213,8 +210,10 @@ class IREEExecutionHandler(object):
                   f'{iree}/base/internal/libiree_base_internal_atomic_slist.a ' \
                   f'{iree}/hal/utils/libiree_hal_utils_buffer_transfer.a ' \
                   f'{iree}/hal/utils/libiree_hal_utils_resource_set.a ' \
-                  f'{iree}/hal/cuda/libiree_hal_cuda_cuda.a ' \
-                  f'{iree}/hal/cuda/libiree_hal_cuda_dynamic_symbols.a ' \
+                  f'{iree}/hal/utils/libiree_hal_utils_deferred_command_buffer.a ' \
+                  f'{iree}/hal/utils/libiree_hal_utils_semaphore_base.a ' \
+                  f'{iree}/hal/drivers/cuda/libiree_hal_drivers_cuda_cuda.a ' \
+                  f'{iree}/hal/drivers/cuda/libiree_hal_drivers_cuda_dynamic_symbols.a ' \
                   f'{iree}/base/internal/libiree_base_internal_threading.a ' \
                   f'{iree}/hal/libiree_hal_hal.a ' \
                   f'{iree}/base/internal/libiree_base_internal_synchronization.a ' \
@@ -224,20 +223,23 @@ class IREEExecutionHandler(object):
                   f'{iree}/base/internal/libiree_base_internal_dynamic_library.a ' \
                   f'{iree}/base/internal/libiree_base_internal_fpu_state.a ' \
                   f'{iree}/base/internal/libiree_base_internal_file_io.a ' \
-                  f'{iree}/base/internal/libiree_base_internal_file_path.a ' \
+                  f'{iree}/base/internal/libiree_base_internal_path.a ' \
                   f'{iree}/base/internal/libiree_base_internal_flags.a ' \
                   f'{iree}/base/internal/libiree_base_internal_synchronization.a ' \
                   f'{iree}/base/internal/libiree_base_internal_threading.a ' \
                   f'{iree}/base/internal/libiree_base_internal_wait_handle.a ' \
                   f'{iree}/base/libiree_base_base.a ' \
-                  f'{iree}/hal/cuda/registration/libiree_hal_cuda_registration_registration.a ' \
+                  f'{iree}/hal/drivers/cuda/registration/libiree_hal_drivers_cuda_registration_registration.a ' \
                   f'{iree}/hal/libiree_hal_hal.a ' \
                   f'{iree}/modules/hal/libiree_modules_hal_hal.a ' \
+                  f'{iree}/modules/hal/libiree_modules_hal_types.a ' \
+                  f'{iree}/modules/hal/utils/libiree_modules_hal_utils_buffer_diagnostics.a ' \
                   f'{iree}/hal/utils/libiree_hal_utils_deferred_command_buffer.a ' \
                   f'{iree}/hal/utils/libiree_hal_utils_buffer_transfer.a ' \
                   f'{iree}/hal/utils/libiree_hal_utils_resource_set.a ' \
-                  f'{iree}/hal/cuda/libiree_hal_cuda_cuda.a ' \
-                  f'{iree}/hal/cuda/libiree_hal_cuda_dynamic_symbols.a ' \
+                  f'{iree}/hal/utils/libiree_hal_utils_semaphore_base.a ' \
+                  f'{iree}/hal/drivers/cuda/libiree_hal_drivers_cuda_cuda.a ' \
+                  f'{iree}/hal/drivers/cuda/libiree_hal_drivers_cuda_dynamic_symbols.a ' \
                   f'{iree}/task/libiree_task_api.a ' \
                   f'{iree}/task/libiree_task_task.a ' \
                   f'{iree}/vm/libiree_vm_bytecode_module.a ' \
@@ -254,13 +256,13 @@ class IREEExecutionHandler(object):
                   f'-lm '
         subprocess.run(cmd, shell=True, check=True, cwd=self.bin_dir)
 
-    def generate_nodai_bins(self, f_path, filename, matmul_size, reduction=None, swizzle=None, depth=None):
+    def generate_nodai_bins(self, f_path, filename, matmul_size, swizzle=None):
         self.create_device()
         matmul_size_str = 'x'.join([str(d) for d in tuple(matmul_size)])
         print(f'Compiling {self.mlir_objs_dir}/matmul_{matmul_size_str}.mlir',
               f'for matmul size {int(matmul_size[0])}x{int(matmul_size[1])}x{int(matmul_size[2])}')
         mlir_tiled_file = self.apply_tiling_pass(f_path, filename, matmul_size_str)
-        vmfb_file = self.translate_to_vm_bytecode(mlir_tiled_file, filename, reduction, swizzle, depth)
+        vmfb_file = self.translate_to_vm_bytecode(mlir_tiled_file, filename, swizzle)
         self.embed_data(vmfb_file, filename)
         self.create_main(filename, matmul_size)
         self.create_matmul_static_library(filename)
@@ -289,14 +291,6 @@ def main(argv):
 
             best_config = data
             try:
-                best_depth = data["options"][0]["pipeline_depth"]
-            except:
-                best_depth = None
-            try:
-                best_reduction = data["options"][0]["split_k"]
-            except:
-                best_reduction = None
-            try:
                 best_swizzle = data["options"][0]["swizzle"]
             except:
                 best_swizzle = None
@@ -304,8 +298,7 @@ def main(argv):
 
             matmul_size_str = 'x'.join([str(d) for d in tuple(matmul_size)])
             file_name = f'nodai-shark-cuda_{matmul_size_str}'
-            exec_handle.generate_nodai_bins(f_path, file_name, matmul_size,
-                        reduction=best_reduction, swizzle=best_swizzle, depth=best_depth)
+            exec_handle.generate_nodai_bins(f_path, file_name, matmul_size, swizzle=best_swizzle)
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
