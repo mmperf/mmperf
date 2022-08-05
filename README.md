@@ -80,20 +80,7 @@ cmake --build build
 ```
 
 ### Building specified backends on GPU
-With any GPU backends, NVIDIA CUDA-11.4 should be pre-installed on your system. To install NVIDIA CUDA-11.4 toolkit, please refer to this [link](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html). Make sure environment variables `$PATH` and `$LD_LIBRARY_PATH` are correctly configured. CUDA Compiler should be set as `nvcc` in the command line. For example, to compile the MLIR-CUDA backend run:
-
-```bash
-cmake -GNinja \
-    -DCMAKE_CXX_COMPILER=clang++-11 \
-    -DCMAKE_C_COMPILER=clang-11 \
-    -DCMAKE_CUDA_COMPILER=nvcc \
-    -DUSE_MLIR_CUDA=ON \
-    -B build .
-
-cmake --build build
-```
-
-Another example to compare mmperf results among cuBLAS, IREE-CUDA and TVM-CUDA (TVM Auto-scheduler, a.k.a. Ansor) with this command line:
+Benchmarking with any GPU backends, NVIDIA CUDA 11 should be pre-installed on your system. To enable CUDA compiler, `-DCMAKE_CUDA_COMPILER=nvcc` should be set in the command line. For example, to compile the IREE-CUDA and compare with cuBLAS and TVM-CUDA (TVM Auto-scheduler, a.k.a. Ansor) run this command line:
 
 ```bash
 cmake -GNinja \
@@ -165,26 +152,27 @@ Matrix sizes: `benchmark_sizes` folder has text files containing the matrix size
 Precision: The default precision for all backends is FP32. FP16 benchmark has been added to cuBLAS, IREE, and triton backends. To enable FP16, use flag `-DUSE_FP16=ON`
 
 
-### Run iree-llvm-sandbox in mmperf
-To build mlir with iree-llvm-sandbox, enable the flag `-DUSE_IREE_LLVM_SANDBOX=ON`.
-
-To run iree-llvm-sandbox, and get the best performance among different experts, run:
-```
-cmake --build build/matmul --target sandbox_search
-```
-Note: This command will perform search on all expert configurations, and output the best configs to `mlir_sandbox_configs` for each matmul size.
-
-To compare results between original mlir-sandbox and nodai-sandbox, run:
-```
-python mmperf.py ./build/matmul results -sandbox -sandbox_configs=/path/to/mlir_sandbox_configs -nodai_configs=/path/to/nodai_sandbox_configs
-```
-
-Note: If you just want to plot results for mlir_sandbox, enable `-sandbox_configs` (to load configs from previous run) or `-benchmark_path` (to rerun the search). Optional flag: `-num_iters` to change the number of iterations for matmul test.
-
 ### Run triton with FP16
+
+To test the performance of [openai-triton](https://github.com/openai/triton) with half precision, one has to `pip install triton`, and then run the following command
 ```
 python mmperf.py ./build/matmul results -triton -dtype f16 -benchmark_path=./benchmark_sizes/bert_large_matmul.txt
 ```
+
+### Run nodai-shark-cuda example on Nvidia A100
+
+We have uploaded the sample of [configuration files](https://github.com/mmperf/mmperf/tree/main/official_results/best_configs_minilm) after running the Nod-ai SHARK auto-tuner. To test the performance of nodai_shark_cuda on Nvidia A100, one has to build IREE-CUDA (as shown in previous section) and then run:
+```
+python mmperf.py ./build/matmul/ results -nodai_shark_cuda -nodai_shark_configs=official_results/best_configs_minilm/
+```
+
+Note: The configuration is particularly optimized for Nvidia A100 GPU, and it may be not working well for other GPU architectures.
+
+## Related Projects
+
+[IREE: Intermediate Representation Execution Environment](https://github.com/iree-org/iree)
+
+[Nod-ai SHARK](https://github.com/nod-ai/SHARK)
 
 ## Installing optional dependencies: Halide, OpenBLAS, MKL
 
