@@ -203,13 +203,19 @@ iree_status_t Run() {
   dtype *arg0, *arg1;
   iree_const_byte_span_t initial_data0, initial_data1;
 
+  iree_hal_dim_t *arg0_dim;
+  iree_hal_dim_t *arg1_dim;
+
   if (BDIM == 0){
-    iree_hal_dim_t arg0_dim[] = {MDIM, KDIM};
-    iree_hal_dim_t arg1_dim[] = {KDIM, NDIM};
+    arg0_dim = (iree_hal_dim_t *) malloc(2 * sizeof(iree_hal_dim_t));
+    arg1_dim = (iree_hal_dim_t *) malloc(2 * sizeof(iree_hal_dim_t));
+    arg0_dim[1] = arg1_dim[0] = KDIM;
+    arg0_dim[0] = MDIM;
+    arg1_dim[1] = NDIM;
     arg0_shape = arg0_dim;
     arg1_shape = arg1_dim;
-    arg0_size = IREE_ARRAYSIZE(arg0_dim);
-    arg1_size = IREE_ARRAYSIZE(arg1_dim);
+    arg0_size = 2;
+    arg1_size = 2;
 
     arg0 = (dtype *) malloc(MDIM * KDIM * sizeof(dtype));
     arg1 = (dtype *) malloc(KDIM * NDIM * sizeof(dtype));
@@ -220,12 +226,17 @@ iree_status_t Run() {
     initial_data0 = iree_make_const_byte_span((void*)arg0, MDIM * KDIM * sizeof(dtype));
     initial_data1 = iree_make_const_byte_span((void*)arg1, KDIM * NDIM * sizeof(dtype));
   } else {
-    iree_hal_dim_t arg0_dim[] = {1, BDIM, MDIM, KDIM};
-    iree_hal_dim_t arg1_dim[] = {1, BDIM, KDIM, NDIM};
+    arg0_dim = (iree_hal_dim_t *) malloc(4 * sizeof(iree_hal_dim_t));
+    arg1_dim = (iree_hal_dim_t *) malloc(4 * sizeof(iree_hal_dim_t));
+    arg0_dim[0] = arg1_dim[0] = 1;
+    arg0_dim[1] = arg1_dim[1] = BDIM;
+    arg0_dim[3] = arg1_dim[2] = KDIM;
+    arg0_dim[2] = MDIM;
+    arg1_dim[3] = NDIM;
     arg0_shape = arg0_dim;
     arg1_shape = arg1_dim;
-    arg0_size = IREE_ARRAYSIZE(arg0_dim);
-    arg1_size = IREE_ARRAYSIZE(arg1_dim);
+    arg0_size = 4;
+    arg1_size = 4;
 
     arg0 = (dtype *) malloc(BDIM * MDIM * KDIM * sizeof(dtype));
     arg1 = (dtype *) malloc(BDIM * KDIM * NDIM * sizeof(dtype));
@@ -294,6 +305,8 @@ iree_status_t Run() {
 
   free(arg0);
   free(arg1);
+  free(arg0_dim);
+  free(arg1_dim);
 
   iree_vm_list_release(inputs);
   iree_vm_list_release(outputs);
