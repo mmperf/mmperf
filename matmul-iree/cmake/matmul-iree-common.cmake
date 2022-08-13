@@ -122,12 +122,16 @@ function(generate_matmul_binary mlir_file matrix_size backend B M N K TYPE NUM_R
     )
 
     if((${backend} STREQUAL "dylib") OR (${backend} STREQUAL "vmvx"))
+	set(IREE_CPU_DRIVER_LIB iree_hal_drivers_local_sync_sync_driver)
+	if(IREE_CPU_MULTITHREADED)
+	  set(IREE_CPU_DRIVER_LIB iree_hal_drivers_local_task_task_driver)
+	endif()
         target_link_libraries(${iree_executable_name}
             ${MLIR_LIB}
             iree_base_base
             iree_hal_hal
             iree_hal_local_local
-            iree_hal_drivers_local_sync_sync_driver
+	    ${IREE_CPU_DRIVER_LIB}
             iree_hal_local_loaders_embedded_elf_loader
             iree_hal_local_loaders_vmvx_module_loader
             iree_modules_hal_hal
