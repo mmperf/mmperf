@@ -22,7 +22,7 @@ import GPUtil
 import csv
 import json
 import torch
-import triton
+#import triton
 
 plt.style.use('ggplot')
 
