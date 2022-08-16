@@ -93,6 +93,8 @@ def add_arguments(parser):
                         help='Whether to run nodai_shark_cuda (gpu)')
     parser.add_argument('-nodai_shark_configs', dest='nodai_shark_configs',
                         help='Path to load config files generated for nodai-shark(_cuda)')
+    parser.add_argument('-multi_thread', action='store_true',
+                        help='Whether to run nodai_shark multi-threaded')
 
 def make_result_dir(base_dir):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
@@ -432,8 +434,9 @@ def main(argv):
                 print("Best config", best_config)
 
                 matmul_size_str = 'x'.join([str(d) for d in tuple(matmul_size)])
-                file_name = f'nodai-shark-cuda_{matmul_size_str}'
-                exec_handle.generate_nodai_bins(f_path, file_name, matmul_size, swizzle=best_swizzle)
+                output_name = f'nodai-shark_{matmul_size_str}' \
+                    if args.nodai_shark else f'nodai-shark-cuda_{matmul_size_str}'
+                exec_handle.generate_nodai_bins(f_path, output_name, matmul_size, swizzle=best_swizzle)
 
     # get only the executables
     bin_paths = [x for x in args.bins.iterdir() if

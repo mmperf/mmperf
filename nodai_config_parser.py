@@ -27,6 +27,9 @@ class IREEExecutionHandler(object):
             self.device_src = abspath(self.mmperf_dir/'matmul-iree'/'src'/'device_dylib.c')
         elif self.compile_args.target == "iree-cuda" or self.compile_args.target == "shark-cuda":
             self.device_src = abspath(self.mmperf_dir/'matmul-iree'/'src'/'device_cuda.c')
+        self.multi_thread = False
+        if self.compile_args.multi_thread:
+            self.multi_thread = True
 
     def apply_tiling_pass(self, file_path, filename, matmul_size_str):
         cmd = f'{self.flatc} -b {self.compile_options_fbs} {file_path}'
@@ -99,6 +102,8 @@ class IREEExecutionHandler(object):
     def create_device(self):
         cmd = f'{self.c_compiler} ' \
               f'-I{self.mmperf_dir}/external/iree/runtime/src -c {self.device_src} '
+        if self.multi_thread:
+            cmd += f'-DUSE_LOCAL_TASK'
         subprocess.run(cmd, shell=True, check=True, cwd=self.bin_dir)
 
     def create_matmul_static_library(self, filename):
@@ -114,6 +119,10 @@ class IREEExecutionHandler(object):
         iree = abspath(self.build_dir/'matmul-iree'/'iree'/'runtime'/'src'/'iree')
         third_party = abspath(self.build_dir/'matmul-iree'/'iree'/'third_party')
         build_tools = abspath(self.build_dir/'matmul-iree'/'iree'/ 'build_tools')
+        if self.multi_thread:
+            local_driver = f'{iree}/hal/drivers/local_task/libiree_hal_drivers_local_task_task_driver.a '
+        else:
+            local_driver = f'{iree}/hal/drivers/local_sync/libiree_hal_drivers_local_sync_sync_driver.a '
 
         if self.compile_args.target == "iree" or self.compile_args.target == "shark":
             cmd = f'{self.cxx_compiler} ' \
@@ -122,18 +131,25 @@ class IREEExecutionHandler(object):
                   f'{iree}/base/libiree_base_base.a ' \
                   f'{iree}/hal/libiree_hal_hal.a ' \
                   f'{iree}/modules/hal/libiree_modules_hal_hal.a ' \
+                  f'{iree}/modules/hal/libiree_modules_hal_types.a ' \
+                  f'{iree}/modules/hal/utils/libiree_modules_hal_utils_buffer_diagnostics.a ' \
                   f'{iree}/vm/libiree_vm_bytecode_module.a ' \
                   f'{iree}/hal/local/loaders/libiree_hal_local_loaders_embedded_elf_loader.a ' \
+                  f'{iree}/hal/local/libiree_hal_local_local.a ' \
+                  f'{iree}/hal/local/libiree_hal_local_executable_loader.a ' \
                   f'{iree}/hal/local/elf/libiree_hal_local_elf_elf_module.a ' \
                   f'{iree}/hal/local/elf/libiree_hal_local_elf_arch.a ' \
                   f'{iree}/hal/local/elf/libiree_hal_local_elf_platform.a ' \
                   f'{iree}/base/internal/libiree_base_internal_dynamic_library.a ' \
                   f'{iree}/base/internal/libiree_base_internal_path.a ' \
-                  f'{iree}/hal/drivers/local_sync/libiree_hal_drivers_local_sync_sync_driver.a ' \
+                  f'{iree}/base/internal/libiree_base_internal_event_pool.a ' \
+                  f'{local_driver}' \
                   f'{iree}/hal/local/libiree_hal_local_local.a ' \
                   f'{iree}/hal/local/libiree_hal_local_executable_environment.a ' \
                   f'{iree}/hal/utils/libiree_hal_utils_buffer_transfer.a ' \
                   f'{iree}/modules/hal/libiree_modules_hal_hal.a ' \
+                  f'{iree}/modules/hal/libiree_modules_hal_types.a ' \
+                  f'{iree}/modules/hal/utils/libiree_modules_hal_utils_buffer_diagnostics.a ' \
                   f'{iree}/base/internal/libiree_base_internal_arena.a ' \
                   f'{iree}/base/internal/libiree_base_internal_fpu_state.a ' \
                   f'{iree}/base/internal/libiree_base_internal_cpu.a ' \
@@ -160,6 +176,7 @@ class IREEExecutionHandler(object):
                   f'{iree}/base/internal/libiree_base_internal_synchronization.a ' \
                   f'{iree}/base/internal/libiree_base_internal_threading.a ' \
                   f'{iree}/base/internal/libiree_base_internal_wait_handle.a ' \
+                  f'{iree}/base/internal/libiree_base_internal_event_pool.a ' \
                   f'{iree}/base/libiree_base_base.a ' \
                   f'{iree}/hal/libiree_hal_hal.a ' \
                   f'{iree}/hal/local/elf/libiree_hal_local_elf_arch.a ' \
@@ -167,11 +184,13 @@ class IREEExecutionHandler(object):
                   f'{iree}/hal/local/elf/libiree_hal_local_elf_platform.a ' \
                   f'{iree}/hal/utils/libiree_hal_utils_buffer_transfer.a ' \
                   f'{iree}/hal/utils/libiree_hal_utils_semaphore_base.a ' \
+                  f'{iree}/hal/utils/libiree_hal_utils_resource_set.a ' \
                   f'{iree}/hal/local/libiree_hal_local_local.a ' \
-                  f'{iree}/hal/drivers/local_sync/libiree_hal_drivers_local_sync_sync_driver.a ' \
+                  f'{local_driver}' \
                   f'{iree}/hal/local/libiree_hal_local_executable_environment.a ' \
                   f'{iree}/hal/local/loaders/libiree_hal_local_loaders_embedded_elf_loader.a ' \
                   f'{iree}/modules/hal/libiree_modules_hal_hal.a ' \
+                  f'{iree}/modules/hal/libiree_modules_hal_types.a ' \
                   f'{iree}/task/libiree_task_api.a ' \
                   f'{iree}/task/libiree_task_task.a ' \
                   f'{iree}/vm/libiree_vm_bytecode_module.a ' \

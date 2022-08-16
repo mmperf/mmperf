@@ -127,7 +127,8 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
         unsigned softwarePipelineDepth = 0;
         switch(option->pipeline) {
           case Nod::PipelineType_CPU:
-            passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingPadExpert;
+	  case Nod::PipelineType_CPUDoubleTilingPadExpert:
+	    passPipeline = iree_compiler::IREE::Codegen::DispatchLoweringPassPipeline::CPUDoubleTilingPadExpert;
             tileSizes = {workloadPerWorkgroup, L1TileSizes, vectorTileSizes};
             tile_interchange = {interchange, {}, {}};
             std::cout << "Using CPUDoubleTilingPadExpert pass pipeline" << std::endl;
