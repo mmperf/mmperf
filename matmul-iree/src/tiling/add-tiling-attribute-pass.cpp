@@ -158,9 +158,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
                           /*nativeVectorSizes=*/ArrayRef<int64_t>{});
 
         auto translationInfo = iree_compiler::IREE::Codegen::TranslationInfoAttr::get(
-                               op->getContext(), passPipeline,
-                               /*workloadPerWorkgroup=*/ArrayRef<int64_t>{},
-                               softwarePipelineDepth);
+                               op->getContext(), passPipeline, softwarePipelineDepth);
 
         auto compilationAttr = iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
                                op->getContext(), configAttr,

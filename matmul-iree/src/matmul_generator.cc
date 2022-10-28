@@ -108,9 +108,6 @@ static void BenchmarkFunction(int batch_size,
                                  iree_allocator_system()));
   }
 
-  // Force a full flush and get the device back to an idle state.
-  IREE_CHECK_OK(iree_hal_device_wait_idle(device, iree_infinite_timeout()));
-
   // Get the result buffers from the invocation.
   iree_hal_buffer_view_t* ret_buffer_view =
       (iree_hal_buffer_view_t*)iree_vm_list_get_ref_deref(

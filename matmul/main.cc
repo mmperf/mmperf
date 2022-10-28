@@ -368,7 +368,12 @@ else{
 #endif
 
   for (auto _ : state){
-#if defined(MKL) || defined(OPENBLAS) || defined(BLIS) || defined(ACCELERATE)
+#if defined(OPENBLAS)
+  if (BDIM == 0){
+    cblas_sgemm(MATRIX_FORMAT, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
+                A, LDA, B, LDB, beta, C, LDC);
+  }
+#elif defined(MKL) || defined(BLIS) || defined(ACCELERATE)
   if (BDIM == 0){
     cblas_sgemm(MATRIX_FORMAT, CblasNoTrans, CblasNoTrans, MDIM, NDIM, KDIM, alpha,
                 A, LDA, B, LDB, beta, C, LDC);

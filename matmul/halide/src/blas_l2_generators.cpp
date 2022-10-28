@@ -51,13 +51,13 @@ public:
     GeneratorParam<bool> transpose_ = {"transpose", false};
 
     // Standard ordering of parameters in GEMV functions.
-    Input<T> a_ = {"a", 1};
-    Input<Buffer<T>> A_ = {"A", 2};
-    Input<Buffer<T>> x_ = {"x", 1};
-    Input<T> b_ = {"b", 1};
-    Input<Buffer<T>> y_ = {"y", 1};
+    Input<T> a_ = Input<T>{"a", 1};
+    Input<Buffer<T>> A_ = Input<Buffer<T>>{"A", 2};
+    Input<Buffer<T>> x_ = Input<Buffer<T>>{"x", 1};
+    Input<T> b_ = Input<T>{"b", 1};
+    Input<Buffer<T>> y_ = Input<Buffer<T>>{"y", 1};
 
-    Output<Buffer<T>> output_ = {"output", 1};
+    Output<Buffer<T>> output_ = Output<Buffer<T>>{"output", 1};
 
     void generate() {
         assert(get_target().has_feature(Target::NoBoundsQuery));
@@ -241,11 +241,11 @@ public:
     GeneratorParam<int> block_size_ = {"block_size", 1 << 5};
 
     // Standard ordering of parameters in GEMV functions.
-    Input<T> a_ = {"a", 1};
-    Input<Buffer<T>> x_ = {"x", 1};
-    Input<Buffer<T>> y_ = {"y", 1};
+    Input<T> a_ = Input<T>{"a", 1};
+    Input<Buffer<T>> x_ = Input<Buffer<T>>{"x", 1};
+    Input<Buffer<T>> y_ = Input<Buffer<T>>{"y", 1};
 
-    Output<Buffer<T>> result_ = {"result", 2};
+    Output<Buffer<T>> result_ = Output<Buffer<T>>({"result", 2});
 
     void generate() {
         const int vec_size = vectorize_ ? natural_vector_size(type_of<T>()) : 1;
