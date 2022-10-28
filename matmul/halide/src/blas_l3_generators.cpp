@@ -49,13 +49,13 @@ public:
     GeneratorParam<bool> transpose_B_ = {"transpose_B", false};
 
     // Standard ordering of parameters in GEMM functions.
-    Input<T> a_ = {"a_", 1};
-    Input<Buffer<T>> A_ = {"A_", 2};
-    Input<Buffer<T>> B_ = {"B_", 2};
-    Input<T> b_ = {"b_", 1};
-    Input<Buffer<T>> C_ = {"C_", 2};
+    Input<T> a_ = Input<T>{"a_", 1};
+    Input<Buffer<T>> A_ = Input<Buffer<T>>{"A_", 2};
+    Input<Buffer<T>> B_ = Input<Buffer<T>>{"B_", 2};
+    Input<T> b_ = Input<T>{"b_", 1};
+    Input<Buffer<T>> C_ = Input<Buffer<T>>{"C_", 2};
 
-    Output<Buffer<T>> result_ = {"result", 2};
+    Output<Buffer<T>> result_ = Output<Buffer<T>>{"result", 2};
 
     void generate() {
         // Matrices are interpreted as column-major by default. The
