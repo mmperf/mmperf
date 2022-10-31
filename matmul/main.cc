@@ -155,7 +155,7 @@ tvm::runtime::Module create_module() {
   auto target = tvm::Target("llvm");
 #endif
 
-  auto lowered = tvm::LowerSchedule(s, args, "matmul", binds);
+  auto lowered = tvm::LowerSchedule(s, args, "matmul", binds, tvm::GlobalVarSupply(tvm::NameSupply("")));
   auto module = tvm::build(lowered, target, tvm::Target());
   return module;
 }
