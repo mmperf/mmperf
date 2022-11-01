@@ -40,7 +40,7 @@ endif()
 # Set IREE backends to use
 if(${USE_IREE})
   option(IREE_VMVX "Enable IREE vmvx (CPU) backend" OFF)
-  option(IREE_DYLIB "Enable IREE dylib (CPU) backend" OFF)
+  option(IREE_LLVMCPU "Enable IREE LLVM (CPU) backend" OFF)
   option(IREE_CUDA "Enable IREE cuda (GPU) backend" OFF)
 endif()
 
@@ -75,5 +75,5 @@ set(VARS_TO_COPY
     COPY_FILL_TILE_SIZES
     NUM_REPS
     IREE_VMVX
-    IREE_DYLIB
+    IREE_LLVMCPU
     IREE_CUDA)
