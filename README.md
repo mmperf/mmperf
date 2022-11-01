@@ -73,7 +73,7 @@ HALIDE_DIR=/home/foo/lokal/halide/ MKL_DIR=/opt/intel/oneapi/mkl/latest/ cmake -
     -DUSE_HALIDE=ON \
     -DUSE_OPENBLAS=ON \
     -DUSE_IREE=ON \
-    -DIREE_DYLIB=ON \
+    -DIREE_LLVMCPU=ON \
     -B build .
 
 cmake --build build
