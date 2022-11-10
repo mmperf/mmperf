@@ -24,7 +24,7 @@
 #include "iree/compiler/Codegen/Dialect/IREECodegenDialect.h"
 #include "iree/compiler/Dialect/HAL/IR/HALDialect.h"
 #include "iree/compiler/Dialect/Util/IR/UtilDialect.h"
-#include "mlir-hlo/Dialect/mhlo/IR/hlo_ops.h"
+#include "mhlo/IR/hlo_ops.h"
 
 #include <filesystem>
 #include <fstream>

@@ -23,9 +23,9 @@ get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 include_directories(${IREE_SOURCE_DIR})
 include_directories(${IREE_SOURCE_DIR}/third_party/llvm-project/llvm/include)
 include_directories(${IREE_SOURCE_DIR}/third_party/llvm-project/mlir/include)
-include_directories(${IREE_SOURCE_DIR}/third_party/mlir-hlo/include)
+include_directories(${IREE_SOURCE_DIR}/third_party/mlir-hlo)
 include_directories(${IREE_BINARY_DIR}/third_party/llvm-project/llvm/include)
-include_directories(${IREE_BINARY_DIR}/third_party/llvm-project/llvm/tools/mlir/include)
+include_directories(${IREE_BINARY_DIR}/third_party/llvm-project/llvm/tools/mlir-hlo)
 include_directories(${IREE_BINARY_DIR})
 
 set(LIBS
