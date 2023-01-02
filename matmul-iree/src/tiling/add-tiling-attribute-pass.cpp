@@ -162,7 +162,7 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
 
         auto compilationAttr = iree_compiler::IREE::Codegen::CompilationInfoAttr::get(
                                op->getContext(), configAttr,
-                               translationInfo, workgroupSizes);
+                               translationInfo, workgroupSizes, /*subgroupSize=*/std::nullopt);
 
         LogicalResult status = iree_compiler::verifyLoweringConfiguration(
                                   op, compilationAttr.getLoweringConfig(),
