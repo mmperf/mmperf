@@ -12,3 +12,5 @@ synr
 # packages for triton
 torch
 #triton
+# packages for cuda
+requests
