@@ -49,7 +49,6 @@ class IREEExecutionHandler(object):
                   f'-output-format=vm-bytecode ' \
                   f'-iree-hal-target-backends=llvm-cpu ' \
                   f'-iree-llvmcpu-target-cpu-features=host ' \
-                  f'-iree-llvmcpu-enable-hoist-padding ' \
                   f'-iree-llvmcpu-link-embedded=true ' \
                   f'-iree-llvmcpu-debug-symbols=false ' \
                   f'-iree-vm-bytecode-module-strip-source-map=true ' \
