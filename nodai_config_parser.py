@@ -46,12 +46,12 @@ class IREEExecutionHandler(object):
         if self.compile_args.target == "iree" or self.compile_args.target == "shark":
             cmd = f'{self.iree_translate} ' \
                   f'-iree-input-type=mhlo ' \
-                  f'-iree-mlir-to-vm-bytecode-module ' \
+                  f'-output-format=vm-bytecode ' \
                   f'-iree-hal-target-backends=llvm-cpu ' \
-                  f'-iree-llvm-target-cpu-features=host ' \
+                  f'-iree-llvmcpu-target-cpu-features=host ' \
                   f'-iree-llvmcpu-enable-hoist-padding ' \
-                  f'-iree-llvm-link-embedded=true ' \
-                  f'-iree-llvm-debug-symbols=false ' \
+                  f'-iree-llvmcpu-link-embedded=true ' \
+                  f'-iree-llvmcpu-debug-symbols=false ' \
                   f'-iree-vm-bytecode-module-strip-source-map=true ' \
                   f'-iree-vm-emit-polyglot-zip=false ' \
                   f'-iree-hal-benchmark-dispatch-repeat-count=100 ' \
@@ -60,7 +60,7 @@ class IREEExecutionHandler(object):
         elif self.compile_args.target == "iree-cuda" or self.compile_args.target == "shark-cuda":
             cmd = f'{self.iree_translate} ' \
                   f'-iree-input-type=mhlo ' \
-                  f'-iree-mlir-to-vm-bytecode-module ' \
+                  f'-output-format=vm-bytecode ' \
                   f'-iree-hal-target-backends=cuda ' \
                   f'-iree-hal-cuda-llvm-target-arch=sm_80 ' \
                   f'-iree-hal-benchmark-dispatch-repeat-count=100 ' \
