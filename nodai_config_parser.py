@@ -56,17 +56,16 @@ class IREEExecutionHandler(object):
                   f'-iree-vm-emit-polyglot-zip=false ' \
                   f'-iree-hal-benchmark-dispatch-repeat-count=100 ' \
                   f'{mlir_file} -o matmul_{str(filename)}.vmfb ' \
-                  f'-iree-llvm-embedded-linker-path=lld'
+                  f'-iree-llvmcpu-embedded-linker-path=lld'
         elif self.compile_args.target == "iree-cuda" or self.compile_args.target == "shark-cuda":
             cmd = f'{self.iree_translate} ' \
                   f'-iree-input-type=mhlo ' \
                   f'-iree-mlir-to-vm-bytecode-module ' \
                   f'-iree-hal-target-backends=cuda ' \
                   f'-iree-hal-cuda-llvm-target-arch=sm_80 ' \
-                  f'-iree-hal-cuda-disable-loop-nounroll-wa ' \
                   f'-iree-hal-benchmark-dispatch-repeat-count=100 ' \
                   f'{mlir_file} -o matmul_{str(filename)}.vmfb ' \
-                  f'-iree-llvm-embedded-linker-path=lld '
+                  f'-iree-llvmcpu-embedded-linker-path=lld '
             if swizzle != None:
                 cmd += f'-iree-codegen-log-swizzle-tile={swizzle} '
         subprocess.run(cmd, shell=True, check=True, cwd=self.bin_dir)

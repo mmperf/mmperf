@@ -44,7 +44,6 @@ function(generate_matmul_binary mlir_file matrix_size backend B M N K TYPE NUM_R
     elseif(${backend} STREQUAL "cuda")
         list(APPEND _ARGS "-iree-hal-target-backends=cuda")
         list(APPEND _ARGS "-iree-hal-cuda-llvm-target-arch=sm_80")
-        list(APPEND _ARGS "-iree-hal-cuda-disable-loop-nounroll-wa")
     else()
         list(APPEND _ARGS "-iree-hal-target-backends=${backend}")
     endif()
@@ -52,7 +51,7 @@ function(generate_matmul_binary mlir_file matrix_size backend B M N K TYPE NUM_R
     list(APPEND _ARGS "${mlir_file}")
     list(APPEND _ARGS "-o")
     list(APPEND _ARGS "${mlir_lib}.vmfb")
-    list(APPEND _ARGS "-iree-llvm-embedded-linker-path=${_EMBEDDED_LINKER_TOOL_EXECUTABLE}")
+    list(APPEND _ARGS "-iree-llvmcpu-embedded-linker-path=${_EMBEDDED_LINKER_TOOL_EXECUTABLE}")
 
     # Translate MLIR file to VM bytecode module
     add_custom_command(
