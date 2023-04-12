@@ -12,7 +12,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fbs/compile_options_genera
 )
 
 # Build tool to compile mlir
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_BINARY_DIR}/iree/third_party/llvm-project/llvm/lib/cmake/llvm")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_BINARY_DIR}/iree/llvm-project/lib/cmake/llvm")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_BINARY_DIR}/lib/cmake/mlir")
 
 include(AddLLVM)
