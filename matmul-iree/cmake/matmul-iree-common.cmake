@@ -36,7 +36,6 @@ function(generate_matmul_binary mlir_file matrix_size backend B M N K TYPE NUM_R
     if(${backend} STREQUAL "dylib")
         list(APPEND _ARGS "-iree-hal-target-backends=llvm-cpu")
         list(APPEND _ARGS "-iree-llvmcpu-target-cpu-features=host")
-        list(APPEND _ARGS "-iree-llvmcpu-enable-hoist-padding")
         list(APPEND _ARGS "-iree-llvmcpu-link-embedded=true")
         list(APPEND _ARGS "-iree-llvmcpu-debug-symbols=false")
         list(APPEND _ARGS "-iree-vm-bytecode-module-strip-source-map=true")
