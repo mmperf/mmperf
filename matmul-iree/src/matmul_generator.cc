@@ -98,7 +98,7 @@ static void BenchmarkFunction(int batch_size,
                               benchmark::State& state) {
   while (state.KeepRunningBatch(batch_size)) {
     IREE_CHECK_OK(iree_vm_list_create(
-                           /*element_type=*/NULL,
+                           iree_vm_make_undefined_type_def(),
                            /*capacity=*/1, iree_allocator_system(), &outputs));
 
     // Synchronously invoke the function.
@@ -109,9 +109,7 @@ static void BenchmarkFunction(int batch_size,
   }
 
   // Get the result buffers from the invocation.
-  iree_hal_buffer_view_t* ret_buffer_view =
-      (iree_hal_buffer_view_t*)iree_vm_list_get_ref_deref(
-          outputs, 0, &iree_hal_buffer_view_descriptor);
+  iree_hal_buffer_view_t* ret_buffer_view = iree_vm_list_get_buffer_view_assign(outputs, 0);
 
   // Read back the results and ensure we got the right values.
   dtype *C;
@@ -151,7 +149,7 @@ static void BenchmarkFunction(int batch_size,
 iree_status_t Run() {
   iree_vm_instance_t* instance = NULL;
   IREE_RETURN_IF_ERROR(
-      iree_vm_instance_create(iree_allocator_system(), &instance));
+      iree_vm_instance_create(IREE_VM_TYPE_CAPACITY_DEFAULT, iree_allocator_system(), &instance));
   IREE_RETURN_IF_ERROR(iree_hal_module_register_all_types(instance));
 
   iree_hal_device_t* device = NULL;
@@ -276,7 +274,7 @@ iree_status_t Run() {
   iree_vm_list_t* outputs = NULL;
 
   IREE_RETURN_IF_ERROR(iree_vm_list_create(
-                           /*element_type=*/NULL,
+                           iree_vm_make_undefined_type_def(),
                            /*capacity=*/2, iree_allocator_system(), &inputs),
                        "can't allocate input vm list");
 
