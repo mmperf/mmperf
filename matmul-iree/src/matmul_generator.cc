@@ -252,22 +252,18 @@ iree_status_t Run() {
   printf("Using FP32 \n");
 #endif
 
+  iree_hal_buffer_params_t buffer_params;
+  buffer_params.usage = IREE_HAL_BUFFER_USAGE_DEFAULT;
+  buffer_params.type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL;
+
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
       iree_hal_device_allocator(device), arg0_size, arg0_shape,
       element_type, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
-      (iree_hal_buffer_params_t){
-          .usage = IREE_HAL_BUFFER_USAGE_DEFAULT,
-          .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
-      },
-      initial_data0, &arg0_buffer_view));
+      buffer_params, initial_data0, &arg0_buffer_view));
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
       iree_hal_device_allocator(device), arg1_size, arg1_shape,
       element_type, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
-      (iree_hal_buffer_params_t){
-          .usage = IREE_HAL_BUFFER_USAGE_DEFAULT,
-          .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
-      },
-      initial_data1, &arg1_buffer_view));
+      buffer_params, initial_data1, &arg1_buffer_view));
 
   // Pass in the tensor as an expanded HAL buffer.
   iree_vm_list_t* inputs = NULL;
