@@ -256,11 +256,11 @@ iree_status_t Run() {
   buffer_params.usage = IREE_HAL_BUFFER_USAGE_DEFAULT;
   buffer_params.type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL;
 
-  IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
-      iree_hal_device_allocator(device), arg0_size, arg0_shape,
+  IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer_copy(
+      device, iree_hal_device_allocator(device), arg0_size, arg0_shape,
       element_type, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       buffer_params, initial_data0, &arg0_buffer_view));
-  IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
+  IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer_copy(device,
       iree_hal_device_allocator(device), arg1_size, arg1_shape,
       element_type, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       buffer_params, initial_data1, &arg1_buffer_view));

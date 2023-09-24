@@ -31,7 +31,7 @@ function(generate_matmul_binary mlir_file matrix_size backend B M N K TYPE NUM_R
 
     # Define arguments passed to iree-translate
     set(_ARGS)
-    list(APPEND _ARGS "-iree-input-type=mhlo")
+    list(APPEND _ARGS "-iree-input-type=stablehlo")
     list(APPEND _ARGS "--output-format=vm-bytecode")
     if(${backend} STREQUAL "dylib")
         list(APPEND _ARGS "-iree-hal-target-backends=llvm-cpu")

@@ -23,7 +23,7 @@ endif()
 set(_TRANSLATE_TOOL_EXECUTABLE $<TARGET_FILE:iree-compile>)
 set(_EMBEDDED_LINKER_TOOL_EXECUTABLE $<TARGET_FILE:lld>)
 
-message(STATUS "Generating mhlo.dot mlir files...")
+message(STATUS "Generating stablehlo.dot mlir files...")
 foreach(MATRIX_SIZE ${MATRIX_SIZES})
   if(${USE_FP16} STREQUAL "ON")
     set(TYPE "f16")
