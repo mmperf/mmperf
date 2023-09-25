@@ -45,7 +45,7 @@ class IREEExecutionHandler(object):
     def translate_to_vm_bytecode(self, mlir_file, filename, swizzle=None):
         if self.compile_args.target == "iree" or self.compile_args.target == "shark":
             cmd = f'{self.iree_translate} ' \
-                  f'-iree-input-type=mhlo ' \
+                  f'-iree-input-type=stablehlo ' \
                   f'-output-format=vm-bytecode ' \
                   f'-iree-hal-target-backends=llvm-cpu ' \
                   f'-iree-llvmcpu-target-cpu-features=host ' \
@@ -58,7 +58,7 @@ class IREEExecutionHandler(object):
                   f'-iree-llvmcpu-embedded-linker-path=lld'
         elif self.compile_args.target == "iree-cuda" or self.compile_args.target == "shark-cuda":
             cmd = f'{self.iree_translate} ' \
-                  f'-iree-input-type=mhlo ' \
+                  f'-iree-input-type=stablehlo ' \
                   f'-output-format=vm-bytecode ' \
                   f'-iree-hal-target-backends=cuda ' \
                   f'-iree-hal-cuda-llvm-target-arch=sm_80 ' \

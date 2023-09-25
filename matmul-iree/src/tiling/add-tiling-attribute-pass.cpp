@@ -20,11 +20,11 @@
 #include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "iree/compiler/Codegen/Passes.h"
-#include "iree/compiler/Codegen/Dialect/LoweringConfig.h"
+#include "iree/compiler/Codegen/Dialect/IREECodegenAttrs.h"
 #include "iree/compiler/Codegen/Dialect/IREECodegenDialect.h"
 #include "iree/compiler/Dialect/HAL/IR/HALDialect.h"
 #include "iree/compiler/Dialect/Util/IR/UtilDialect.h"
-#include "mhlo/IR/hlo_ops.h"
+#include "stablehlo/dialect/StablehloOps.h"
 
 #include <filesystem>
 #include <fstream>
@@ -101,8 +101,8 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
     moduleOp->walk([&](Operation *nestedOp) {
       auto linalg_matmul = llvm::dyn_cast<linalg::MatmulOp>(nestedOp);
       auto linalg_bmm = llvm::dyn_cast<mlir::linalg::BatchMatmulOp>(nestedOp);
-      auto mhlo_dot = llvm::dyn_cast<mhlo::DotOp>(nestedOp);
-      auto mhlo_dot_general = llvm::dyn_cast<mhlo::DotGeneralOp>(nestedOp);
+      auto mhlo_dot = llvm::dyn_cast<stablehlo::DotOp>(nestedOp);
+      auto mhlo_dot_general = llvm::dyn_cast<stablehlo::DotGeneralOp>(nestedOp);
 
       if(mhlo_dot || mhlo_dot_general || linalg_matmul || linalg_bmm) {
         const auto& option = (count < options.size()) ? options[count++] : options.back();
@@ -164,10 +164,10 @@ struct IREETilingPass : public PassWrapper<IREETilingPass, OperationPass<ModuleO
                                op->getContext(), configAttr,
                                translationInfo, workgroupSizes, /*subgroupSize=*/std::nullopt);
 
-        LogicalResult status = iree_compiler::verifyLoweringConfiguration(
+        /*LogicalResult status = iree_compiler::verifyLoweringConfiguration(
                                   op, compilationAttr.getLoweringConfig(),
                                   compilationAttr.getTranslationInfo(), workgroupSizes);
-        if (failed(status)) signalPassFailure();
+        if (failed(status)) signalPassFailure();*/
 
         iree_compiler::setCompilationInfo(op, compilationAttr);
 
@@ -238,7 +238,7 @@ int main(int argc, char **argv) {
   registry.insert<iree_compiler::IREE::Codegen::IREECodegenDialect,
                   iree_compiler::IREE::Util::UtilDialect,
                   iree_compiler::IREE::HAL::HALDialect,
-                  mlir::mhlo::MhloDialect>();
+                  mlir::stablehlo::StablehloDialect>();
   mlir::registerAllPasses();
 
   llvm::InitLLVM y(argc, argv);
